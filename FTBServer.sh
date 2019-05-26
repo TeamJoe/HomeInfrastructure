@@ -65,10 +65,12 @@ stop() {
 	if [ ! -z "$process" ]; then
 		echo "Unable to stop server"
 	fi
+	
+	kill -9 $(ps aux | grep "[t]ail -f $input_file" | awk '{print $2}')
 }
 
 getProcess() {
-	echo "$(ps aux | grep "[j]ava.*-jar '$minecraft_jar'" | awk '{print $2}')"
+	echo "$(ps aux | grep "[j]ava.*-jar $minecraft_jar" | awk '{print $2}')"
 }
 
 if [ "$1" == 'start' ]; then
