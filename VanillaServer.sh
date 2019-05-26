@@ -14,8 +14,8 @@ clean() {
 }
 
 start() {
-	mkdir -p $(dirname "$input_file")
-	mkdir -p $(dirname "$output_file")
+	mkdir -p "$(dirname ""$input_file"")"
+	mkdir -p "$(dirname ""$output_file"")"
 	rm -f "$input_file"
 	rm -f "$output_file"
 	touch "$input_file"
@@ -64,9 +64,12 @@ stop() {
 	local process="$(getProcess)"
 	if [ ! -z "$process" ]; then
 		echo "Unable to stop server"
+	else
+		local process="$(ps aux | grep "[t]ail -f $input_file" | awk '{print $2}')"
+		if [ ! -z "$process" ]; then
+			kill -9 $process
+		fi
 	fi
-	
-	kill -9 $(ps aux | grep "[t]ail -f $input_file" | awk '{print $2}')
 }
 
 getProcess() {
