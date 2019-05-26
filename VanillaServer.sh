@@ -20,8 +20,7 @@ start() {
 	rm -f "$output_file"
 	touch "$input_file"
 	touch "$output_file"
-	
-	nohup sh -c "cd $minecraft_dir; tail -f $input_file | $start_script" >> "$output_file" &
+	nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script" >> "$output_file" &
 }
 
 connect() {
@@ -30,7 +29,7 @@ connect() {
 }
 
 output() {
-	tail -f "$output_file"
+	tail -f -n 100 "$output_file"
 }
 
 input() {
@@ -65,7 +64,7 @@ stop() {
 	if [ ! -z "$process" ]; then
 		echo "Unable to stop server"
 	else
-		local process="$(ps aux | grep "[t]ail -f $input_file" | awk '{print $2}')"
+		local process="$(ps aux | grep "[t]ail -f -n 0 $input_file" | awk '{print $2}')"
 		if [ ! -z "$process" ]; then
 			kill -9 $process
 		fi
