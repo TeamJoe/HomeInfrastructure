@@ -36,8 +36,8 @@ input() {
 stop() {
 	local process="$(getProcess)"
 	if [ ! -z "$process" ]; then
-		echo "Sending 'exit' to $input_file"
-		echo 'exit' >> $input_file
+		echo "Sending 'stop' to $input_file"
+		echo 'stop' >> $input_file
 		sleep 10
 	fi
 	
