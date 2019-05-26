@@ -1,9 +1,11 @@
 #!/bin/bash
 
-input_file='/home/joe/input.txt'
-output_file='/home/joe/output.log'
-start_script='sh /opt/minecraft/ServerStart.sh'
+minecraft_dir='/home/joe/minecraft/FTB/Revelation/3.0.1'
 minecraft_jar='FTBserver-1.12.2-14.23.5.2836-universal.jar'
+input_file="${minecraft_dir}/logs/input.txt"
+output_file="${minecraft_dir}/logs/output.log"
+
+start_script='sh ServerStart.sh'
 
 start() {
 	stop
@@ -13,7 +15,7 @@ start() {
 	touch $input_file
 	touch $output_file
 	
-	nohup sh -c "tail -f $input_file | $start_script" >> $output_file &
+	nohup sh -c "cd $minecraft_dir; tail -f $input_file | $start_script" >> $output_file &
 
 	connect
 }
