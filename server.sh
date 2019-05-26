@@ -5,20 +5,15 @@ output_file='/home/joe/output.log'
 start_script_file='/opt/minecraft/ServerStart.sh'
 minecraft_jar='FTBserver-1.12.2-14.23.5.2836-universal.jar'
 
-clean() {
-	rm -rf $input_file
-	rm -rf $output_file
-}
-
 start() {
 	stop
-	clean
+	
+	rm -rf $input_file
+	rm -rf $output_file
 	touch $input_file
 	touch $output_file
-	chmod 777 $input_file
-	chmod 777 $output_file
-
-	nohup sh -c "tail -f $input_file | sh $start_script_file >> $output_file" &
+	
+	nohup sh -c "tail -f $input_file | sh $start_script_file" >> $output_file &
 
 	connect
 }
@@ -58,6 +53,11 @@ stop() {
 		echo "Force stopping $process"
 		kill -9 $process
 		sleep 10
+	fi
+	
+	local process="$(getProcess)"
+	if [ ! -z "$process" ]; then
+		echo "Unable to stop server"
 	fi
 }
 
