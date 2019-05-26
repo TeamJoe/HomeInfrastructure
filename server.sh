@@ -2,7 +2,7 @@
 
 input_file='/home/joe/input.txt'
 output_file='/home/joe/output.log'
-start_script_file='/opt/minecraft/ServerStart.sh'
+start_script='sh /opt/minecraft/ServerStart.sh'
 minecraft_jar='FTBserver-1.12.2-14.23.5.2836-universal.jar'
 
 start() {
@@ -13,7 +13,7 @@ start() {
 	touch $input_file
 	touch $output_file
 	
-	nohup sh -c "tail -f $input_file | sh $start_script_file" >> $output_file &
+	nohup sh -c "tail -f $input_file | $start_script" >> $output_file &
 
 	connect
 }
