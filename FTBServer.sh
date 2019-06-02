@@ -20,7 +20,7 @@ start() {
 	rm -f "$output_file"
 	touch "$input_file"
 	touch "$output_file"
-	nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script" >> "$output_file" &
+	nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script &" >> "$output_file" &
 }
 
 connect() {
