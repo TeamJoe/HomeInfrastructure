@@ -16,7 +16,7 @@ clean() {
 }
 
 start() {
-	if [ "$(isRunning)" = "true" ]; then
+	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot start: Server is already running"
 	else
 		mkdir -p "$(dirname ""$input_file"")"
@@ -30,10 +30,13 @@ start() {
 }
 
 connect() {
-	if [ "$(isRunning)" = "true" ]; then
+	if [ "$(isRunning)" == "true" ]; then
 		output &
 		input
-		killProcess "$(ps aux | grep '[t]ail -f -n 1000' | awk '{print $2}')"
+		
+		if [ ! "$(isRunning)" == "true" ]; then
+			killProcess "$(ps aux | grep '[t]ail -f -n 1000' | awk '{print $2}')"
+		fi
 	else
 		echo "Cannot connect: Server is not running"
 	fi
@@ -46,7 +49,7 @@ output() {
 
 input() {
 	while IFS= read -r line; do
-  		if [ "$(isRunning)" = "true" ]; then
+  		if [ "$(isRunning)" == "true" ]; then
 			if [ ! -z "$line" ]; then
 				echo "$line" >> "$input_file"
 			fi
@@ -58,7 +61,7 @@ input() {
 }
 
 stop() {
-	if [ "$(isRunning)" = "true" ]; then
+	if [ "$(isRunning)" == "true" ]; then
 		echo "Sending 'stop' to $input_file"
 		echo 'stop' >> "$input_file"
 		sleep 10
@@ -66,17 +69,17 @@ stop() {
 		echo "Cannot stop: Server is not running"
 	fi
 	
-	if [ "$(isRunning)" = "true" ]; then
+	if [ "$(isRunning)" == "true" ]; then
 		stopProcess "$(getProcess)"
 		sleep 10
 	fi
 	
-	if [ "$(isRunning)" = "true" ]; then
+	if [ "$(isRunning)" == "true" ]; then
 		killProcess "$(getProcess)"
 		sleep 10
 	fi
 	
-	if [ "$(isRunning)" = "true" ]; then
+	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot stop: Server is still running after multiple attempts to stop"
 	else
 		killProcess "$(ps aux | grep '[t]ail -f -n 0' | awk '{print $2}')"
@@ -84,7 +87,7 @@ stop() {
 }
 
 stopProcess() {
-	local process=$1
+	local process="$1"
 	if [ ! -z "$process" ]; then
 		echo "Stopping $process"
 		kill $process
@@ -92,7 +95,7 @@ stopProcess() {
 }
 
 killProcess() {
-	local process=$1
+	local process="$1"
 	if [ ! -z "$process" ]; then
 		echo "Force stopping $process"
 		kill -9 $process
@@ -114,7 +117,9 @@ getProcess() {
 
 if [ "$1" == 'start' ]; then
 	start
-	connect
+	if [ ! "$2" == 'noConnect' ]; then
+		connect
+	fi
 elif [ "$1" == 'connect' ]; then
 	connect
 elif [ "$1" == 'input' ]; then
@@ -127,9 +132,11 @@ elif [ "$1" == 'clean' ]; then
 elif [ "$1" == 'restart' ]; then
 	stop
 	start
-	connect
+	if [ ! "$2" == 'noConnect' ]; then
+		connect
+	fi
 elif [ "$1" == 'stop' ]; then
 	stop
 else
-	echo "Usage: $0 [start|connect|input|output|clean|restart|stop]"
+	echo "Usage: $0 [start|connect|input|output|clean|restart|stop] [noConnect]"
 fi
