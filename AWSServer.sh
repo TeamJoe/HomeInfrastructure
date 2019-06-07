@@ -7,7 +7,7 @@ output_file="${minecraft_dir}/logs/output.log"
 
 #start_script="java -server -Xmx16G -Xms16G -XX:+UseParNewGC -XX:+CMSIncrementalPacing -XX:+CMSClassUnloadingEnabled -XX:ParallelGCThreads=5 -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -jar '$minecraft_jar' nogui"
 #start_script="java -server -Xms16G -Xmx16G -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:MaxGCPauseMillis=100 -XX:+DisableExplicitGC -XX:TargetSurvivorRatio=90 -XX:G1NewSizePercent=35 -XX:G1MaxNewSizePercent=60 -XX:G1MixedGCLiveThresholdPercent=50 -XX:+AlwaysPreTouch -jar '$minecraft_jar' nogui"
-start_script="java -server -Xmx868M -Xms868M -jar '$minecraft_jar' nogui"
+start_script="java -server -Xmx512M -Xms512M -jar '$minecraft_jar' nogui"
 
 clean() {
 	rm -f "$input_file"
@@ -115,28 +115,71 @@ getProcess() {
 	echo "$(ps aux | grep '[j]ava.*' | awk '{print $2}')"
 }
 
-if [ "$1" == 'start' ]; then
-	start
-	if [ ! "$2" == 'noConnect' ]; then
+getInputVariable() {
+	local expected="-${2}"
+	local defaultValue="$1"
+	local returnNext='false'
+	local returnValue="$defaultValue"
+	
+	for var in "${@:3}"; do
+		if [ "$returnNext" == 'true' ]; then
+			local returnValue="$var"
+			break
+		elif [ "$var" == "$expected" ]; then
+			local returnNext='true'
+		fi
+	done
+	
+	echo "$returnValue"
+}
+
+runCommand() {
+	local runPath="$1"
+	local command="$2"
+	local connect="$3"
+	
+	if [ "$command" == 'start' ]; then
+		start
+	elif [ "$command" == 'input' ]; then
+		input
+		connect='false'
+	elif [ "$command" == 'output' ]; then
+		output
+		connect='false'
+	elif [ "$command" == 'clean' ]; then
+		stop
+		clean
+		connect='false'
+	elif [ "$command" == 'restart' ]; then
+		stop
+		start
+	elif [ "$command" == 'stop' ]; then
+		stop
+		connect='false'
+	elif [ ! "$command" == 'connect' ]; then
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop] [-connect true|false] [-output on|off]"
+		exit 1
+	fi
+	
+	if [ "$command" == 'connect' ]; then
+		connect
+	elif [ ! "$connect" == 'false' ]; then
 		connect
 	fi
-elif [ "$1" == 'connect' ]; then
-	connect
-elif [ "$1" == 'input' ]; then
-	input
-elif [ "$1" == 'output' ]; then
-	output
-elif [ "$1" == 'clean' ]; then
-	stop
-	clean
-elif [ "$1" == 'restart' ]; then
-	stop
-	start
-	if [ ! "$2" == 'noConnect' ]; then
-		connect
+
+}
+
+execute() {
+	local runPath="$1"
+	local command="$2"
+	local connect="$(getInputVariable 'true' 'connect' ""${@:3}"")"
+	local output="$(getInputVariable 'on' 'output' ""${@:3}"")"
+	
+	if [ ! "$output" == 'off' ]; then
+		runCommand "$runPath" "$command" "$connect"
+	else
+		runCommand "$runPath" "$command" "$connect" > /dev/null 2>&1
 	fi
-elif [ "$1" == 'stop' ]; then
-	stop
-else
-	echo "Usage: $0 [start|connect|input|output|clean|restart|stop] [noConnect]"
-fi
+}
+
+execute "$0" "$@"
