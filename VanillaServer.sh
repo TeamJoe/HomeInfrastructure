@@ -21,13 +21,13 @@ start() {
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot start: Server is already running"
 	else
-		mkdir -p "$(dirname ""$input_file"")"
-		mkdir -p "$(dirname ""$output_file"")"
+		mkdir -p "$(dirname '$input_file')"
+		mkdir -p "$(dirname '$output_file')"
 		rm -f "$input_file"
 		rm -f "$output_file"
 		touch "$input_file"
 		touch "$output_file"
-		nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script &" >> "$output_file" &
+		nohup sh -c "cd '$minecraft_dir'; tail -f -n 0 '$input_file' | $start_script &" >> "$output_file" &
 		sleep 10
 	fi
 }
@@ -35,11 +35,10 @@ start() {
 connect() {
 	if [ "$(isRunning)" == "true" ]; then
 		output &
+		local outputpid="$!"
 		input
 		
-		if [ ! "$(isRunning)" == "true" ]; then
-			killProcess "$(ps aux | grep '[t]ail -f -n 1000' | awk '{print $2}')"
-		fi
+		killProcess "$outputpid"
 	else
 		echo "Cannot connect: Server is not running"
 	fi
