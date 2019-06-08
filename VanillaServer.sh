@@ -21,8 +21,8 @@ start() {
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot start: Server is already running"
 	else
-		mkdir -p "$(dirname '$input_file')"
-		mkdir -p "$(dirname '$output_file')"
+		mkdir -p "$(dirname ""$input_file"")"
+		mkdir -p "$(dirname ""$output_file"")"
 		rm -f "$input_file"
 		rm -f "$output_file"
 		touch "$input_file"
