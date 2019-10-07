@@ -2,12 +2,12 @@
 Description=A Minecraft Server
 
 [Service]
-Type=oneshot
-RemainAfterExit=true
+Type=simple
+RemainAfterExit=no
 User=joe
 Restart=no
-ExecStart=/home/joe/ATM3Server.sh start -connect false -output off
-ExecStop=/home/joe/ATM3Server.sh stop -connect false -output off
+ExecStart=/home/joe/ATM3Server.sh start -connect false -output on -service true
+ExecStop=/home/joe/ATM3Server.sh stop -connect false -output on -service true
 
 [Install]
 WantedBy=multi-user.target
