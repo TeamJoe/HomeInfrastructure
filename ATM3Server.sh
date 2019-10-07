@@ -19,10 +19,11 @@ clean() {
 
 updateDomain() {
 	#curl <REDACTED:http://freedns.afraid.org/dynamic/>
-	#curl <REDACTED:http://freedns.afraid.org/dynamic/>
 }
 
 start() {
+	local service="$1"
+	
 	updateDomain
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot start: Server is already running"
@@ -33,8 +34,12 @@ start() {
 		rm -f "$output_file"
 		touch "$input_file"
 		touch "$output_file"
-		nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script &" >> "$output_file" &
-		sleep 10
+		if [ ! "$service" == 'true' ]; then
+			nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script &" >> "$output_file" &
+			sleep 10
+		elif
+			(cd $minecraft_dir; $start_script |& tee "$output_file")
+		fi
 	fi
 }
 
@@ -73,7 +78,7 @@ stop() {
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Sending 'stop' to $input_file"
 		echo 'stop' >> "$input_file"
-		sleep 10
+		sleep 60
 	else
 		echo "Cannot stop: Server is not running"
 	fi
@@ -146,9 +151,10 @@ runCommand() {
 	local runPath="$1"
 	local command="$2"
 	local connect="$3"
+	local service="$4"
 	
 	if [ "$command" == 'start' ]; then
-		start
+		start "$service"
 	elif [ "$command" == 'updatedomain' ]; then
 		updateDomain
 	elif [ "$command" == 'input' ]; then
@@ -163,12 +169,12 @@ runCommand() {
 		connect='false'
 	elif [ "$command" == 'restart' ]; then
 		stop
-		start
+		start "$service"
 	elif [ "$command" == 'stop' ]; then
 		stop
 		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|updatedomain|input|output|clean|restart|stop] [-connect true|false] [-output on|off]"
+		echo "Usage: $runPath [start|connect|updatedomain|input|output|clean|restart|stop] [-connect true|false] [-output on|off] [-service true|false]"
 		exit 1
 	fi
 	
@@ -185,11 +191,12 @@ execute() {
 	local command="$2"
 	local connect="$(getInputVariable 'true' 'connect' ""${@:3}"")"
 	local output="$(getInputVariable 'on' 'output' ""${@:3}"")"
+	local service="$(getInputVariable 'false' 'service' ""${@:3}"")"
 	
 	if [ ! "$output" == 'off' ]; then
-		runCommand "$runPath" "$command" "$connect"
+		runCommand "$runPath" "$command" "$connect" "$service"
 	else
-		runCommand "$runPath" "$command" "$connect" > /dev/null 2>&1
+		runCommand "$runPath" "$command" "$connect" "$service" > /dev/null 2>&1
 	fi
 }
 
