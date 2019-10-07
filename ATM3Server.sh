@@ -37,7 +37,7 @@ start() {
 		if [ ! "$service" == 'true' ]; then
 			nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script &" >> "$output_file" &
 			sleep 10
-		elif
+		else
 			(cd $minecraft_dir; $start_script |& tee "$output_file")
 		fi
 	fi
