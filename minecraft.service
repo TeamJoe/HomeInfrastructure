@@ -1,0 +1,13 @@
+[Unit]
+Description=A Minecraft Server
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+User=joe
+Restart=no
+ExecStart=/home/joe/ATM3Server.sh start -connect false -output off
+ExecStop=/home/joe/ATM3Server.sh stop -connect false -output off
+
+[Install]
+WantedBy=multi-user.target
