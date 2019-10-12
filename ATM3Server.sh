@@ -17,14 +17,9 @@ clean() {
 	rm -rf "${minecraft_dir}/crash-reports"
 }
 
-updateDomain() {
-	#curl <REDACTED:http://freedns.afraid.org/dynamic/>
-}
-
 start() {
 	local service="$1"
 	
-	updateDomain
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot start: Server is already running"
 	else
@@ -155,8 +150,6 @@ runCommand() {
 	
 	if [ "$command" == 'start' ]; then
 		start "$service"
-	elif [ "$command" == 'updatedomain' ]; then
-		updateDomain
 	elif [ "$command" == 'input' ]; then
 		input
 		connect='false'
@@ -174,7 +167,7 @@ runCommand() {
 		stop
 		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|updatedomain|input|output|clean|restart|stop] [-connect true|false] [-output on|off] [-service true|false]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop] [-connect true|false] [-output on|off] [-service true|false]"
 		exit 1
 	fi
 	
