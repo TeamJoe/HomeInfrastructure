@@ -4,9 +4,11 @@ minecraft_dir='/home/joe/minecraft/ATM3'
 minecraft_jar='forge-1.12.2-14.23.5.2844-universal.jar'
 input_file="${minecraft_dir}/logs/input.txt"
 output_file="${minecraft_dir}/logs/output.log"
+simple_output_file="${minecraft_dir}/logs/simple.log"
 
 #start_script='sh ServerStart.sh'
 start_script="java -Xms64G -Xmx64G -d64 -server -XX:+AggressiveOpts -XX:ParallelGCThreads=3 -XX:+UseConcMarkSweepGC -XX:+UnlockExperimentalVMOptions -XX:+UseParNewGC -XX:+ExplicitGCInvokesConcurrent -XX:MaxGCPauseMillis=10 -XX:GCPauseIntervalMillis=50 -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat -XX:NewSize=84m -XX:+UseAdaptiveGCBoundary -XX:NewRatio=3 -Dfml.readTimeout=90 -Dfml.queryResult=confirm -jar \"${minecraft_jar}\" nogui"
+
 
 clean() {
 	killProcess "$(ps aux | grep '[t]ail' | awk '{print $2}')"
@@ -30,12 +32,103 @@ start() {
 		touch "$input_file"
 		touch "$output_file"
 		if [ ! "$service" == 'true' ]; then
-			nohup sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script &" >> "$output_file" &
+			nohup runServer >> "$output_file" &
 			sleep 10
 		else
-			sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script" |& tee "$output_file"
+			runServer |& tee "$output_file"
 		fi
 	fi
+}
+
+regex() {
+	gawk 'match($0,/'$1'/, ary) {print ary['${2:-'0'}']}';
+}
+
+log() {
+	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
+}
+
+server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
+player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
+player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
+server_stopped_pattern='Stopping[[:blank:]]the[[:blank:]]server'
+
+logger() {
+	log "Server Starting"
+
+	local match=""
+	local output=""
+	IFS=$'\n'
+
+	for line in $(tail -f -n 0 "$output_file" | grep --line-buffered '.*')
+	do
+		match=$(echo "$line" | regex "$server_started_pattern" 0)
+		output=$(echo "$line" | regex "$server_started_pattern" 1)
+		if [ ! -z "$match" ]; then
+			log "Server Started ($output)"
+		fi
+		match=$(echo "$line" | regex "$server_stopped_pattern" 0)
+		output=$(echo "$line" | regex "$server_stopped_pattern" 1)
+		if [ ! -z "$match" ]; then
+			log "Server Stopped"
+		fi
+		match=$(echo "$line" | regex "$player_join_pattern" 0)
+		output=$(echo "$line" | regex "$player_join_pattern" 1)
+		if [ ! -z "$match" ]; then
+			log "Player Joined ($output)"
+			log "$(getPlayerCount)"
+		fi
+		match=$(echo "$line" | regex "$player_leave_pattern" 0)
+		output=$(echo "$line" | regex "$player_leave_pattern" 1)
+		if [ ! -z "$match" ]; then
+			log "Player Left ($output)"
+			log "$(getPlayerCount)"
+		fi
+	done
+}
+
+
+online_count_pattern='There[[:blank:]]are[[:blank:]]([[:digit:]]+)\/([[:digit:]]+)[[:blank:]]players[[:blank:]]online'
+player_list_pattern='(\[[^]]*\][[:blank:]]*)+:[[:blank:]]*(([a-zA-Z0-9_-]+[[:blank:]]*)*)'
+
+getPlayerCount() {
+	local match=""
+	local output=""
+	local count="-1"
+	local list=""
+	IFS=$'\n'
+	
+	echo "list players" >> "$input_file"
+	sleep 1
+	
+	for line in $(tail -n 10 "$output_file" | grep --line-buffered '.*')
+	do
+		match=$(echo "$line" | regex "$online_count_pattern" 0)
+		output=$(echo "$line" | regex "$online_count_pattern" 1)
+		if [ ! -z "$match" ]; then
+			count="$output"
+			list="next-line-is-player-list"
+		elif [ "$list" == 'next-line-is-player-list' ]; then
+			list=$(echo "$line" | regex "$player_list_pattern" 2)
+		fi
+	done
+	
+	if [ "$list" == 'next-line-is-player-list' ]; then
+		list=""
+	fi
+	
+	if [ "$count" == "-1" ]; then
+		echo "Failed to get count"
+	elif [ -z "$list" ]; then
+		echo "$count"
+	else
+		echo "$count ($list)"
+	fi
+}
+
+runServer() {
+	logger > /dev/null 2>&1 &
+	sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script"
 }
 
 connect() {
@@ -166,8 +259,11 @@ runCommand() {
 	elif [ "$command" == 'stop' ]; then
 		stop
 		connect='false'
+	elif [ "$command" == 'count' ]; then
+		echo "$(getPlayerCount)"
+		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop] [-connect true|false] [-output on|off] [-service true|false]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count] [-connect true|false] [-output on|off] [-service true|false]"
 		exit 1
 	fi
 	
