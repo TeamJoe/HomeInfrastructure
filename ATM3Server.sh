@@ -41,73 +41,76 @@ start() {
 }
 
 regex() {
-	gawk 'match($0,/'$1'/, ary) {print ary['${2:-'0'}']}';
+	gawk 'match($0,/'$1'/, ary) {print ary['${2:-'0'}']}'
+}
+
+regExMatch() {
+	local match="$(echo "$1" | regex "$2" 0)"
+	if [ ! -z "$match" ]; then
+		echo "$(echo "$1" | regex "$2" ${@:3})"
+	fi
 }
 
 log() {
 	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
 }
 
-server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
-player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
-player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
-server_stopped_pattern='Stopping[[:blank:]]the[[:blank:]]server'
+
 
 logger() {
+	local server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
+	local player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
+	local player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
+	local server_stopped_pattern='Stopping[[:blank:]]the[[:blank:]]server'
+
 	log "Server Starting"
 
+	local line=""
 	local match=""
-	local output=""
 	IFS=$'\n'
 
-	tail --retry -f -n 0 "$output_file" | while read line; do
-		match=$(echo "$line" | regex "$server_started_pattern" 0)
-		output=$(echo "$line" | regex "$server_started_pattern" 1)
+	tail --retry -f -n 10 "$output_file" | while read line; do
+		match="$(regExMatch "$line" "$server_started_pattern" 1)"
 		if [ ! -z "$match" ]; then
-			log "Server Started ($output)"
+			log "Server Started ($match)"
 		fi
-		match=$(echo "$line" | regex "$server_stopped_pattern" 0)
-		output=$(echo "$line" | regex "$server_stopped_pattern" 1)
+		match="$(regExMatch "$line" "$server_stopped_pattern" 0)"
 		if [ ! -z "$match" ]; then
 			log "Server Stopped"
 		fi
-		match=$(echo "$line" | regex "$player_join_pattern" 0)
-		output=$(echo "$line" | regex "$player_join_pattern" 1)
+		match="$(regExMatch "$line" "$player_join_pattern" 1)"
 		if [ ! -z "$match" ]; then
-			log "Player Joined ($output)"
-			log "Count $(getPlayerCount)"
+			log "Player Joined ($match)"
+			log "Player Count $(getPlayerCount)"
 		fi
-		match=$(echo "$line" | regex "$player_leave_pattern" 0)
-		output=$(echo "$line" | regex "$player_leave_pattern" 1)
+		match="$(regExMatch "$line" "$player_leave_pattern" 1)"
 		if [ ! -z "$match" ]; then
-			log "Player Left ($output)"
-			log "Count $(getPlayerCount)"
+			log "Player Left ($match)"
+			log "Player Count $(getPlayerCount)"
 		fi
 	done
 }
 
-
-online_count_pattern='There[[:blank:]]are[[:blank:]]([[:digit:]]+)\/([[:digit:]]+)[[:blank:]]players[[:blank:]]online'
-player_list_pattern='(\[[^]]*\][[:blank:]]*)+:[[:blank:]]*(([a-zA-Z0-9_-]+[[:blank:]]*)*)'
-
 getPlayerCount() {
+	local online_count_pattern='There[[:blank:]]are[[:blank:]]([0-9]+)\/([0-9]+)[[:blank:]]players[[:blank:]]online'
+	local player_list_pattern='(\[[^]]*\][[:blank:]]*)+:[[:blank:]]*(([a-zA-Z0-9_-]+[[:blank:]]*)*)'
+
 	local match=""
-	local output=""
-	local count="-1"
+	local player_count="-1"
 	local list=""
+	local line=""
 	IFS=$'\n'
 	
 	echo "list players" >> "$input_file"
 	sleep 1
 	
 	for line in $(tail -n 10 "$output_file"); do
-		match=$(echo "$line" | regex "$online_count_pattern" 0)
-		output=$(echo "$line" | regex "$online_count_pattern" 1)
+		match="$(regExMatch "$line" "$online_count_pattern" 1)"
 		if [ ! -z "$match" ]; then
-			count="$output"
+			player_count="$match"
 			list="next-line-is-player-list"
 		elif [ "$list" == 'next-line-is-player-list' ]; then
-			list=$(echo "$line" | regex "$player_list_pattern" 2)
+			list="$(regExMatch "$line" "$player_list_pattern" 2)"
 		fi
 	done
 	
@@ -115,13 +118,29 @@ getPlayerCount() {
 		list=""
 	fi
 	
-	if [ "$count" == "-1" ]; then
+	if [ "$player_count" == "-1" ]; then
 		echo "Failed to get count"
 	elif [ -z "$list" ]; then
-		echo "$count"
+		echo "$player_count"
 	else
-		echo "$count ($list)"
+		echo "$player_count ($list)"
 	fi
+}
+
+startTime() {
+	local match=""
+	local output=""
+	local line=""
+	IFS=$'\n'
+	
+	for line in $(cat "$simple_output_file"); do
+		match="$(regExMatch "$line" "$simple_server_started_pattern" 1)"
+		if [ ! -z "$match" ]; then
+			output="$match"
+		fi
+	done
+	
+	echo "$output"
 }
 
 runServer() {
