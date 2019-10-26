@@ -60,8 +60,7 @@ logger() {
 	local output=""
 	IFS=$'\n'
 
-	for line in $(tail -f -n 0 "$output_file" | grep --line-buffered '.*')
-	do
+	tail --retry -f -n 0 "$output_file" | while read line; do
 		match=$(echo "$line" | regex "$server_started_pattern" 0)
 		output=$(echo "$line" | regex "$server_started_pattern" 1)
 		if [ ! -z "$match" ]; then
@@ -76,13 +75,13 @@ logger() {
 		output=$(echo "$line" | regex "$player_join_pattern" 1)
 		if [ ! -z "$match" ]; then
 			log "Player Joined ($output)"
-			log "$(getPlayerCount)"
+			log "Count $(getPlayerCount)"
 		fi
 		match=$(echo "$line" | regex "$player_leave_pattern" 0)
 		output=$(echo "$line" | regex "$player_leave_pattern" 1)
 		if [ ! -z "$match" ]; then
 			log "Player Left ($output)"
-			log "$(getPlayerCount)"
+			log "Count $(getPlayerCount)"
 		fi
 	done
 }
@@ -101,8 +100,7 @@ getPlayerCount() {
 	echo "list players" >> "$input_file"
 	sleep 1
 	
-	for line in $(tail -n 10 "$output_file" | grep --line-buffered '.*')
-	do
+	for line in $(tail -n 10 "$output_file"); do
 		match=$(echo "$line" | regex "$online_count_pattern" 0)
 		output=$(echo "$line" | regex "$online_count_pattern" 1)
 		if [ ! -z "$match" ]; then
