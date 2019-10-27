@@ -170,10 +170,13 @@ isActive() {
 	local currentTimeStamp="$(date +"%s")"
 	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
 	local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
+	local timeSinceBoot="$(printf '%.0f\n' "$(awk '{print $1}' /proc/uptime)")"
 	local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
 	local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
 	
-	if [ ! "$playerCount" == 0 ]; then
+	if [ "$playerCount" == 0 ]; then
+		echo "true"
+	elif [ $minimum_server_boot_time -ge $timeSinceBoot ]; then
 		echo "true"
 	elif [ $minimum_server_boot_time -ge $timeSinceStart ]; then
 		echo "true"
