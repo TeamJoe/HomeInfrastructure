@@ -102,9 +102,9 @@ getPlayerCount() {
 	IFS=$'\n'
 	
 	echo "list players" >> "$input_file"
-	sleep 1
+	sleep 2
 	
-	for line in $(tail -n 10 "$output_file"); do
+	for line in $(tail -n 25 "$output_file"); do
 		match="$(regExMatch "$line" "$online_count_pattern" 1)"
 		if [ ! -z "$match" ]; then
 			player_count="$match"
@@ -128,6 +128,8 @@ getPlayerCount() {
 }
 
 startTime() {
+	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
+
 	local match=""
 	local output=""
 	local line=""
@@ -135,6 +137,24 @@ startTime() {
 	
 	for line in $(cat "$simple_output_file"); do
 		match="$(regExMatch "$line" "$simple_server_started_pattern" 1)"
+		if [ ! -z "$match" ]; then
+			output="$match"
+		fi
+	done
+	
+	echo "$output"
+}
+
+lastActivityTime() {
+	local simple_server_date_pattern='\[([0-9]+\/[0-9]+\/[0-9]+[[:blank:]]+[0-9]+:[0-9]+:[0-9]+)\]'
+
+	local match=""
+	local output=""
+	local line=""
+	IFS=$'\n'
+	
+	for line in $(tail -n 25 "$simple_output_file"); do
+		match="$(regExMatch "$line" "$simple_server_date_pattern" 1)"
 		if [ ! -z "$match" ]; then
 			output="$match"
 		fi
