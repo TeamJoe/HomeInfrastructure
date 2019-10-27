@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#CRON: */5 * * * * root /home/joe/shutdown.sh
+
 command="/home/joe/ATM3Server.sh active"
 minimum_server_boot_time=3600
 
