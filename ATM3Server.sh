@@ -8,6 +8,8 @@ simple_output_file="${minecraft_dir}/logs/simple.log"
 
 #start_script='sh ServerStart.sh'
 start_script="java -Xms64G -Xmx64G -d64 -server -XX:+AggressiveOpts -XX:ParallelGCThreads=3 -XX:+UseConcMarkSweepGC -XX:+UnlockExperimentalVMOptions -XX:+UseParNewGC -XX:+ExplicitGCInvokesConcurrent -XX:MaxGCPauseMillis=10 -XX:GCPauseIntervalMillis=50 -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat -XX:NewSize=84m -XX:+UseAdaptiveGCBoundary -XX:NewRatio=3 -Dfml.readTimeout=90 -Dfml.queryResult=confirm -jar \"${minecraft_jar}\" nogui"
+minimum_server_boot_time=3600
+minimum_disconnect_live_time=1200
 
 
 clean() {
@@ -127,7 +129,7 @@ getPlayerCount() {
 	fi
 }
 
-startTime() {
+getStartTime() {
 	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
 
 	local match=""
@@ -145,7 +147,7 @@ startTime() {
 	echo "$output"
 }
 
-lastActivityTime() {
+getLastActivityTime() {
 	local simple_server_date_pattern='\[([0-9]+\/[0-9]+\/[0-9]+[[:blank:]]+[0-9]+:[0-9]+:[0-9]+)\]'
 
 	local match=""
@@ -161,6 +163,25 @@ lastActivityTime() {
 	done
 	
 	echo "$output"
+}
+
+isActive() {
+	local playerCount="$(getPlayerCount)"
+	local currentTimeStamp="$(date +"%s")"
+	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
+	local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
+	local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
+	local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
+	
+	if [ ! "$playerCount" == 0 ]; then
+		echo "true"
+	elif [ $minimum_server_boot_time -ge $timeSinceStart ]; then
+		echo "true"
+	elif [ $minimum_disconnect_live_time -ge $timeSinceActive ]; then
+		echo "true"
+	else
+		echo "false"
+	fi
 }
 
 runServer() {
@@ -299,8 +320,11 @@ runCommand() {
 	elif [ "$command" == 'count' ]; then
 		echo "$(getPlayerCount)"
 		connect='false'
+	elif [ "$command" == 'active' ]; then
+		echo "$(isActive)"
+		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count] [-connect true|false] [-output on|off] [-service true|false]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|active] [-connect true|false] [-output on|off] [-service true|false]"
 		exit 1
 	fi
 	
