@@ -13,8 +13,8 @@ minimum_disconnect_live_time="$1"; shift
 
 
 clean() {
-	killProcess "$(ps aux | grep '[t]ail' | awk '{print $2}')"
-	killProcess "$(ps aux | grep '[j]ava' | awk '{print $2}')"
+	killProcess "$(getProcess 'tail' 'tail')"
+	killProcess "$(getProcess 'java' 'java')"
 	rm -f "$input_file"
 	rm -f "$output_file"
 	rm -rf "${minecraft_dir}/logs"
@@ -49,7 +49,7 @@ regex() {
 
 regExMatch() {
 	local match="$(echo "$1" | regex "$2" 0)"
-	if [ ! -z "$match" ]; then
+	if [ -n "$match" ]; then
 		echo "$(echo "$1" | regex "$2" ${@:3})"
 	fi
 }
@@ -74,20 +74,20 @@ logger() {
 
 	tail --retry -f -n 10 "$output_file" | while read line; do
 		match="$(regExMatch "$line" "$server_started_pattern" 1)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			log "Server Started ($match)"
 		fi
 		match="$(regExMatch "$line" "$server_stopped_pattern" 0)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			log "Server Stopped"
 		fi
 		match="$(regExMatch "$line" "$player_join_pattern" 1)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			log "Player Joined ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
 		match="$(regExMatch "$line" "$player_leave_pattern" 1)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			log "Player Left ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
@@ -109,7 +109,7 @@ getPlayerCount() {
 	
 	for line in $(tail -n 25 "$output_file"); do
 		match="$(regExMatch "$line" "$online_count_pattern" 1)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			player_count="$match"
 			list="next-line-is-player-list"
 		elif [ "$list" == 'next-line-is-player-list' ]; then
@@ -140,7 +140,7 @@ getStartTime() {
 	
 	for line in $(cat "$simple_output_file"); do
 		match="$(regExMatch "$line" "$simple_server_started_pattern" 1)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			output="$match"
 		fi
 	done
@@ -158,7 +158,7 @@ getLastActivityTime() {
 	
 	for line in $(tail -n 25 "$simple_output_file"); do
 		match="$(regExMatch "$line" "$simple_server_date_pattern" 1)"
-		if [ ! -z "$match" ]; then
+		if [ -n "$match" ]; then
 			output="$match"
 		fi
 	done
@@ -196,7 +196,7 @@ connect() {
 		input
 		
 		if [ ! "$(isRunning)" == "true" ]; then
-			killProcess "$(ps aux | grep "[t]ail -f -n 1000 .*${output_file}.*" | awk '{print $2}')"
+			killProcess "$(getProcess 'tail' "${output_file}")"
 		fi
 	else
 		echo "Cannot connect: Server is not running"
@@ -211,7 +211,7 @@ output() {
 input() {
 	while IFS= read -r line; do
   		if [ "$(isRunning)" == "true" ]; then
-			if [ ! -z "$line" ]; then
+			if [ -n "$line" ]; then
 				echo "$line" >> "$input_file"
 			fi
 		else
@@ -231,25 +231,26 @@ stop() {
 	fi
 	
 	if [ "$(isRunning)" == "true" ]; then
-		stopProcess "$(getProcess)"
+		stopProcess "$(getServerProcess)"
 		sleep 10
 	fi
 	
 	if [ "$(isRunning)" == "true" ]; then
-		killProcess "$(getProcess)"
+		killProcess "$(getServerProcess)"
 		sleep 10
 	fi
 	
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot stop: Server is still running after multiple attempts to stop"
 	else
-		killProcess "$(ps aux | grep "[t]ail -f -n 0 .*${input_file}.*" | awk '{print $2}')"
+		killProcess "$(getProcess 'tail' "${input_file}")"
+		killProcess "$(getProcess 'tail' "${output_file}")"
 	fi
 }
 
 stopProcess() {
 	local process="$1"
-	if [ ! -z "$process" ]; then
+	if [ -n "$process" ]; then
 		echo "Stopping $process"
 		kill $process
 	fi
@@ -257,23 +258,34 @@ stopProcess() {
 
 killProcess() {
 	local process="$1"
-	if [ ! -z "$process" ]; then
+	if [ -n "$process" ]; then
 		echo "Force stopping $process"
 		kill -9 $process
 	fi
 }
 
 isRunning() {
-	local process="$(getProcess)"
-	if [ ! -z "$process" ]; then
+	local process="$(getServerProcess)"
+	if [ -n "$process" ]; then
 		echo "true"
 	else
 		echo "false"
 	fi
 }
 
+getServerProcess() {
+	echo "$(getProcess 'java' "${minecraft_jar}")"
+}
+
 getProcess() {
-	echo "$(ps aux | grep "[j]ava.*${minecraft_jar}.*" | awk '{print $2}')"
+	local type="$1"; shift
+	local regex="$1"; shift
+	
+	local processesOfType="$(pidof "$type")"
+	local processesOfRegex="$(ps aux | grep "$regex" | awk '{print $2}')"
+	
+	local C="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | sed 's/ /\n/g' | sort | uniq -d)"
+	echo "$C"
 }
 
 changePort() {
