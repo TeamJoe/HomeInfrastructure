@@ -196,7 +196,7 @@ connect() {
 		input
 		
 		if [ ! "$(isRunning)" == "true" ]; then
-			killProcess "$(ps aux | grep '[t]ail tail -f -n 1000 .*$output_file.*' | awk '{print $2}')"
+			killProcess "$(ps aux | grep "[t]ail -f -n 1000 .*${output_file}.*" | awk '{print $2}')"
 		fi
 	else
 		echo "Cannot connect: Server is not running"
@@ -243,7 +243,7 @@ stop() {
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot stop: Server is still running after multiple attempts to stop"
 	else
-		killProcess "$(ps aux | grep '[t]ail -f -n 0 .*$input_file.*' | awk '{print $2}')"
+		killProcess "$(ps aux | grep "[t]ail -f -n 0 .*${input_file}.*" | awk '{print $2}')"
 	fi
 }
 
@@ -273,7 +273,7 @@ isRunning() {
 }
 
 getProcess() {
-	echo "$(ps aux | grep '[j]ava.*${minecraft_jar}.*' | awk '{print $2}')"
+	echo "$(ps aux | grep "[j]ava.*${minecraft_jar}.*" | awk '{print $2}')"
 }
 
 changePort() {
