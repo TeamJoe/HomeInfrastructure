@@ -35,7 +35,7 @@ start() {
 		touch "$output_file"
 		echo "eula=true" >> "${minecraft_dir}/eula.txt"
 		if [ ! "$service" == 'true' ]; then
-			nohup runServer >> "$output_file" &
+			nohup "$path" direct-start >> "$output_file" &
 			sleep 10
 		else
 			runServer |& tee "$output_file"
@@ -196,6 +196,7 @@ connect() {
 		input
 		
 		if [ ! "$(isRunning)" == "true" ]; then
+			killProcess "$(getProcess 'tail' "${input_file}")"
 			killProcess "$(getProcess 'tail' "${output_file}")"
 		fi
 	else
@@ -367,7 +368,9 @@ execute() {
 	local service="$(getInputVariable 'false' 'service' ""$@"")"
 	local port="$(getInputVariable '0' 'port' ""$@"")"
 	
-	if [ ! "$output" == 'off' ]; then
+	if [ "$command" == "direct-start" ]; then
+		runServer
+	elif [ ! "$output" == 'off' ]; then
 		runCommand "$runPath" "$command" "$connect" "$service" "$port"
 	else
 		runCommand "$runPath" "$command" "$connect" "$service" "$port" > /dev/null 2>&1
