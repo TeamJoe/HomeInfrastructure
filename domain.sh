@@ -1,4 +1,5 @@
 #!/bin/sh
+# /root/domain.sh
 # /etc/crontabs/root: "*/5 * * * * /root/domain.sh"
 
 IP_FILE_LOCATION='/root/ip.txt'
