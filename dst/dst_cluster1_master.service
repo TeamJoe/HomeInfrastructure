@@ -1,0 +1,13 @@
+[Unit]
+Description=A DST Server
+
+[Service]
+Type=simple
+RemainAfterExit=no
+User=steam
+Restart=no
+ExecStart=/home/steam/start_dst.sh start Master
+ExecStop=/home/steam/start_dst.sh stop Master
+
+[Install]
+WantedBy=multi-user.target

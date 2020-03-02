@@ -1,0 +1,13 @@
+[Unit]
+Description=A DST Server
+
+[Service]
+Type=simple
+RemainAfterExit=no
+User=steam
+Restart=no
+ExecStart=/home/steam/start_dst.sh start Caves
+ExecStop=/home/steam/start_dst.sh stop Caves
+
+[Install]
+WantedBy=multi-user.target
