@@ -286,7 +286,7 @@ getProcess() {
 	local processesOfRegex="$(ps aux | grep "$regex" | awk '{print $2}')"
 	
 	local C="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | sed 's/ /\n/g' | sort | uniq -d)"
-	echo "$C"
+	echo "$(echo $C | sed -E "s/[[:space:]]\+/ /g")"
 }
 
 changePort() {
