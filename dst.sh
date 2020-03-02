@@ -6,6 +6,10 @@ start() {
         nohup bash -c 'LD_LIBRARY_PATH=~/dst_lib ./dontstarve_dedicated_server_nullrenderer -console -cluster Cluster_1 -shard Caves' &
 }
 
+getServerProcess() {
+	echo "$(getProcess 'dontstarve_dedicated_server_nullrenderer' 'Cluster_1')"
+}
+
 getProcess() {
         local type="$1"; shift
         local regex="$1"; shift
@@ -17,10 +21,45 @@ getProcess() {
         echo "$(echo $C | sed -E "s/[[:space:]]\+/ /g")"
 }
 
+stopProcess() {
+	local process="$1"
+	if [ -n "$process" ]; then
+		echo "Stopping $process"
+		kill $process
+	fi
+}
+
+killProcess() {
+	local process="$1"
+	if [ -n "$process" ]; then
+		echo "Force stopping $process"
+		kill -9 $process
+	fi
+}
+
+isRunning() {
+	local process="$(getServerProcess)"
+	if [ -n "$process" ]; then
+		echo "true"
+	else
+		echo "false"
+	fi
+}
+
 stop() {
-        local pids="$(getProcess 'dontstarve_dedicated_server_nullrenderer' 'Cluster_1')"
-        echo "kill $pids"
-        kill -1 $pids
+	if [ "$(isRunning)" == "true" ]; then
+		stopProcess "$(getServerProcess)"
+		sleep 10
+	fi
+	
+	if [ "$(isRunning)" == "true" ]; then
+		killProcess "$(getServerProcess)"
+		sleep 10
+	fi
+	
+	if [ "$(isRunning)" == "true" ]; then
+		echo "Cannot stop: Server is still running after multiple attempts to stop"
+	fi
 }
 
 update() {
