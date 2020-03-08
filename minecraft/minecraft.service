@@ -6,7 +6,7 @@ Type=simple
 Restart=always
 RestartSec=5
 User=joe
-ExecStart=/home/joe/ATM3Server.sh start -connect false -output on -service true
+ExecStart=/home/joe/ATM3Server.sh start -connect false -output on -service true -port 25565
 ExecStop=/home/joe/ATM3Server.sh stop -connect false -output on -service true
 
 [Install]
