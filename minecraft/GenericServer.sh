@@ -33,6 +33,7 @@ start() {
 		rm -f "$output_file"
 		touch "$input_file"
 		touch "$output_file"
+		
 		echo "eula=true" >> "${minecraft_dir}/eula.txt"
 		if [ ! "$service" == 'true' ]; then
 			nohup "$path" direct-start >> "$output_file" &
@@ -167,14 +168,13 @@ getLastActivityTime() {
 }
 
 isActive() {
-	local playerCount="$(getPlayerCount)"
 	local currentTimeStamp="$(date +"%s")"
 	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
 	local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
 	local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
 	local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
 	
-	if [ ! "$playerCount" == 0 ]; then
+	if [ "$(isRunning)" == "true" ] && [ ! "$(getPlayerCount)" == 0 ]; then
 		echo "true"
 	elif [ $minimum_server_boot_time -ge $timeSinceStart ]; then
 		echo "true"
@@ -376,16 +376,5 @@ execute() {
 		runCommand "$runPath" "$command" "$connect" "$service" "$port" > /dev/null 2>&1
 	fi
 }
-
-echo "path: $path"
-echo "minecraft_dir: $minecraft_dir"
-echo "minecraft_jar: $minecraft_jar"
-echo "input_file: $input_file"
-echo "output_file: $output_file"
-echo "simple_output_file: $simple_output_file"
-echo "start_script: $start_script"
-echo "minimum_server_boot_time: $minimum_server_boot_time"
-echo "minimum_disconnect_live_time: $minimum_disconnect_live_time"
-echo "Extras: $@"
 
 execute "$path" "$@"
