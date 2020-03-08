@@ -1,11 +1,11 @@
 [Unit]
-Description=A Minecraft Server
+Description=A Minecraft ATM3 Server
 
 [Service]
 Type=simple
-RemainAfterExit=no
+Restart=always
+RestartSec=5
 User=joe
-Restart=no
 ExecStart=/home/joe/ATM3Server.sh start -connect false -output on -service true
 ExecStop=/home/joe/ATM3Server.sh stop -connect false -output on -service true
 
