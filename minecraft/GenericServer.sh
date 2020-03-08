@@ -12,6 +12,9 @@ minimum_server_boot_time="$1"; shift
 minimum_disconnect_live_time="$1"; shift
 list_player_command="$1"; shift
 online_count_pattern="$1"; shift
+player_list_pattern="$1"; shift
+player_list_pattern_next_line="$1"; shift
+
 
 
 clean() {
@@ -96,8 +99,6 @@ logger() {
 }
 
 getPlayerCount() {
-	local player_list_pattern='(\[[^]]*\][[:blank:]]*)+:[[:blank:]]*(([a-zA-Z0-9_-]+[[:blank:]]*)*)'
-
 	local match=""
 	local player_count="-1"
 	local list=""
@@ -111,9 +112,12 @@ getPlayerCount() {
 		match="$(regExMatch "$line" "$online_count_pattern" 1)"
 		if [ -n "$match" ]; then
 			player_count="$match"
-			list="next-line-is-player-list"
+			list="$(regExMatch "$line" "$player_list_pattern" 3)"
+			if [ "$player_list_pattern_next_line" == "true" ]; then
+				list='next-line-is-player-list'
+			fi
 		elif [ "$list" == 'next-line-is-player-list' ]; then
-			list="$(regExMatch "$line" "$player_list_pattern" 2)"
+			list="$(regExMatch "$line" "$player_list_pattern" 3)"
 		fi
 	done
 	
