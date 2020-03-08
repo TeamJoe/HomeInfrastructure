@@ -10,6 +10,8 @@ simple_output_file="$1"; shift
 start_script="$1"; shift
 minimum_server_boot_time="$1"; shift
 minimum_disconnect_live_time="$1"; shift
+list_player_command="$1"; shift
+online_count_pattern="$1"; shift
 
 
 clean() {
@@ -94,7 +96,6 @@ logger() {
 }
 
 getPlayerCount() {
-	local online_count_pattern='There[[:blank:]]are[[:blank:]]([0-9]+)\/([0-9]+)[[:blank:]]players[[:blank:]]online'
 	local player_list_pattern='(\[[^]]*\][[:blank:]]*)+:[[:blank:]]*(([a-zA-Z0-9_-]+[[:blank:]]*)*)'
 
 	local match=""
@@ -103,7 +104,7 @@ getPlayerCount() {
 	local line=""
 	IFS=$'\n'
 	
-	echo "list players" >> "$input_file"
+	echo "$list_player_command" >> "$input_file"
 	sleep 2
 	
 	for line in $(tail -n 25 "$output_file"); do
