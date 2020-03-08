@@ -59,8 +59,6 @@ log() {
 	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
 }
 
-
-
 logger() {
 	local server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
 	local player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
@@ -291,9 +289,12 @@ getProcess() {
 
 changePort() {
 	local port="${1}"
+	local rcon="$((${1} + 1000))"
 	
 	if ((port >= 1)); then
 		sed -i "s/server-port=[0-9]*/server-port=${port}/g" "${minecraft_dir}/server.properties"
+		sed -i "s/query.port=[0-9]*/query.port=${port}/g" "${minecraft_dir}/server.properties"
+		sed -i "s/rcon.port=[0-9]*/rcon.port=${rcon}/g" "${minecraft_dir}/server.properties"
 	fi
 }
 
