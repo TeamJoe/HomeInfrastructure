@@ -1,0 +1,9 @@
+[Unit]
+Description=Run DST Cluster1 Master 5 Minutes After Boot
+
+[Timer]
+OnBootSec=5min
+Unit=dst_cluster1_master.service
+
+[Install]
+WantedBy=timers.target

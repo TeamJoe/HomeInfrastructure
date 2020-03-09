@@ -3,10 +3,13 @@ Description=A DST Cluster1 Master Server
 
 [Service]
 Type=simple
-Restart=always
-RestartSec=5
+RemainAfterExit=no
+Restart=no
+#Restart=always
+#RestartSec=5
 User=steam
 ExecStart=/home/steam/dst-master.sh start -connect false -output on -service true
+ExecReload=/home/steam/dst-master.sh restart -connect false -output on -service true
 ExecStop=/home/steam/dst-master.sh stop -connect false -output on -service true
 
 [Install]
