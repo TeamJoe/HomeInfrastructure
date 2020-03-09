@@ -71,7 +71,7 @@ regExMatch() {
 }
 
 log() {
-	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
+	echo "[$(date +"%D %T")] Player Joined (lobythepirate)" >> "simple-master.log"
 }
 
 logger() {
@@ -108,7 +108,7 @@ logger() {
 	done
 }
 
-getPlayerCount() {
+getTruePlayerCount() {
 	local match=""
 	local player_count="-1"
 	local list=""
@@ -141,6 +141,82 @@ getPlayerCount() {
 		echo "$player_count"
 	else
 		echo "$player_count ($list)"
+	fi
+}
+
+getEstimatedPlayerCount() {
+	local match=""
+	local player_count="0"
+	local list=""
+	
+	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
+	local simple_server_stopped_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Stopped'
+	local simple_server_join_pattern='\[([^\]]+)\][[:blank:]]Player[[:blank:]]Joined[[:blank:]]\((.*)\)'
+	local simple_server_leave_pattern='\[([^\]]+)\][[:blank:]]Player[[:blank:]]Left[[:blank:]]\((.*)\)'
+	
+	IFS=$'\n'
+	for line in $(cat "$simple_output_file"); do
+		match="$(regExMatch "$line" "$simple_server_started_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="0"
+			list=""
+		fi
+		
+		match="$(regExMatch "$line" "$simple_server_stopped_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="0"
+			list=""
+		fi
+		
+		match="$(regExMatch "$line" "$simple_server_join_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="$((player_count + 1))"
+			match="$(regExMatch "$line" "$simple_server_join_pattern" 2)"
+			match="$(echo "$match" | awk '{$1=$1};1')"
+			if [ -n "$match" ]; then
+				list="${list}${match}$IFS"
+			fi
+		fi
+		
+		match="$(regExMatch "$line" "$simple_server_leave_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="$((player_count - 1))"
+			match="$(regExMatch "$line" "$simple_server_leave_pattern" 2)"
+			match="$(echo "$match" | awk '{$1=$1};1')"
+			if [ -n "$match" ]; then
+				local newList=""
+				for item in $list; do
+					if [ -n "$item" ] && [ "$item" != "$match" ]; then
+						newList="${newList}${item}$IFS"
+					fi
+				done
+				list="${newList}"
+			fi
+		fi
+	done
+	
+	list="$(echo "$list" | awk '{$1=$1};1')"
+	if [ "$player_count" -lt "0" ]; then
+		echo "Failed to get count"
+	elif [ -z "$list" ]; then
+		echo "$player_count"
+	else
+		echo "$player_count ($list)"
+	fi
+}
+
+getPlayerCount() {
+	local trueCount="$(getTruePlayerCount)"
+	
+	if [ "$trueCount" == "Failed to get count" ]; then
+		local estimatedCount="$(getEstimatedPlayerCount)"
+		if [ "$estimatedCount" == "Failed to get count" ]; then
+			echo "0"
+		else
+			echo "$estimatedCount"
+		fi
+	else
+		echo "$trueCount"
 	fi
 }
 

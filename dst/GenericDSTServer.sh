@@ -12,7 +12,7 @@ minimum_server_boot_time=3600
 minimum_disconnect_live_time=1200
 list_player_command="c_listallplayers()"
 online_count_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]RemoteCommandInput:[[:blank:]]"c_listallplayers\(\)"'
-player_list_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]\[([0-9]+)\][[:blank:]]\(([a-zA-Z0-9_-]+)\)[[:blank:]]([a-zA-Z0-9_-]+)[[:blank:]]<([a-zA-Z0-9_-]+)>'
+player_list_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]\[([0-9]+)\][[:blank:]]\(([a-zA-Z0-9_-]+)\)[[:blank:]](.*)[[:blank:]]<([a-zA-Z0-9_-]+)>'
 
 start() {
 	local service="$1"
@@ -65,9 +65,9 @@ log() {
 
 logger() {
 	local server_started_pattern=':[[:blank:]]\[Steam\][[:blank:]]SteamGameServer_Init[[:blank:]]success'
-	local player_join_pattern=':[[:blank:]]\[Join[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
-	local player_leave_pattern=':[[:blank:]]\[Leave[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
-	local player_death_pattern=':[[:blank:]]\[Death[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
+	local player_join_pattern=':[[:blank:]]\[Join[[:blank:]]Announcement\][[:blank:]](.*)'
+	local player_leave_pattern=':[[:blank:]]\[Leave[[:blank:]]Announcement\][[:blank:]](.*)'
+	local player_death_pattern=':[[:blank:]]\[Death[[:blank:]]Announcement\][[:blank:]](.*)'
 	local server_stopped_pattern=':[[:blank:]]Shutting[[:blank:]]down'
 
 	log "Server Starting"
@@ -87,23 +87,26 @@ logger() {
 		fi
 		match="$(regExMatch "$line" "$player_join_pattern" 1)"
 		if [ -n "$match" ]; then
+			match="$(echo -e "${match}" | tr -d '[:blank:]')"
 			log "Player Joined ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
 		match="$(regExMatch "$line" "$player_leave_pattern" 1)"
 		if [ -n "$match" ]; then
+			match="$(echo "$match" | awk '{$1=$1};1')"
 			log "Player Left ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
 		match="$(regExMatch "$line" "$player_death_pattern" 1)"
 		if [ -n "$match" ]; then
+			match="$(echo "$match" | awk '{$1=$1};1')"
 			log "Player Died ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
 	done
 }
 
-getPlayerCount() {
+getTruePlayerCount() {
 	local match=""
 	local player_count="-1"
 	local isMatched="false"
@@ -114,7 +117,7 @@ getPlayerCount() {
 	echo "$list_player_command" >> "$input_file"
 	sleep 2
 	
-	for line in $(tail -n 25 "$output_file"); do
+	for line in $(tail -n 50 "$output_file"); do
 		match="$(regExMatch "$line" "$online_count_pattern" 0)"
 		if [ -n "$match" ]; then
 			isMatched="true"
@@ -131,18 +134,94 @@ getPlayerCount() {
 			
 			match="$(regExMatch "$line" "$player_list_pattern" 3)"
 			if [ -n "$match" ]; then
-				list="${list}${match} "
+				list="${list}'${match}' "
 			fi
 		fi
 	done
 	
+	list="$(echo -e "${list}" | tr -d '[:space:]')"
 	if [ "$player_count" == "-1" ]; then
 		echo "Failed to get count"
 	elif [ -z "$list" ]; then
 		echo "$player_count"
 	else
-		list="$(echo -e "${list}" | tr -d '[:space:]')"
 		echo "$player_count ($list)"
+	fi
+}
+
+getEstimatedPlayerCount() {
+	local match=""
+	local player_count="0"
+	local list=""
+	
+	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
+	local simple_server_stopped_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Stopped'
+	local simple_server_join_pattern='\[([^\]]+)\][[:blank:]]Player[[:blank:]]Joined[[:blank:]]\((.*)\)'
+	local simple_server_leave_pattern='\[([^\]]+)\][[:blank:]]Player[[:blank:]]Left[[:blank:]]\((.*)\)'
+	
+	IFS=$'\n'
+	for line in $(cat "$simple_output_file"); do
+		match="$(regExMatch "$line" "$simple_server_started_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="0"
+			list=""
+		fi
+		
+		match="$(regExMatch "$line" "$simple_server_stopped_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="0"
+			list=""
+		fi
+		
+		match="$(regExMatch "$line" "$simple_server_join_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="$((player_count + 1))"
+			match="$(regExMatch "$line" "$simple_server_join_pattern" 2)"
+			match="$(echo "$match" | awk '{$1=$1};1')"
+			if [ -n "$match" ]; then
+				list="${list}${match}$IFS"
+			fi
+		fi
+		
+		match="$(regExMatch "$line" "$simple_server_leave_pattern" 0)"
+		if [ -n "$match" ]; then
+			player_count="$((player_count - 1))"
+			match="$(regExMatch "$line" "$simple_server_leave_pattern" 2)"
+			match="$(echo "$match" | awk '{$1=$1};1')"
+			if [ -n "$match" ]; then
+				local newList=""
+				for item in $list; do
+					if [ -n "$item" ] && [ "$item" != "$match" ]; then
+						newList="${newList}${item}$IFS"
+					fi
+				done
+				list="${newList}"
+			fi
+		fi
+	done
+	
+	list="$(echo "$list" | awk '{$1=$1};1')"
+	if [ "$player_count" -lt "0" ]; then
+		echo "Failed to get count"
+	elif [ -z "$list" ]; then
+		echo "$player_count"
+	else
+		echo "$player_count ($list)"
+	fi
+}
+
+getPlayerCount() {
+	local trueCount="$(getTruePlayerCount)"
+	
+	if [ "$trueCount" == "Failed to get count" ]; then
+		local estimatedCount="$(getEstimatedPlayerCount)"
+		if [ "$estimatedCount" == "Failed to get count" ]; then
+			echo "0"
+		else
+			echo "$estimatedCount"
+		fi
+	else
+		echo "$trueCount"
 	fi
 }
 
@@ -152,8 +231,8 @@ getStartTime() {
 	local match=""
 	local output=""
 	local line=""
-	IFS=$'\n'
 	
+	IFS=$'\n'
 	for line in $(cat "$simple_output_file"); do
 		match="$(regExMatch "$line" "$simple_server_started_pattern" 1)"
 		if [ -n "$match" ]; then
@@ -170,8 +249,8 @@ getLastActivityTime() {
 	local match=""
 	local output=""
 	local line=""
-	IFS=$'\n'
 	
+	IFS=$'\n'
 	for line in $(tail -n 25 "$simple_output_file"); do
 		match="$(regExMatch "$line" "$simple_server_date_pattern" 1)"
 		if [ -n "$match" ]; then
