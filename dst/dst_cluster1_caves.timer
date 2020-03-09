@@ -1,8 +1,8 @@
 [Unit]
-Description=Run DST Cluster1 Caves 5 Minutes After Boot
+Description=Run DST Cluster1 Caves 6 Minutes After Boot
 
 [Timer]
-OnBootSec=5min
+OnBootSec=6min
 Unit=dst_cluster1_caves.service
 
 [Install]
