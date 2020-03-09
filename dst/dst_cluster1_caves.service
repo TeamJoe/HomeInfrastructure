@@ -1,13 +1,13 @@
 [Unit]
-Description=A DST Server
+Description=A DST Cluster1 Caves Server
 
 [Service]
 Type=simple
-RemainAfterExit=no
+Restart=always
+RestartSec=5
 User=steam
-Restart=no
-ExecStart=/home/steam/start_dst.sh start Caves
-ExecStop=/home/steam/start_dst.sh stop Caves
+ExecStart=/home/steam/dst-caves.sh start
+ExecStop=/home/steam/dst-caves.sh stop
 
 [Install]
 WantedBy=multi-user.target

@@ -3,19 +3,17 @@
 path="$1"; shift
 minecraft_dir="$1"; shift
 minecraft_jar="$1"; shift
-input_file="$1"; shift
-output_file="$1"; shift
-simple_output_file="$1"; shift
+input_file="${minecraft_dir}/logs/input.txt"
+output_file="${minecraft_dir}/logs/output.log"
+simple_output_file="${minecraft_dir}/logs/simple.log"
 
 start_script="$1"; shift
-minimum_server_boot_time="$1"; shift
-minimum_disconnect_live_time="$1"; shift
+minimum_server_boot_time=3600
+minimum_disconnect_live_time=1200
 list_player_command="$1"; shift
 online_count_pattern="$1"; shift
 player_list_pattern="$1"; shift
 player_list_pattern_next_line="$1"; shift
-
-
 
 clean() {
 	killProcess "$(getProcess 'tail' 'tail')"

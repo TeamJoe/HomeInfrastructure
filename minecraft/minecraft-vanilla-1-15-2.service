@@ -1,0 +1,14 @@
+[Unit]
+Description=A Minecraft Vanilla 1.15.2 Server
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=minecraft
+ExecStart=/home/minecraft/VanillaServer.sh start -connect false -output on -service true -port 25567
+ExecStop=/home/minecraft/VanillaServer.sh stop -connect false -output on -service true
+
+[Install]
+WantedBy=multi-user.target
+

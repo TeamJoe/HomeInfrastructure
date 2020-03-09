@@ -1,13 +1,13 @@
 [Unit]
-Description=A DST Server
+Description=A DST Cluster1 Master Server
 
 [Service]
 Type=simple
-RemainAfterExit=no
+Restart=always
+RestartSec=5
 User=steam
-Restart=no
-ExecStart=/home/steam/start_dst.sh start Master
-ExecStop=/home/steam/start_dst.sh stop Master
+ExecStart=/home/steam/dst-master.sh start
+ExecStop=/home/steam/dst-master.sh stop
 
 [Install]
 WantedBy=multi-user.target

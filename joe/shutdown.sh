@@ -2,9 +2,11 @@
 
 #CRON: */5 * * * * root /home/joe/shutdown.sh
 
-command=('/home/joe/ATM3Server.sh active'
-'/home/joe/ATM5Server.sh active'
-'/home/joe/VanillaServer.sh active')
+command=('/home/minecraft/ATM3Server.sh active'
+'/home/minecraft/ATM5Server.sh active'
+'/home/minecraft/VanillaServer.sh active'
+'/home/steam/dst-master.sh active'
+'/home/steam/dst-caves.sh active')
 
 minimum_server_boot_time=3600
 
