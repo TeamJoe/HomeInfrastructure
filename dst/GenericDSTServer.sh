@@ -11,9 +11,8 @@ start_script="$1"; shift
 minimum_server_boot_time=3600
 minimum_disconnect_live_time=1200
 list_player_command="c_listallplayers()"
-online_count_pattern=':[[:blank:]]RemoteCommandInput:[[:blank:]]"c_listallplayers()"'
-player_list_pattern=':[[:blank:]]\(([0-9]+)\)[[:blank:]]\(([a-zA-Z0-9_-]+)\)[[:blank:]]([a-zA-Z0-9_-]+)[[:blank:]]<([a-zA-Z0-9_-]+)>'
-player_list_pattern_next_line='true'
+online_count_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]RemoteCommandInput:[[:blank:]]"c_listallplayers\(\)"'
+player_list_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]\[([0-9]+)\][[:blank:]]\(([a-zA-Z0-9_-]+)\)[[:blank:]]([a-zA-Z0-9_-]+)[[:blank:]]<([a-zA-Z0-9_-]+)>'
 
 start() {
 	local service="$1"
@@ -27,13 +26,26 @@ start() {
 		rm -f "$output_file"
 		touch "$input_file"
 		touch "$output_file"
+		chmod 777 "$input_file"
 		if [ ! "$service" == 'true' ]; then
 			nohup "$path" direct-start >> "$output_file" &
-			sleep 10
+			sleepUntil "true" 10
 		else
 			runServer |& tee "$output_file"
 		fi
 	fi
+}
+
+sleepUntil() {
+	local started="$1"
+	local value="$2"
+	
+	for (( c=0; c<=$value; c++ )); do
+		if [ "$(isRunning)" == "$started" ]; then
+			break
+		fi
+		sleep 1
+	done
 }
 
 regex() {
@@ -55,6 +67,7 @@ logger() {
 	local server_started_pattern=':[[:blank:]]\[Steam\][[:blank:]]SteamGameServer_Init[[:blank:]]success'
 	local player_join_pattern=':[[:blank:]]\[Join[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
 	local player_leave_pattern=':[[:blank:]]\[Leave[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
+	local player_death_pattern=':[[:blank:]]\[Death[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
 	local server_stopped_pattern=':[[:blank:]]Shutting[[:blank:]]down'
 
 	log "Server Starting"
@@ -82,12 +95,18 @@ logger() {
 			log "Player Left ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
+		match="$(regExMatch "$line" "$player_death_pattern" 1)"
+		if [ -n "$match" ]; then
+			log "Player Died ($match)"
+			log "Player Count $(getPlayerCount)"
+		fi
 	done
 }
 
 getPlayerCount() {
 	local match=""
 	local player_count="-1"
+	local isMatched="false"
 	local list=""
 	local line=""
 	IFS=$'\n'
@@ -96,27 +115,33 @@ getPlayerCount() {
 	sleep 2
 	
 	for line in $(tail -n 25 "$output_file"); do
-		match="$(regExMatch "$line" "$online_count_pattern" 1)"
+		match="$(regExMatch "$line" "$online_count_pattern" 0)"
 		if [ -n "$match" ]; then
-			player_count="$match"
-			list="$(regExMatch "$line" "$player_list_pattern" 3)"
-			if [ "$player_list_pattern_next_line" == "true" ]; then
-				list='next-line-is-player-list'
+			isMatched="true"
+			player_count="0"
+			list=""
+		fi
+		
+		match="$(regExMatch "$line" "$player_list_pattern" 0)"
+		if [ -n "$match" ]; then
+			match="$(regExMatch "$line" "$player_list_pattern" 1)"
+			if [ -n "$match" ] && [ "$match" -gt "$player_count" ]; then
+				player_count="$match"
 			fi
-		elif [ "$list" == 'next-line-is-player-list' ]; then
-			list="$(regExMatch "$line" "$player_list_pattern" 3)"
+			
+			match="$(regExMatch "$line" "$player_list_pattern" 3)"
+			if [ -n "$match" ]; then
+				list="${list}${match} "
+			fi
 		fi
 	done
-	
-	if [ "$list" == 'next-line-is-player-list' ]; then
-		list=""
-	fi
 	
 	if [ "$player_count" == "-1" ]; then
 		echo "Failed to get count"
 	elif [ -z "$list" ]; then
 		echo "$player_count"
 	else
+		list="$(echo -e "${list}" | tr -d '[:space:]')"
 		echo "$player_count ($list)"
 	fi
 }
@@ -202,7 +227,10 @@ output() {
 input() {
 	while IFS= read -r line; do
   		if [ "$(isRunning)" == "true" ]; then
-			if [ -n "$line" ]; then
+			if [ "$line" == "disconnect" ]; then
+				echo "Disconnecting from server"
+				break;
+			elif [ -n "$line" ]; then
 				echo "$line" >> "$input_file"
 			fi
 		else
@@ -214,13 +242,21 @@ input() {
 
 stop() {
 	if [ "$(isRunning)" == "true" ]; then
+		echo "Sending 'c_shutdown(true)' to $input_file"
+		echo 'c_shutdown(true)' >> "$input_file"
+		sleepUntil "false" 60
+	else
+		echo "Cannot stop: Server is not running"
+	fi
+
+	if [ "$(isRunning)" == "true" ]; then
 		stopProcess "$(getServerProcess)"
-		sleep 10
+		sleepUntil "false" 30
 	fi
 
 	if [ "$(isRunning)" == "true" ]; then
 		killProcess "$(getServerProcess)"
-		sleep 10
+		sleepUntil "false" 10
 	fi
 
 	if [ "$(isRunning)" == "true" ]; then

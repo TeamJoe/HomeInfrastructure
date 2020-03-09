@@ -36,15 +36,27 @@ start() {
 		rm -f "$output_file"
 		touch "$input_file"
 		touch "$output_file"
-		
+		chmod 777 "$input_file"
 		echo "eula=true" >> "${minecraft_dir}/eula.txt"
 		if [ ! "$service" == 'true' ]; then
 			nohup "$path" direct-start >> "$output_file" &
-			sleep 10
+			sleepUntil "true" 10
 		else
 			runServer |& tee "$output_file"
 		fi
 	fi
+}
+
+sleepUntil() {
+	local started="$1"
+	local value="$2"
+	
+	for (( c=0; c<=$value; c++ )); do
+		if [ "$(isRunning)" == "$started" ]; then
+			break
+		fi
+		sleep 1
+	done
 }
 
 regex() {
@@ -213,7 +225,10 @@ output() {
 input() {
 	while IFS= read -r line; do
   		if [ "$(isRunning)" == "true" ]; then
-			if [ -n "$line" ]; then
+			if [ "$line" == "disconnect" ]; then
+				echo "Disconnecting from server"
+				break;
+			elif [ -n "$line" ]; then
 				echo "$line" >> "$input_file"
 			fi
 		else
@@ -227,19 +242,19 @@ stop() {
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Sending 'stop' to $input_file"
 		echo 'stop' >> "$input_file"
-		sleep 60
+		sleepUntil "false" 60
 	else
 		echo "Cannot stop: Server is not running"
 	fi
 	
 	if [ "$(isRunning)" == "true" ]; then
 		stopProcess "$(getServerProcess)"
-		sleep 10
+		sleepUntil "false" 30
 	fi
 	
 	if [ "$(isRunning)" == "true" ]; then
 		killProcess "$(getServerProcess)"
-		sleep 10
+		sleepUntil "false" 10
 	fi
 	
 	if [ "$(isRunning)" == "true" ]; then
