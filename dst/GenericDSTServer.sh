@@ -11,9 +11,9 @@ start_script="$1"; shift
 minimum_server_boot_time=3600
 minimum_disconnect_live_time=1200
 list_player_command="c_listallplayers()"
-online_count_pattern="()"
-player_list_pattern="()"
-player_list_pattern_next_line="false"
+online_count_pattern=':[[:blank:]]RemoteCommandInput:[[:blank:]]"c_listallplayers()"'
+player_list_pattern=':[[:blank:]]\(([0-9]+)\)[[:blank:]]\(([a-zA-Z0-9_-]+)\)[[:blank:]]([a-zA-Z0-9_-]+)[[:blank:]]<([a-zA-Z0-9_-]+)>'
+player_list_pattern_next_line='true'
 
 start() {
 	local service="$1"
@@ -52,10 +52,10 @@ log() {
 }
 
 logger() {
-	local server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
-	local player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
-	local player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
-	local server_stopped_pattern='Stopping[[:blank:]]the[[:blank:]]server'
+	local server_started_pattern=':[[:blank:]]\[Steam\][[:blank:]]SteamGameServer_Init[[:blank:]]success'
+	local player_join_pattern=':[[:blank:]]\[Join[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
+	local player_leave_pattern=':[[:blank:]]\[Leave[[:blank:]]Announcement\][[:blank:]]([a-zA-Z0-9_-]*)'
+	local server_stopped_pattern=':[[:blank:]]Shutting[[:blank:]]down'
 
 	log "Server Starting"
 
@@ -64,9 +64,9 @@ logger() {
 	IFS=$'\n'
 
 	tail --retry -f -n 10 "$output_file" | while read line; do
-		match="$(regExMatch "$line" "$server_started_pattern" 1)"
+		match="$(regExMatch "$line" "$server_started_pattern" 0)"
 		if [ -n "$match" ]; then
-			log "Server Started ($match)"
+			log "Server Started"
 		fi
 		match="$(regExMatch "$line" "$server_stopped_pattern" 0)"
 		if [ -n "$match" ]; then

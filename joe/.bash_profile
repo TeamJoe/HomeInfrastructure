@@ -1,21 +1,21 @@
 #!/bin/bash
 
 atm3() {
-	/home/minecraft/ATM3Server.sh "$@"
+	sudo -u minecraft /home/minecraft/ATM3Server.sh "$@"
 }
 
 atm5() {
-	/home/minecraft/ATM5Server.sh "$@"
+	sudo -u minecraft /home/minecraft/ATM5Server.sh "$@"
 }
 
 vanilla() {
-	/home/minecraft/VanillaServer.sh "$@"
+	sudo -u minecraft /home/minecraft/VanillaServer.sh "$@"
 }
 
 dst() {
-	/home/steam/dst-master.sh "$@"
+	sudo -u steam /home/steam/dst-master.sh "$@"
 }
 
 caves() {
-	/home/steam/dst-caves.sh "$@"
+	sudo -u steam /home/steam/dst-caves.sh "$@"
 }
