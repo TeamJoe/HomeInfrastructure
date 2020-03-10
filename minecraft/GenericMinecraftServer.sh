@@ -220,6 +220,24 @@ getPlayerCount() {
 	fi
 }
 
+getBootTime() {
+	local simple_server_starting_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Starting'
+
+	local match=""
+	local output=""
+	local line=""
+	
+	IFS=$'\n'
+	for line in $(cat "$simple_output_file"); do
+		match="$(regExMatch "$line" "$simple_server_starting_pattern" 1)"
+		if [ -n "$match" ]; then
+			output="$match"
+		fi
+	done
+	
+	echo "$output"
+}
+
 getStartTime() {
 	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
 
@@ -254,6 +272,21 @@ getLastActivityTime() {
 	done
 	
 	echo "$output"
+}
+
+isStarted() {
+	if [ "$(isRunning)" != "true" ]; then
+		echo "false"
+	else
+		local bootTimeStamp="$(date -d"$(getBootTime)" +"%s")"
+		local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
+		
+		if [ $startTimeStamp -ge $bootTimeStamp ]; then
+			echo "true"
+		else
+			echo "false"
+		fi
+	fi
 }
 
 isActive() {
@@ -439,11 +472,20 @@ runCommand() {
 	elif [ "$command" == 'count' ]; then
 		echo "$(getPlayerCount)"
 		connect='false'
+	elif [ "$command" == 'started' ]; then
+		echo "$(isStarted)"
+		connect='false'
+	elif [ "$command" == 'running' ]; then
+		echo "$(isRunning)"
+		connect='false'
+	elif [ "$command" == 'logs' ]; then
+		tail -n 1000 "$output_file"
+		connect='false'
 	elif [ "$command" == 'active' ]; then
 		echo "$(isActive)"
 		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|active] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
 		exit 1
 	fi
 	

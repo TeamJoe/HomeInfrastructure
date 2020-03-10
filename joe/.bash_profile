@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export GOPATH=$HOME/.go
+export PATH=$PATH:$GOPATH/bin
+
 atm3() {
 	sudo -u minecraft /home/minecraft/ATM3Server.sh "$@"
 }

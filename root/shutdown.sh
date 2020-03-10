@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#CRON: */5 * * * * root /home/joe/shutdown.sh
+#CRON: */5 * * * * root /root/shutdown.sh
 
 command=('/home/minecraft/ATM3Server.sh active'
 '/home/minecraft/ATM5Server.sh active'
