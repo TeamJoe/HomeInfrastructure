@@ -1,5 +1,5 @@
 [Unit]
-Description=Run DST Cluster1 Master 5 Minutes After Boot
+Description=Run DST Cluster1 Master 3 Minutes After Boot
 
 [Timer]
 OnBootSec=5min

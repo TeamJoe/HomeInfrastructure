@@ -454,9 +454,13 @@ runCommand() {
 	local command="$1"; shift
 	local connect="$1"; shift
 	local service="$1"; shift
+	local update="$1"; shift
+	
+	if [ "$update" == 'true' ]; then
+		update
+	fi
 	
 	if [ "$command" == 'start' ]; then
-		update
 		start "$service"
 	elif [ "$command" == 'input' ]; then
 		input
@@ -496,7 +500,7 @@ runCommand() {
 		echo "$(isActive)"
 		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-update true|false]"
 		exit 1
 	fi
 	
@@ -513,13 +517,14 @@ execute() {
 	local connect="$(getInputVariable 'true' 'connect' ""$@"")"
 	local output="$(getInputVariable 'on' 'output' ""$@"")"
 	local service="$(getInputVariable 'false' 'service' ""$@"")"
+	local update="$(getInputVariable 'false' 'update' ""$@"")"
 	
 	if [ "$command" == "direct-start" ]; then
 		runServer
 	elif [ ! "$output" == 'off' ]; then
-		runCommand "$runPath" "$command" "$connect" "$service"
+		runCommand "$runPath" "$command" "$connect" "$service" "$update"
 	else
-		runCommand "$runPath" "$command" "$connect" "$service" > /dev/null 2>&1
+		runCommand "$runPath" "$command" "$connect" "$service" "$update" > /dev/null 2>&1
 	fi
 }
 

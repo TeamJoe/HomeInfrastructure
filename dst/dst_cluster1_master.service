@@ -8,9 +8,9 @@ Restart=no
 #Restart=always
 #RestartSec=5
 User=steam
-ExecStart=/home/steam/dst-master.sh start -connect false -output on -service true
-ExecReload=/home/steam/dst-master.sh restart -connect false -output on -service true
-ExecStop=/home/steam/dst-master.sh stop -connect false -output on -service true
+ExecStart=/home/steam/dst-master.sh start -connect false -output on -service true -update true
+ExecReload=/home/steam/dst-master.sh restart -connect false -output on -service true -update false
+ExecStop=/home/steam/dst-master.sh stop -connect false -output on -service true -update false
 
 [Install]
 WantedBy=multi-user.target
