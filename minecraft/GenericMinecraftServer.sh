@@ -71,7 +71,7 @@ regExMatch() {
 }
 
 log() {
-	echo "[$(date +"%D %T")] Player Joined (lobythepirate)" >> "simple-master.log"
+	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
 }
 
 logger() {
