@@ -275,7 +275,7 @@ getLastActivityTime() {
 }
 
 getUptime() {
-	if [ "$(isRunning)" != "true" ]; then
+	if [ "$(isStarted)" != "true" ]; then
 		echo "0"
 	else
 		local currentTimeStamp="$(date +"%s")"
