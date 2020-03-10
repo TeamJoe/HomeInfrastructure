@@ -455,10 +455,8 @@ runCommand() {
 	local connect="$1"; shift
 	local service="$1"; shift
 	
-	if [ "$command" == 'update' ]; then
-		stop
+	if [ "$command" == 'start' ]; then
 		update
-	elif [ "$command" == 'start' ]; then
 		start "$service"
 	elif [ "$command" == 'input' ]; then
 		input
