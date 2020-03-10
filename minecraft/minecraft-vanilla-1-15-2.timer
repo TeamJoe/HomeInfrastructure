@@ -3,7 +3,7 @@ Description=Run Minecraft Vanilla 1.15.2 5 Minutes After Boot
 
 [Timer]
 OnBootSec=5min
-Unit=minecraft-vanilla-1-15-2.timer
+Unit=minecraft-vanilla-1-15-2.service
 
 [Install]
 WantedBy=timers.target

@@ -274,6 +274,16 @@ getLastActivityTime() {
 	echo "$output"
 }
 
+getUptime() {
+	if [ "$(isRunning)" != "true" ]; then
+		echo "0"
+	else
+		local currentTimeStamp="$(date +"%s")"
+		local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
+		echo "$((currentTimeStamp-startTimeStamp))"
+	fi
+}
+
 isStarted() {
 	if [ "$(isRunning)" != "true" ]; then
 		echo "false"
@@ -478,6 +488,12 @@ runCommand() {
 	elif [ "$command" == 'running' ]; then
 		echo "$(isRunning)"
 		connect='false'
+	elif [ "$command" == 'uptime' ]; then
+		echo "$(getUptime)"
+		connect='false'
+	elif [ "$command" == 'simple' ]; then
+		tail -n 1000 "$simple_output_file"
+		connect='false'
 	elif [ "$command" == 'logs' ]; then
 		tail -n 1000 "$output_file"
 		connect='false'
@@ -485,7 +501,7 @@ runCommand() {
 		echo "$(isActive)"
 		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
 		exit 1
 	fi
 	

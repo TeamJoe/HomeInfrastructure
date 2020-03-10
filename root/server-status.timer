@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Server Status 2 Minutes After Boot
+
+[Timer]
+OnBootSec=2min
+Unit=server-status.service
+
+[Install]
+WantedBy=timers.target
