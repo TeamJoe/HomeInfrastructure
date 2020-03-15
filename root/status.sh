@@ -5,6 +5,7 @@ statusFile='/home/joe/status.out'
 stats=('echo "Server Stats"'
 'echo "  Date: $(date +"%D %T")"'
 'echo "  Uptime: $(($(date -d@$(printf '"'"'%.0f\n'"'"' "$(awk '"'"'{print $1}'"'"' /proc/uptime)") -u +%-j) - 1)) Days $(date -d@$(printf '"'"'%.0f\n'"'"' "$(awk '"'"'{print $1}'"'"' /proc/uptime)") -u +'"'"'%-H Hours %-M Minutes %-S Seconds'"'"')"'
+'echo "  CPU: $(echo "$((100 - ($(awk '"'"'{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'"'"' <(vmstat)))))")%"'
 'echo "  Memory: $(awk '"'"'/^Total/ {print $3}'"'"' <(free -t -m))Mb/$(awk '"'"'/^Total/ {print $2}'"'"' <(free -t -m))Mb"'
 'echo "  Disk: $(awk '"'"'/^total/ {print $3}'"'"' <(df -m --total))Mb/$(awk '"'"'/^total/ {print $2}'"'"' <(df -m --total))Mb"'
 'echo "Mincraft ATM3 1.5.1"'
@@ -48,3 +49,4 @@ while true; do
 	runAllCommands > "$tmpStatusFile"
 	mv "$tmpStatusFile" "$statusFile"
 done
+
