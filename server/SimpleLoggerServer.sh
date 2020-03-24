@@ -26,8 +26,13 @@ log() {
 }
 
 getStatus() {
-	local serverBootTimeStamp="$(getTimeSinceServerBoot)"
+	local currentTimeStamp="$(date +"%s")"
 	local bootTimeStamp="$(date -d"$(getBootTime)" +"%s")"
+	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
+	
+	local serverBootTime="$(getTimeSinceServerBoot)"
+	local bootTime="$((currentTimeStamp-bootTimeStamp))"
+	local startTime="$((currentTimeStamp-startTimeStamp))"
 	local running="$(isRunning)"
 	local started="$(isStarted)"
 	
@@ -37,8 +42,12 @@ getStatus() {
 		else
 			echo "Starting"
 		fi
-	elif [ "$bootTimeStamp" -lt "$serverBootTimeStamp" ]; then
-		echo "Down"
+	elif [ "$bootTime" -lt "$serverBootTime" ]; then
+		if [ "$startTime" -lt "$bootTime" ]; then
+			echo "Down"
+		else
+			echo "Failed to Boot"
+		fi
 	else
 		echo "Not Booted"
 	fi
