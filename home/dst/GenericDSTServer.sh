@@ -1,28 +1,55 @@
 #!/bin/bash
 
 path="$1"; shift
-minecraft_dir="$1"; shift
-minecraft_jar="$1"; shift
-input_file="${minecraft_dir}/logs/input.txt"
-output_file="${minecraft_dir}/logs/output.log"
-simple_output_file="${minecraft_dir}/logs/simple.log"
-
+name="$1"; shift
+data_directory="$1"; shift
+input_file="$1"; shift
+output_file="$1"; shift
+simple_output_file="$1"; shift
 start_script="$1"; shift
+
 minimum_server_boot_time=3600
 minimum_disconnect_live_time=1200
-list_player_command="$1"; shift
-online_count_pattern="$1"; shift
-player_list_pattern="$1"; shift
-player_list_pattern_next_line="$1"; shift
+list_player_command="c_listallplayers()"
+online_count_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]RemoteCommandInput:[[:blank:]]"c_listallplayers\(\)"'
+player_list_pattern='\[[0-9]+:[0-9]+:[0-9]+\]:[[:blank:]]\[([0-9]+)\][[:blank:]]\(([a-zA-Z0-9_-]+)\)[[:blank:]](.*)[[:blank:]]<([a-zA-Z0-9_-]+)>'
 
-clean() {
-	killProcess "$(getProcess 'tail' 'tail')"
-	killProcess "$(getProcess 'java' 'java')"
-	rm -f "$input_file"
-	rm -f "$output_file"
-	rm -rf "${minecraft_dir}/logs"
-	rm -rf "${minecraft_dir}/crash-reports"
+#++++++++++++++++++++
+#--------------------
+# Simple Log Server Commands log|status|uptime|booted|started|active
+#--------------------
+#++++++++++++++++++++
+simple_log_server="/server/SimpleLoggerServer.sh"
+
+log() {
+	$simple_log_server "$path" "$simple_output_file" log "$1"
 }
+
+getStatus() {
+	echo "$($simple_log_server "$path" "$simple_output_file" status)"
+}
+
+getUptime() {
+	echo "$($simple_log_server "$path" "$simple_output_file" uptime)"
+}
+
+isBooted() {
+	echo "$($simple_log_server "$path" "$simple_output_file" booted)"
+}
+
+isStarted() {
+	echo "$($simple_log_server "$path" "$simple_output_file" started)"
+}
+
+isActive() {
+	echo "$($simple_log_server "$path" "$simple_output_file" active)"
+}
+
+#++++++++++++++++++++
+#--------------------
+# Local Commands 
+#--------------------
+#++++++++++++++++++++
 
 start() {
 	local service="$1"
@@ -37,7 +64,6 @@ start() {
 		touch "$input_file"
 		touch "$output_file"
 		chmod 777 "$input_file"
-		echo "eula=true" >> "${minecraft_dir}/eula.txt"
 		if [ ! "$service" == 'true' ]; then
 			nohup "$path" direct-start >> "$output_file" &
 			sleepUntil "true" 10
@@ -70,15 +96,12 @@ regExMatch() {
 	fi
 }
 
-log() {
-	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
-}
-
 logger() {
-	local server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
-	local player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
-	local player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
-	local server_stopped_pattern='Stopping[[:blank:]]the[[:blank:]]server'
+	local server_started_pattern=':[[:blank:]]\[Steam\][[:blank:]]SteamGameServer_Init[[:blank:]]success'
+	local player_join_pattern=':[[:blank:]]\[Join[[:blank:]]Announcement\][[:blank:]](.*)'
+	local player_leave_pattern=':[[:blank:]]\[Leave[[:blank:]]Announcement\][[:blank:]](.*)'
+	local player_death_pattern=':[[:blank:]]\[Death[[:blank:]]Announcement\][[:blank:]](.*)'
+	local server_stopped_pattern=':[[:blank:]]Shutting[[:blank:]]down'
 
 	log "Server Starting"
 
@@ -87,9 +110,9 @@ logger() {
 	IFS=$'\n'
 
 	tail --retry -f -n 10 "$output_file" | while read line; do
-		match="$(regExMatch "$line" "$server_started_pattern" 1)"
+		match="$(regExMatch "$line" "$server_started_pattern" 0)"
 		if [ -n "$match" ]; then
-			log "Server Started ($match)"
+			log "Server Started"
 		fi
 		match="$(regExMatch "$line" "$server_stopped_pattern" 0)"
 		if [ -n "$match" ]; then
@@ -97,12 +120,20 @@ logger() {
 		fi
 		match="$(regExMatch "$line" "$player_join_pattern" 1)"
 		if [ -n "$match" ]; then
+			match="$(echo -e "${match}" | tr -d '[:blank:]')"
 			log "Player Joined ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
 		match="$(regExMatch "$line" "$player_leave_pattern" 1)"
 		if [ -n "$match" ]; then
+			match="$(echo "$match" | awk '{$1=$1};1')"
 			log "Player Left ($match)"
+			log "Player Count $(getPlayerCount)"
+		fi
+		match="$(regExMatch "$line" "$player_death_pattern" 1)"
+		if [ -n "$match" ]; then
+			match="$(echo "$match" | awk '{$1=$1};1')"
+			log "Player Died ($match)"
 			log "Player Count $(getPlayerCount)"
 		fi
 	done
@@ -111,6 +142,7 @@ logger() {
 getTruePlayerCount() {
 	local match=""
 	local player_count="-1"
+	local isMatched="false"
 	local list=""
 	local line=""
 	IFS=$'\n'
@@ -118,23 +150,29 @@ getTruePlayerCount() {
 	echo "$list_player_command" >> "$input_file"
 	sleep 2
 	
-	for line in $(tail -n 25 "$output_file"); do
-		match="$(regExMatch "$line" "$online_count_pattern" 1)"
+	for line in $(tail -n 50 "$output_file"); do
+		match="$(regExMatch "$line" "$online_count_pattern" 0)"
 		if [ -n "$match" ]; then
-			player_count="$match"
-			list="$(regExMatch "$line" "$player_list_pattern" 3)"
-			if [ "$player_list_pattern_next_line" == "true" ]; then
-				list='next-line-is-player-list'
+			isMatched="true"
+			player_count="0"
+			list=""
+		fi
+		
+		match="$(regExMatch "$line" "$player_list_pattern" 0)"
+		if [ -n "$match" ]; then
+			match="$(regExMatch "$line" "$player_list_pattern" 1)"
+			if [ -n "$match" ] && [ "$match" -gt "$player_count" ]; then
+				player_count="$match"
 			fi
-		elif [ "$list" == 'next-line-is-player-list' ]; then
-			list="$(regExMatch "$line" "$player_list_pattern" 3)"
+			
+			match="$(regExMatch "$line" "$player_list_pattern" 3)"
+			if [ -n "$match" ]; then
+				list="${list}'${match}' "
+			fi
 		fi
 	done
 	
-	if [ "$list" == 'next-line-is-player-list' ]; then
-		list=""
-	fi
-	
+	list="$(echo -e "${list}" | tr -d '[:space:]')"
 	if [ "$player_count" == "-1" ]; then
 		echo "Failed to get count"
 	elif [ -z "$list" ]; then
@@ -220,106 +258,9 @@ getPlayerCount() {
 	fi
 }
 
-getBootTime() {
-	local simple_server_starting_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Starting'
-
-	local match=""
-	local output=""
-	local line=""
-	
-	IFS=$'\n'
-	for line in $(cat "$simple_output_file"); do
-		match="$(regExMatch "$line" "$simple_server_starting_pattern" 1)"
-		if [ -n "$match" ]; then
-			output="$match"
-		fi
-	done
-	
-	echo "$output"
-}
-
-getStartTime() {
-	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
-
-	local match=""
-	local output=""
-	local line=""
-	IFS=$'\n'
-	
-	for line in $(cat "$simple_output_file"); do
-		match="$(regExMatch "$line" "$simple_server_started_pattern" 1)"
-		if [ -n "$match" ]; then
-			output="$match"
-		fi
-	done
-	
-	echo "$output"
-}
-
-getLastActivityTime() {
-	local simple_server_date_pattern='\[([0-9]+\/[0-9]+\/[0-9]+[[:blank:]]+[0-9]+:[0-9]+:[0-9]+)\]'
-
-	local match=""
-	local output=""
-	local line=""
-	IFS=$'\n'
-	
-	for line in $(tail -n 25 "$simple_output_file"); do
-		match="$(regExMatch "$line" "$simple_server_date_pattern" 1)"
-		if [ -n "$match" ]; then
-			output="$match"
-		fi
-	done
-	
-	echo "$output"
-}
-
-getUptime() {
-	if [ "$(isStarted)" != "true" ]; then
-		echo "0"
-	else
-		local currentTimeStamp="$(date +"%s")"
-		local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
-		echo "$((currentTimeStamp-startTimeStamp))"
-	fi
-}
-
-isStarted() {
-	if [ "$(isRunning)" != "true" ]; then
-		echo "false"
-	else
-		local bootTimeStamp="$(date -d"$(getBootTime)" +"%s")"
-		local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
-		
-		if [ $startTimeStamp -ge $bootTimeStamp ]; then
-			echo "true"
-		else
-			echo "false"
-		fi
-	fi
-}
-
-isActive() {
-	local currentTimeStamp="$(date +"%s")"
-	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
-	local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
-	local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
-	local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
-	
-	if [ "$(isRunning)" == "true" ] && [ ! "$(getPlayerCount)" == 0 ]; then
-		echo "true"
-	elif [ $minimum_server_boot_time -ge $timeSinceStart ]; then
-		echo "true"
-	elif [ $minimum_disconnect_live_time -ge $timeSinceActive ]; then
-		echo "true"
-	else
-		echo "false"
-	fi
-}
-
 runServer() {
 	logger > /dev/null 2>&1 &
-	sh -c "cd $minecraft_dir; tail -f -n 0 $input_file | $start_script"
+	sh -c "cd  /home/steam/steamapps/DST/bin; tail -f -n 0 $input_file | $start_script"
 }
 
 connect() {
@@ -359,28 +300,25 @@ input() {
 
 stop() {
 	if [ "$(isRunning)" == "true" ]; then
-		echo "Sending 'stop' to $input_file"
-		echo 'stop' >> "$input_file"
+		echo "Sending 'c_shutdown(true)' to $input_file"
+		echo 'c_shutdown(true)' >> "$input_file"
 		sleepUntil "false" 60
 	else
 		echo "Cannot stop: Server is not running"
 	fi
-	
+
 	if [ "$(isRunning)" == "true" ]; then
 		stopProcess "$(getServerProcess)"
 		sleepUntil "false" 30
 	fi
-	
+
 	if [ "$(isRunning)" == "true" ]; then
 		killProcess "$(getServerProcess)"
 		sleepUntil "false" 10
 	fi
-	
+
 	if [ "$(isRunning)" == "true" ]; then
 		echo "Cannot stop: Server is still running after multiple attempts to stop"
-	else
-		killProcess "$(getProcess 'tail' "${input_file}")"
-		killProcess "$(getProcess 'tail' "${output_file}")"
 	fi
 }
 
@@ -410,29 +348,23 @@ isRunning() {
 }
 
 getServerProcess() {
-	echo "$(getProcess 'java' "${minecraft_jar}")"
+	echo "$(getProcess 'dontstarve_dedicated_server_nullrenderer' "Cluster_1.*${name}")"
 }
 
 getProcess() {
 	local type="$1"; shift
 	local regex="$1"; shift
-	
+
 	local processesOfType="$(pidof "$type")"
 	local processesOfRegex="$(ps aux | grep "$regex" | awk '{print $2}')"
-	
+
 	local C="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | sed 's/ /\n/g' | sort | uniq -d)"
 	echo "$(echo $C | sed -E "s/[[:space:]]\+/ /g")"
 }
 
-changePort() {
-	local port="${1}"
-	local rcon="$((${1} + 1000))"
-	
-	if ((port >= 1)); then
-		sed -i "s/server-port=[0-9]*/server-port=${port}/g" "${minecraft_dir}/server.properties"
-		sed -i "s/query.port=[0-9]*/query.port=${port}/g" "${minecraft_dir}/server.properties"
-		sed -i "s/rcon.port=[0-9]*/rcon.port=${rcon}/g" "${minecraft_dir}/server.properties"
-	fi
+update() {
+	/home/steam/steamcmd/steamcmd.sh +@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +login anonymous +force_install_dir /home/steam/steamapps/DST +app_update 343050 validate +quit
+	/home/steam/steamapps/DST/bin/dontstarve_dedicated_server_nullrenderer -only_update_server_mods
 }
 
 getInputVariable() {
@@ -458,9 +390,12 @@ runCommand() {
 	local command="$1"; shift
 	local connect="$1"; shift
 	local service="$1"; shift
-	local port="$1"; shift
+	local update="$1"; shift
 	
-	changePort "$port"
+	if [ "$update" == 'true' ]; then
+		update
+	fi
+	
 	if [ "$command" == 'start' ]; then
 		start "$service"
 	elif [ "$command" == 'input' ]; then
@@ -488,6 +423,9 @@ runCommand() {
 	elif [ "$command" == 'running' ]; then
 		echo "$(isRunning)"
 		connect='false'
+	elif [ "$command" == 'status' ]; then
+		echo "$(getStatus)"
+		connect='false'
 	elif [ "$command" == 'uptime' ]; then
 		echo "$(getUptime)"
 		connect='false'
@@ -501,7 +439,7 @@ runCommand() {
 		echo "$(isActive)"
 		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|status|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-update true|false]"
 		exit 1
 	fi
 	
@@ -510,7 +448,6 @@ runCommand() {
 	elif [ ! "$connect" == 'false' ]; then
 		connect
 	fi
-
 }
 
 execute() {
@@ -519,15 +456,16 @@ execute() {
 	local connect="$(getInputVariable 'true' 'connect' ""$@"")"
 	local output="$(getInputVariable 'on' 'output' ""$@"")"
 	local service="$(getInputVariable 'false' 'service' ""$@"")"
-	local port="$(getInputVariable '0' 'port' ""$@"")"
+	local update="$(getInputVariable 'false' 'update' ""$@"")"
 	
 	if [ "$command" == "direct-start" ]; then
 		runServer
 	elif [ ! "$output" == 'off' ]; then
-		runCommand "$runPath" "$command" "$connect" "$service" "$port"
+		runCommand "$runPath" "$command" "$connect" "$service" "$update"
 	else
-		runCommand "$runPath" "$command" "$connect" "$service" "$port" > /dev/null 2>&1
+		runCommand "$runPath" "$command" "$connect" "$service" "$update" > /dev/null 2>&1
 	fi
 }
 
 execute "$path" "$@"
+
