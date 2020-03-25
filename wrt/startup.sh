@@ -1,4 +1,5 @@
 #!/bin/sh
+# /root/startup.sh
 
 address='https://<REDACTED>/rest/v1/Systems/1'
 user='<REDACTED>'
