@@ -43,7 +43,7 @@ isStarted() {
 }
 
 isActive() {
-	echo "$($simple_log_server "$path" "$simple_output_file" active)"
+	echo "$($simple_log_server "$path" "$simple_output_file" active "$minimum_server_boot_time" "$minimum_disconnect_live_time")"
 }
 
 #++++++++++++++++++++
@@ -53,8 +53,9 @@ isActive() {
 #++++++++++++++++++++
 
 clean() {
-	killProcess "$(getProcess 'tail' 'tail')"
-	killProcess "$(getProcess 'java' 'java')"
+	killProcess "$(getProcess 'tail' "${input_file}")"
+	killProcess "$(getProcess 'tail' "${output_file}")"
+	killProcess "$(getServerProcess)"
 	rm -f "$input_file"
 	rm -f "$output_file"
 	rm -rf "${minecraft_dir}/logs"
@@ -279,7 +280,7 @@ output() {
 
 input() {
 	while IFS= read -r line; do
-  		if [ "$(isRunning)" == "true" ]; then
+		if [ "$(isRunning)" == "true" ]; then
 			if [ "$line" == "disconnect" ]; then
 				echo "Disconnecting from server"
 				break;

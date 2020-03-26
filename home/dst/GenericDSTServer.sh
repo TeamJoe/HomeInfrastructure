@@ -42,7 +42,7 @@ isStarted() {
 }
 
 isActive() {
-	echo "$($simple_log_server "$path" "$simple_output_file" active)"
+	echo "$($simple_log_server "$path" "$simple_output_file" active "$minimum_server_boot_time" "$minimum_disconnect_live_time")"
 }
 
 #++++++++++++++++++++

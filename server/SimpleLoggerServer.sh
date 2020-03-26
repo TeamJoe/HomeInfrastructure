@@ -87,6 +87,9 @@ isStarted() {
 }
 
 isActive() {
+	local minimum_server_boot_time="$1"; shift
+	local minimum_disconnect_live_time="$1"; shift
+
 	local currentTimeStamp="$(date +"%s")"
 	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
 	local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
@@ -199,7 +202,7 @@ execute() {
 	elif [ "$command" == 'started' ]; then
 		echo "$(isStarted)"
 	elif [ "$command" == 'active' ]; then
-		echo "$(isActive)"
+		echo "$(isActive "$1" "$2")"
 	else
 		echo "Usage: $path [log|status|uptime|booted|started|active] [log message]"
 		exit 1
