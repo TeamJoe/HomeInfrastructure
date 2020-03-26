@@ -51,6 +51,14 @@ isActive() {
 #--------------------
 #++++++++++++++++++++
 
+clean() {
+	killProcess "$(getProcess 'tail' "${input_file}")"
+	killProcess "$(getProcess 'tail' "${output_file}")"
+	killProcess "$(getServerProcess)"
+	rm -f "$input_file"
+	rm -f "$output_file"
+}
+
 start() {
 	local service="$1"
 	
