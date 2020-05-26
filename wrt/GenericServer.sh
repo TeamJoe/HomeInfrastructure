@@ -60,10 +60,12 @@ runCommand() {
 		startUp
 	elif [ "$command" == "status" ]; then
 		currentStatus
+	elif [ "$command" == "ilo" ]; then
+		echo "$iloAddress"
 	elif [ "$command" == "address" ]; then
 		echo "$serverExternalAddress"
 	else
-		echo "Usage: $runPath [start|status|address]"
+		echo "Usage: $runPath [start|status|ilo|address]"
 		exit 1
 	fi
 }
