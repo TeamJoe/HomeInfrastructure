@@ -1,38 +1,49 @@
 #!/bin/bash
+# /root/status.sh
 
 tmpStatusFile='/tmp/status.out'
 statusFile='/home/joe/status.out'
-stats=('echo "Server Stats"'
-'echo "  Date: $(date +"%D %T")"'
-'echo "  Uptime: $(getUptime "$(awk '"'"'{print $1}'"'"' /proc/uptime)")"'
-'echo "  CPU: $(echo "$((100 - ($(awk '"'"'{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'"'"' <(vmstat)))))")%"'
-'echo "  Memory: $(awk '"'"'/^Total/ {print $3}'"'"' <(free -t -m))Mb/$(awk '"'"'/^Total/ {print $2}'"'"' <(free -t -m))Mb"'
-'echo "  Disk: $(awk '"'"'/^total/ {print $3}'"'"' <(df -m --total))Mb/$(awk '"'"'/^total/ {print $2}'"'"' <(df -m --total))Mb"'
-'echo "Mincraft ATM3 1.5.4"'
-'echo "  Status: $(/home/minecraft/ATM3Server.sh status)"'
-'echo "  Uptime: $(getUptime "$(/home/minecraft/ATM3Server.sh uptime)")"'
-'echo "  Active: $(/home/minecraft/ATM3Server.sh active)"'
-'echo "  Count: $(/home/minecraft/ATM3Server.sh count)"'
-'echo "Mincraft ATM5 1.10.0"'
-'echo "  Status: $(/home/minecraft/ATM5Server.sh status)"'
-'echo "  Uptime: $(getUptime "$(/home/minecraft/ATM5Server.sh uptime)")"'
-'echo "  Active: $(/home/minecraft/ATM5Server.sh active)"'
-'echo "  Count: $(/home/minecraft/ATM5Server.sh count)"'
-'echo "Mincraft Vanilla 1.15.2"'
-'echo "  Status: $(/home/minecraft/VanillaServer.sh status)"'
-'echo "  Uptime: $(getUptime "$(/home/minecraft/VanillaServer.sh uptime)")"'
-'echo "  Active: $(/home/minecraft/VanillaServer.sh active)"'
-'echo "  Count: $(/home/minecraft/VanillaServer.sh count)"'
-'echo "DST Master"'
-'echo "  Status: $(/home/steam/dst-master.sh status)"'
-'echo "  Uptime: $(getUptime "$(/home/steam/dst-master.sh uptime)")"'
-'echo "  Active: $(/home/steam/dst-master.sh active)"'
-'echo "  Count: $(/home/steam/dst-master.sh count)"'
-'echo "DST Caves"'
-'echo "  Status: $(/home/steam/dst-caves.sh status)"'
-'echo "  Uptime: $(getUptime "$(/home/steam/dst-caves.sh uptime)")"'
-'echo "  Active: $(/home/steam/dst-caves.sh active)"'
-'echo "  Count: $(/home/steam/dst-caves.sh count)"')
+stats=('echo "<b>Server Stats</b>"'
+'echo "&nbsp;&nbsp;Date: $(date +"%D %T")"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(awk '"'"'{print $1}'"'"' /proc/uptime)")"'
+'echo "&nbsp;&nbsp;CPU: $(echo "$((100 - ($(awk '"'"'{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'"'"' <(vmstat)))))")%"'
+'echo "&nbsp;&nbsp;Memory: $(awk '"'"'/^Total/ {print $3}'"'"' <(free -t -m))Mb/$(awk '"'"'/^Total/ {print $2}'"'"' <(free -t -m))Mb"'
+'echo "&nbsp;&nbsp;Disk: $(awk '"'"'/^total/ {print $3}'"'"' <(df -m --total))Mb/$(awk '"'"'/^total/ {print $2}'"'"' <(df -m --total))Mb"'
+'echo ""'
+'echo "<b>Mincraft ATM3 1.5.4</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/minecraft/ATM3Server.sh status)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(/home/minecraft/ATM3Server.sh uptime)")"'
+'echo "&nbsp;&nbsp;Active: $(/home/minecraft/ATM3Server.sh active)"'
+'echo "&nbsp;&nbsp;Count: $(/home/minecraft/ATM3Server.sh count)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/atm3/simple'"'"'>Overview</a> | <a href='"'"'/atm3/logs'"'"'>Logs</a>"'
+'echo ""'
+'echo "<b>Mincraft ATM5 1.10.0</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/minecraft/ATM5Server.sh status)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(/home/minecraft/ATM5Server.sh uptime)")"'
+'echo "&nbsp;&nbsp;Active: $(/home/minecraft/ATM5Server.sh active)"'
+'echo "&nbsp;&nbsp;Count: $(/home/minecraft/ATM5Server.sh count)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/atm5/simple'"'"'>Overview</a> | <a href='"'"'/atm5/logs'"'"'>Logs</a>"'
+'echo ""'
+'echo "<b>Mincraft Vanilla 1.15.2</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/minecraft/VanillaServer.sh status)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(/home/minecraft/VanillaServer.sh uptime)")"'
+'echo "&nbsp;&nbsp;Active: $(/home/minecraft/VanillaServer.sh active)"'
+'echo "&nbsp;&nbsp;Count: $(/home/minecraft/VanillaServer.sh count)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/vanilla/simple'"'"'>Overview</a> | <a href='"'"'/vanilla/logs'"'"'>Logs</a>"'
+'echo ""'
+'echo "<b>DST Master</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/steam/dst-master.sh status)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(/home/steam/dst-master.sh uptime)")"'
+'echo "&nbsp;&nbsp;Active: $(/home/steam/dst-master.sh active)"'
+'echo "&nbsp;&nbsp;Count: $(/home/steam/dst-master.sh count)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/dst/simple'"'"'>Overview</a> | <a href='"'"'/dst/logs'"'"'>Logs</a>"'
+'echo ""'
+'echo "<b>DST Caves</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/steam/dst-caves.sh status)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(/home/steam/dst-caves.sh uptime)")"'
+'echo "&nbsp;&nbsp;Active: $(/home/steam/dst-caves.sh active)"'
+'echo "&nbsp;&nbsp;Count: $(/home/steam/dst-caves.sh count)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/caves/simple'"'"'>Overview</a> | <a href='"'"'/caves/logs'"'"'>Logs</a>"')
 
 getUptime() {
 	local uptime="$1"
@@ -40,9 +51,12 @@ getUptime() {
 }
 
 runAllCommands() {
+	echo '<html><body><p>'
 	for i in $(echo ${!stats[@]}); do
 		eval "${stats[$i]}"
+		echo '<br/>'
 	done
+	echo '</p></body></html>'
 }
 
 while true; do
