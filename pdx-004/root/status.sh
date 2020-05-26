@@ -1,14 +1,31 @@
 #!/bin/bash
 # /root/status.sh
 
+getUptime() {
+	local uptime="$1"
+	echo "$(($(date -d@$(printf '%.0f\n' "${uptime}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${uptime}") -u +'%-H Hours %-M Minutes %-S Seconds')"
+}
+
+getCPU() {
+	echo "$((100 - ($(vmstat | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'))))%"
+}
+
+getMemory() {
+	echo "$(free -m | awk '/^Mem/ {print $3}')Mb/$(free -m | awk '/^Mem/ {print $2}')Mb"
+}
+
+getDisk() {
+	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
+}
+
 tmpStatusFile='/tmp/status.out'
 statusFile='/home/joe/status.out'
 stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Date: $(date +"%D %T")"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(awk '"'"'{print $1}'"'"' /proc/uptime)")"'
-'echo "&nbsp;&nbsp;CPU: $(echo "$((100 - ($(awk '"'"'{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'"'"' <(vmstat)))))")%"'
-'echo "&nbsp;&nbsp;Memory: $(awk '"'"'/^Total/ {print $3}'"'"' <(free -t -m))Mb/$(awk '"'"'/^Total/ {print $2}'"'"' <(free -t -m))Mb"'
-'echo "&nbsp;&nbsp;Disk: $(awk '"'"'/^total/ {print $3}'"'"' <(df -m --total))Mb/$(awk '"'"'/^total/ {print $2}'"'"' <(df -m --total))Mb"'
+'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
+'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
+'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
 'echo ""'
 'echo "<b>Mincraft ATM3 1.5.4</b>"'
 'echo "&nbsp;&nbsp;Status: $(/home/minecraft/ATM3Server.sh status)"'

@@ -1,5 +1,5 @@
 #!/bin/sh
-# /root/server4.sh
+# /root/pdx-004.sh
 
 iloApiAddress='https://<REDACTED>/rest/v1/Systems/1'
 iloAddress='https://<REDACTED>'

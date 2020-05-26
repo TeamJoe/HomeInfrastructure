@@ -7,7 +7,7 @@ getUptime() {
 }
 
 getCPU() {
-	echo "$((100 - ($(awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}' < cpu.temp))))%"
+	echo "$((100 - ($(vmstat | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'))))%"
 }
 
 getMemory() {
@@ -28,6 +28,6 @@ echo "&nbsp;&nbsp;Memory: $(getMemory)<br/>"
 echo "&nbsp;&nbsp;Disk: $(getDisk)<br/>"
 echo "<br/>"
 echo "<b>Portland 004</b><br/>"
-echo "&nbsp;&nbsp;Status: $(/root/server4.sh status)<br/>"
-echo "&nbsp;&nbsp;Links: <a href='/4/start'>Startup</a> | <a href='$(/root/server4.sh address)/status'>Status</a><br/>"
+echo "&nbsp;&nbsp;Status: $(/root/pdx-004.sh status)<br/>"
+echo "&nbsp;&nbsp;Links: <a href='/pdx-004/start'>Startup</a> | <a href='$(/root/pdx-004.sh address)/status'>Status</a><br/>"
 echo '</p></body></html>'
