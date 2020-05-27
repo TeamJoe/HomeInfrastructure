@@ -1,6 +1,7 @@
 #!/bin/bash
 
 path="$1"; shift
+external_address="$1"; shift
 minecraft_dir="$1"; shift
 minecraft_jar="$1"; shift
 input_file="${minecraft_dir}/logs/input.txt"
@@ -361,6 +362,11 @@ getProcess() {
 	echo "$(echo $C | sed -E "s/[[:space:]]\+/ /g")"
 }
 
+getPort() {
+	local line="$(cat "${minecraft_dir}/server.properties" | awk '/server-port=.*/{print $1}')"
+	echo "${line:12}"
+}
+
 changePort() {
 	local port="${1}"
 	local rcon="$((${1} + 1000))"
@@ -369,6 +375,15 @@ changePort() {
 		sed -i "s/server-port=[0-9]*/server-port=${port}/g" "${minecraft_dir}/server.properties"
 		sed -i "s/query.port=[0-9]*/query.port=${port}/g" "${minecraft_dir}/server.properties"
 		sed -i "s/rcon.port=[0-9]*/rcon.port=${rcon}/g" "${minecraft_dir}/server.properties"
+	fi
+}
+
+info() {
+	local port="$(getPort)"
+	if [ -n "$port" ]; then
+		echo "Address: ${external_address}:${port}"
+	else
+		echo "Address: ${external_address}"
 	fi
 }
 
@@ -440,8 +455,11 @@ runCommand() {
 	elif [ "$command" == 'active' ]; then
 		echo "$(isActive)"
 		connect='false'
+	elif [ "$command" == 'info' ]; then
+		echo "$(info)"
+		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|status|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|status|uptime|simple|logs|active|info] [-connect true|false] [-output on|off] [-service true|false] [-port ####]"
 		exit 1
 	fi
 	

@@ -25,8 +25,8 @@ powerOn() {
 }
 
 isBooted() {
-	local status="$(curl "${serverInternalAddresss}/status" --connect-timeout 1 -s | echo 'connection refused')"
-	if [ "${status}" =~ "Uptime" ]; then
+	local status="$(curl "${serverInternalAddresss}/status" --connect-timeout 1 -s | grep 'Uptime')"
+	if [ -n "${status}" ]; then
 		echo "true"
 	else
 		echo "false"
@@ -43,7 +43,7 @@ startUp() {
 }
 
 currentStatus() {
-	if [ "$(isPoweredOn)" == "true" ]; then
+	if [ "$(isBooted)" == "true" ]; then
 		echo "Powered On"
 	elif [ "$(isPoweredOn)" == "true" ]; then
 		echo "Starting"

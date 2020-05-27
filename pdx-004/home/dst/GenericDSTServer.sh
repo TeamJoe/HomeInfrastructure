@@ -375,6 +375,19 @@ update() {
 	/home/steam/steamapps/DST/bin/dontstarve_dedicated_server_nullrenderer -only_update_server_mods
 }
 
+getName() {
+	local line="$(cat "${data_directory}/../cluster.ini" | awk '/cluster_name\s*=.*/{print $0}' | sed -r 's/cluster_name\s*=\s*(.*)/\1/')"
+	if [ -n "$line" ]; then
+		echo $line
+	else
+		echo "$(cat "${data_directory}/server.ini" | awk '/name\s*=.*/{print $0}' | sed -r 's/name\s*=(.*)/\1/')"
+	fi
+}
+
+info() {
+	echo "Name: $(getName)"
+}
+
 getInputVariable() {
 	local defaultValue="$1"; shift
 	local expected="-${1}"; shift
@@ -446,8 +459,11 @@ runCommand() {
 	elif [ "$command" == 'active' ]; then
 		echo "$(isActive)"
 		connect='false'
+	elif [ "$command" == 'info' ]; then
+		echo "$(info)"
+		connect='false'
 	elif [ ! "$command" == 'connect' ]; then
-		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|status|uptime|simple|logs|active] [-connect true|false] [-output on|off] [-service true|false] [-update true|false]"
+		echo "Usage: $runPath [start|connect|input|output|clean|restart|stop|count|started|running|status|uptime|simple|logs|active|info] [-connect true|false] [-output on|off] [-service true|false] [-update true|false]"
 		exit 1
 	fi
 	
