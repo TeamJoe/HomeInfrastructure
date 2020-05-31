@@ -13,6 +13,8 @@ minimum_server_boot_time=3600
 minimum_disconnect_live_time=1200
 list_player_command="$1"; shift
 online_count_pattern="$1"; shift
+player_join_pattern="$1"; shift
+player_leave_pattern="$1"; shift
 player_list_pattern="$1"; shift
 player_list_pattern_next_line="$1"; shift
 
@@ -111,8 +113,6 @@ regExMatch() {
 
 logger() {
 	local server_started_pattern='Done[[:blank:]]\((.*)\)![[:blank:]]For[[:blank:]]help,[[:blank:]]type[[:blank:]]"help"'
-	local player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
-	local player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
 	local server_stopped_pattern='Stopping[[:blank:]]the[[:blank:]]server'
 
 	log "Server Starting"

@@ -11,5 +11,4 @@ minecraft_dir='/home/minecraft/data/ATM3/1.5.4'
 minecraft_jar='Mohist-1.12.2-1010498-server.jar'
 start_script="java -Xms32G -Xmx32G -d64 -server -jar \"${minecraft_jar}\" nogui"
 
-
-/home/minecraft/GenericMinecraftServer-1-12.2.sh "$path" "$external_address" "$minecraft_dir" "$minecraft_jar" "$start_script" "$@"
+/home/minecraft/GenericMohistServer-1-12.2.sh "$path" "$external_address" "$minecraft_dir" "$minecraft_jar" "$start_script" "$@"
