@@ -22,14 +22,14 @@
 				<Console name="TerminalConsole" target="SYSTEM_OUT">
 						<!-- https://logging.apache.org/log4j/2.x/manual/layouts.html#PatternLayout -->
 						<!-- <PatternLayout pattern="[HH:mm:ss.SSS] [%t] %-5level %logger{36}: %msg%n"/>-->
-						<PatternLayout pattern="[%d{HH:mm:ss} %level]: %msg%n" />
+						<PatternLayout pattern="[%d{HH:mm:ss} %level]: %replace{%msg}{\u00A7[0-9a-fA-FklmnorKLMNOR]}{}%n" />
 				</Console>
 				<!--</Queue>-->
 				
 				<!-- Output to rolling (latest.log) and auto-compressed files with more verbose pattern -->
 				<RollingRandomAccessFile name="File" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz">
 						<!-- https://logging.apache.org/log4j/2.x/manual/layouts.html#PatternLayout -->
-						<PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level] [%logger{36}]: %msg%n" />
+						<PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level] [%logger{36}]: %replace{%msg}{\u00A7[0-9a-fA-FklmnorKLMNOR]}{}%n" />
 						<Policies>
 								<!-- Moves and compresses latest.log to new file at midnight -->
 								<TimeBasedTriggeringPolicy />
