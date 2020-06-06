@@ -8,6 +8,7 @@ input_file="${minecraft_dir}/logs/input.txt"
 output_file="${minecraft_dir}/logs/output.log"
 simple_output_file="${minecraft_dir}/logs/simple.log"
 
+log_std_out="$1"; shift
 start_script="$1"; shift
 minimum_server_boot_time=3600
 minimum_disconnect_live_time=1200
@@ -79,11 +80,20 @@ start() {
 		touch "$output_file"
 		chmod 777 "$input_file"
 		echo "eula=true" >> "${minecraft_dir}/eula.txt"
-		if [ ! "$service" == 'true' ]; then
-			nohup "$path" direct-start >> "$output_file" &
-			sleepUntil "true" 10
+		if [ "$log_std_out" == 'true']; then
+			if [ ! "$service" == 'true' ]; then
+				nohup "$path" direct-start >> "$output_file" &
+				sleepUntil "true" 10
+			else
+				runServer |& tee "$output_file"
+			fi
 		else
-			runServer |& tee "$output_file"
+			if [ ! "$service" == 'true' ]; then
+				nohup "$path" direct-start > /dev/null 2>&1
+				sleepUntil "true" 10
+			else
+				runServer
+			fi
 		fi
 	fi
 }

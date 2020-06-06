@@ -26,8 +26,12 @@
 				</Console>
 				<!--</Queue>-->
 				
+				<File name="RegularLogs" fileName="logs/output.log">
+					<PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level] [%logger{36}]: %replace{%msg}{\u00A7[0-9a-fA-FklmnorKLMNOR]}{}%n" />
+				</File>
+				
 				<!-- Output to rolling (latest.log) and auto-compressed files with more verbose pattern -->
-				<RollingRandomAccessFile name="File" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz">
+				<RollingRandomAccessFile name="DetailedLogs" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz">
 						<!-- https://logging.apache.org/log4j/2.x/manual/layouts.html#PatternLayout -->
 						<PatternLayout pattern="[%d{HH:mm:ss}] [%t/%level] [%logger{36}]: %replace{%msg}{\u00A7[0-9a-fA-FklmnorKLMNOR]}{}%n" />
 						<Policies>
@@ -66,7 +70,8 @@
 						</Filters>
 						
 						<!-- Logs to all 3 destinations -->
-						<AppenderRef ref="File"/>
+						<AppenderRef ref="RegularLogs"/>
+						<AppenderRef ref="DetailedLogs"/>
 						<AppenderRef ref="TerminalConsole"/>
 				</Root>
 
