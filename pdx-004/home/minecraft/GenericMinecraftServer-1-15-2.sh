@@ -5,7 +5,7 @@ external_address="$1"; shift
 minecraft_dir="$1"; shift
 minecraft_jar="$1"; shift
 
-log_std_out='true'
+log_std_out='false'
 start_script="$1"; shift
 list_player_command='list'
 online_count_pattern='There[[:blank:]]are[[:blank:]]([0-9]+)[[:blank:]]of[[:blank:]]a[[:blank:]]max[[:blank:]]([0-9]+)[[:blank:]]players[[:blank:]]online'
