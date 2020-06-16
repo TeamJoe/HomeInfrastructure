@@ -1,7 +1,7 @@
 #!/bin/bash
 
 path="$0"
-external_address="lobythepirate.mooo.com"
+external_address="<REDACTED>"
 #minecraft_dir='/home/minecraft/data/ATM3/1.5.1'
 #minecraft_jar='forge-1.12.2-14.23.5.2844-universal.jar'
 minecraft_dir='/home/minecraft/data/ATM3/1.5.4'

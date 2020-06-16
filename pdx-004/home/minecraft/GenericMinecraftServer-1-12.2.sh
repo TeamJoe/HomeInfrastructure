@@ -5,9 +5,9 @@ external_address="$1"; shift
 minecraft_dir="$1"; shift
 minecraft_jar="$1"; shift
 
-log_std_out="true"
+log_std_out='true'
 start_script="$1"; shift
-list_player_command="list players"
+list_player_command='list players'
 online_count_pattern='There[[:blank:]]are[[:blank:]]([0-9]+)\/([0-9]+)[[:blank:]]players[[:blank:]]online'
 player_join_pattern='([a-zA-Z0-9_-]*)[[:blank:]]joined[[:blank:]]the[[:blank:]]game'
 player_leave_pattern='([a-zA-Z0-9_-]*)[[:blank:]]left[[:blank:]]the[[:blank:]]game'
