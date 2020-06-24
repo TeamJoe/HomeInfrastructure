@@ -70,7 +70,7 @@ checkIP() {
 	local lastIP="$(getLastIP $@)"
 
 	if [ "${currentIP}" != "${lastIP}" ]; then
-		local now="$(date +"%T")"
+		local now="$(date '+%F %T')"
 		echo "${now}: ${currentIP} != ${lastIP}" >> "${LOG_LOCATION}"
 		updateDomainsIP $@
 		if [ "${currentIP}" != "NO IP FOUND" ]; then
