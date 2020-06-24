@@ -6,8 +6,8 @@ Type=simple
 Restart=always
 RestartSec=5
 User=minecraft
-ExecStart=/home/minecraft/ATM3Server.sh start -connect false -output on -service true -port 25565
-ExecReload=/home/minecraft/ATM3Server.sh restart -connect false -output on -service true -port 25565
+ExecStart=/home/minecraft/ATM3Server.sh start -connect false -output on -service true -port 45565
+ExecReload=/home/minecraft/ATM3Server.sh restart -connect false -output on -service true -port 45565
 ExecStop=/home/minecraft/ATM3Server.sh stop -connect false -output on -service true
 
 [Install]
