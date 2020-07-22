@@ -11,20 +11,7 @@
 # Forums: http://www.spigotmc.org/
 
 config-version: 11
-commands:
-  silent-commandblock-console: false
-  log: true
-  spam-exclusions:
-  - /skill
-  replace-commands:
-  - setblock
-  - summon
-  - testforblock
-  - tellraw
-  tab-complete: 0
 settings:
-  player-shuffle: 0
-  user-cache-size: 1000
   timeout-time: 60
   restart-on-crash: false
   restart-script: ./start.sh
@@ -45,28 +32,31 @@ settings:
       max: 2048.0
   save-user-cache-on-stop-only: false
   sample-count: 12
+  player-shuffle: 0
+  user-cache-size: 1000
+messages:
+  restart: Server is restarting
+commands:
+  log: true
+  spam-exclusions:
+  - /skill
+  replace-commands:
+  - setblock
+  - summon
+  - testforblock
+  - tellraw
+  tab-complete: 0
+  silent-commandblock-console: false
+stats:
+  disable-saving: false
+  forced-stats: {}
 advancements:
   disable-saving: false
   disabled:
   - minecraft:story/disabled
-stats:
-  disable-saving: false
-  forced-stats: {}
-messages:
-  restart: Server is restarting
 world-settings:
   default:
     verbose: true
-    entity-activation-range:
-      animals: 32
-      monsters: 32
-      misc: 16
-      water: 16
-      tick-inactive-villagers: true
-    ticks-per:
-      hopper-transfer: 8
-      hopper-check: 1
-    hopper-amount: 1
     mob-spawn-range: 4
     growth:
       cactus-modifier: 100
@@ -79,6 +69,16 @@ world-settings:
       netherwart-modifier: 100
       vine-modifier: 100
       cocoa-modifier: 100
+    entity-activation-range:
+      animals: 32
+      monsters: 32
+      misc: 16
+      water: 16
+      tick-inactive-villagers: true
+    ticks-per:
+      hopper-transfer: 8
+      hopper-check: 1
+    hopper-amount: 1
     random-light-updates: false
     save-structure-info: true
     dragon-death-sound-radius: 0
@@ -100,20 +100,20 @@ world-settings:
       entity: 1000
     squid-spawn-range:
       min: 45.0
+    hanging-tick-frequency: 100
     enable-zombie-pigmen-portal-spawns: true
-    arrow-despawn-rate: 1200
-    item-despawn-rate: 6000
     wither-spawn-sound-radius: 0
     view-distance: 8
+    arrow-despawn-rate: 1200
+    merge-radius:
+      exp: 3.0
+      item: 2.5
+    item-despawn-rate: 6000
     zombie-aggressive-towards-villager: true
     nerf-spawner-mobs: false
-    merge-radius:
-      item: 2.5
-      exp: 3.0
     entity-tracking-range:
       players: 48
       animals: 48
       monsters: 48
       misc: 32
       other: 64
-    hanging-tick-frequency: 100
