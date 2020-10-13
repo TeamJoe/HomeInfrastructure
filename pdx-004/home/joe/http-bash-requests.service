@@ -16,6 +16,8 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=6
 	/atm5/simple "/home/minecraft/ATM5Server.sh simple" \
 	/vanilla/logs "/home/minecraft/VanillaServer.sh logs" \
 	/vanilla/simple "/home/minecraft/VanillaServer.sh simple" \
+	/vanilla-1-16-3/logs "/home/minecraft/Vanilla-1-16-3.sh logs" \
+	/vanilla-1-16-3/simple "/home/minecraft/Vanilla-1-16-3.sh simple" \
 	/dst/logs "/home/steam/dst-master.sh logs" \
 	/dst/simple "/home/steam/dst-master.sh simple" \
 	/caves/logs "/home/steam/dst-caves.sh logs" \

@@ -80,7 +80,7 @@ start() {
 		touch "$output_file"
 		chmod 777 "$input_file"
 		echo "eula=true" >> "${minecraft_dir}/eula.txt"
-		if [ ! "$log_std_out" == 'true']; then
+		if [ ! "$log_std_out" == 'true' ]; then
 			if [ ! "$service" == 'true' ]; then
 				nohup "$path" direct-start > /dev/null 2>&1
 				sleepUntil "true" 10

@@ -1,0 +1,15 @@
+[Unit]
+Description=A Minecraft Vanilla 1.16.3 Server
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=minecraft
+ExecStart=/home/minecraft/Vanilla-1-16-3.sh start -connect false -output on -service true -port 45568
+ExecReload=/home/minecraft/Vanilla-1-16-3.sh restart -connect false -output on -service true -port 45568
+ExecStop=/home/minecraft/Vanilla-1-16-3.sh stop -connect false -output on -service true
+
+[Install]
+WantedBy=multi-user.target
+
