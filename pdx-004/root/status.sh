@@ -105,15 +105,29 @@ getUptime() {
 }
 
 runAllCommands() {
+	local pids
+	for i in $(echo ${!stats[@]}); do
+		eval "${stats[$i]}" > "${i}.result" &
+		pids[${i}]=$!
+	done
+	for pid in ${pids[*]}; do
+		wait $pid
+	done
+}
+
+getResults() {
 	echo '<html><body><p>'
 	for i in $(echo ${!stats[@]}); do
-		eval "${stats[$i]}"
-		echo '<br/>'
+		echo "$(cat "${i}.result")"
+		rm "${i}.result"
+		echo '</br>'
 	done
 	echo '</p></body></html>'
 }
 
 while true; do
-	runAllCommands > "$tmpStatusFile"
+	runAllCommands
+	getResults > "$tmpStatusFile"
 	mv "$tmpStatusFile" "$statusFile"
+	wait 15
 done
