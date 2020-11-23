@@ -119,7 +119,7 @@ getResults() {
 	echo '<html><body><p>'
 	for i in $(echo ${!stats[@]}); do
 		echo "$(cat "/tmp/${i}.result")"
-		rm "${i}.result"
+		rm "/tmp/${i}.result"
 		echo '</br>'
 	done
 	echo '</p></body></html>'
