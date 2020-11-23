@@ -26,6 +26,12 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=6
 	/rlcraft/start "systemctl start minecraft-rlcraft-1-5-0.service" \
 	/rlcraft/logs "/home/minecraft/RLCraftServer.sh logs" \
 	/rlcraft/simple "/home/minecraft/RLCraftServer.sh simple" \
+	/skyfactory4/start "systemctl start minecraft-skyfactory-4-2-2.service" \
+	/skyfactory4/logs "/home/minecraft/SkyFactory4Server.sh logs" \
+	/skyfactory4/simple "/home/minecraft/SkyFactory4Server.sh simple" \
+	/sevtech/start "systemctl start minecraft-sevtech-3-1-7.service" \
+	/sevtech/logs "/home/minecraft/SevTechServer.sh logs" \
+	/sevtech/simple "/home/minecraft/SevTechServer.sh simple" \
 	/dst/start "systemctl start dst_cluster1_master.service" \
 	/dst/logs "/home/steam/dst-master.sh logs" \
 	/dst/simple "/home/steam/dst-master.sh simple" \
