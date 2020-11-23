@@ -1,9 +1,0 @@
-[Unit]
-Description=Run Minecraft ATM5 1.10 3 Minutes After Boot
-
-[Timer]
-OnBootSec=3min
-Unit=minecraft-atm5-1-10.service
-
-[Install]
-WantedBy=timers.target

@@ -1,9 +1,0 @@
-[Unit]
-Description=Run Minecraft ATM3 3 Minutes After Boot
-
-[Timer]
-OnBootSec=3min
-Unit=minecraft-atm3.service
-
-[Install]
-WantedBy=timers.target

@@ -1,9 +1,0 @@
-[Unit]
-Description=Run Minecraft RLCraft 1.5.0 3 Minutes After Boot
-
-[Timer]
-OnBootSec=3min
-Unit=minecraft-atm3.service
-
-[Install]
-WantedBy=timers.target
