@@ -107,7 +107,7 @@ getUptime() {
 runAllCommands() {
 	local pids
 	for i in $(echo ${!stats[@]}); do
-		eval "${stats[$i]}" > "${i}.result" &
+		eval "${stats[$i]}" > "/tmp/${i}.result" &
 		pids[${i}]=$!
 	done
 	for pid in ${pids[*]}; do
@@ -118,7 +118,7 @@ runAllCommands() {
 getResults() {
 	echo '<html><body><p>'
 	for i in $(echo ${!stats[@]}); do
-		echo "$(cat "${i}.result")"
+		echo "$(cat "/tmp/${i}.result")"
 		rm "${i}.result"
 		echo '</br>'
 	done
