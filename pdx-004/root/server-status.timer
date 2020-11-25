@@ -1,9 +1,9 @@
 #/etc/systemd/system
 [Unit]
-Description=Run Server Status 2 Minutes After Boot
+Description=Run Server Status 30 Seconds After Boot
 
 [Timer]
-OnBootSec=2min
+OnBootSec=30s
 Unit=server-status.service
 
 [Install]
