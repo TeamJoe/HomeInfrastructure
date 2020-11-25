@@ -16,7 +16,7 @@ minimum_server_boot_time=3600
 
 checkIfCommandReturnsFalse() {
 	local isActive="$(${1})"
-	if [ "$isActive" == "false" ]; then
+	if [ "$isActive" == "false" ] || [ "$isActive" == "0" ]; then
 		echo "true"
 	else
 		echo "false"

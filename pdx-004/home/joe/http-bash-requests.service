@@ -11,31 +11,31 @@ RestartSec=5
 User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=60 -port=28080 \
 	/status "cat /home/joe/status.out" \
-	/atm3/start "systemctl start minecraft-atm3.service" \
+	/atm3/start "systemctl start minecraft-atm3.service; sleep 10; echo 'Starting Up'" \
 	/atm3/logs "/home/minecraft/ATM3Server.sh logs" \
 	/atm3/simple "/home/minecraft/ATM3Server.sh simple" \
-	/atm5/start "systemctl start minecraft-atm5-1-10.service" \
+	/atm5/start "systemctl start minecraft-atm5-1-10.service; sleep 10; echo 'Starting Up'" \
 	/atm5/logs "/home/minecraft/ATM5Server.sh logs" \
 	/atm5/simple "/home/minecraft/ATM5Server.sh simple" \
-	/vanilla/start "systemctl start minecraft-vanilla-1-15-2.service" \
+	/vanilla/start "systemctl start minecraft-vanilla-1-15-2.service; sleep 10; echo 'Starting Up'" \
 	/vanilla/logs "/home/minecraft/VanillaServer.sh logs" \
 	/vanilla/simple "/home/minecraft/VanillaServer.sh simple" \
-	/vanilla-1-16-3/start "systemctl start minecraft-vanilla-1-16-3.service" \
+	/vanilla-1-16-3/start "systemctl start minecraft-vanilla-1-16-3.service; sleep 10; echo 'Starting Up'" \
 	/vanilla-1-16-3/logs "/home/minecraft/Vanilla-1-16-3.sh logs" \
 	/vanilla-1-16-3/simple "/home/minecraft/Vanilla-1-16-3.sh simple" \
-	/rlcraft/start "systemctl start minecraft-rlcraft-1-5-0.service" \
+	/rlcraft/start "systemctl start minecraft-rlcraft-1-5-0.service; sleep 10; echo 'Starting Up'" \
 	/rlcraft/logs "/home/minecraft/RLCraftServer.sh logs" \
 	/rlcraft/simple "/home/minecraft/RLCraftServer.sh simple" \
-	/skyfactory4/start "systemctl start minecraft-skyfactory-4-2-2.service" \
+	/skyfactory4/start "systemctl start minecraft-skyfactory-4-2-2.service; sleep 10; echo 'Starting Up'" \
 	/skyfactory4/logs "/home/minecraft/SkyFactory4Server.sh logs" \
 	/skyfactory4/simple "/home/minecraft/SkyFactory4Server.sh simple" \
-	/sevtech/start "systemctl start minecraft-sevtech-3-1-7.service" \
+	/sevtech/start "systemctl start minecraft-sevtech-3-1-7.service; sleep 10; echo 'Starting Up'" \
 	/sevtech/logs "/home/minecraft/SevTechServer.sh logs" \
 	/sevtech/simple "/home/minecraft/SevTechServer.sh simple" \
-	/dst/start "systemctl start dst_cluster1_master.service" \
+	/dst/start "systemctl start dst_cluster1_master.service; sleep 10; systemctl start dst_cluster1_caves.service; sleep 10; echo 'Starting Up'" \
 	/dst/logs "/home/steam/dst-master.sh logs" \
 	/dst/simple "/home/steam/dst-master.sh simple" \
-	/caves/start "systemctl start dst_cluster1_caves.service" \
+	/caves/start "systemctl start dst_cluster1_master.service; sleep 10; systemctl start dst_cluster1_caves.service; sleep 10; echo 'Starting Up'" \
 	/caves/logs "/home/steam/dst-caves.sh logs" \
 	/caves/simple "/home/steam/dst-caves.sh simple"
 

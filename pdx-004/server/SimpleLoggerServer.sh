@@ -96,14 +96,28 @@ isActive() {
 	local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
 	local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
 	
-	if [ "$(isRunning)" == "true" ] && [ ! "$(getPlayerCount)" == 0 ]; then
-		echo "true"
-	elif [ $minimum_server_boot_time -ge $timeSinceStart ]; then
-		echo "true"
-	elif [ $minimum_disconnect_live_time -ge $timeSinceActive ]; then
-		echo "true"
+	local running="$(isRunning)"
+	local count="$(getPlayerCount)"
+	
+	local minimumBootRemaining="$((minimum_server_boot_time-timeSinceStart))"
+	local minimumActiveRemaining="$((minimum_disconnect_live_time-timeSinceActive))"
+	
+	if [ "$running" == "true" ] && [ ! "$count" == 0 ]; then
+		if [ "$minimumBootRemaining" -ge "$minimum_disconnect_live_time" ]; then
+			echo "$minimumBootRemaining"
+		else
+			echo "$minimum_disconnect_live_time"
+		fi
+	elif [ "$running" == "true" ]; then
+		if [ "$minimumBootRemaining" -ge 0 ] && [ "$minimumBootRemaining" -ge "$minimumActiveRemaining" ]; then
+			echo "$minimumBootRemaining"
+		elif [ "$minimumActiveRemaining" -ge 0 ]; then
+			echo "$minimumActiveRemaining"
+		else
+			echo "0"
+		fi
 	else
-		echo "false"
+		echo "0"
 	fi
 }
 

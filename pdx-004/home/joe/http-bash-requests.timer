@@ -1,9 +1,9 @@
 #/etc/systemd/system
 [Unit]
-Description=Run HTTP Server 2 Minutes After Boot
+Description=Run HTTP Server 1 Minutes After Boot
 
 [Timer]
-OnBootSec=2min
+OnBootSec=1min
 Unit=http-bash-requests.service
 
 [Install]
