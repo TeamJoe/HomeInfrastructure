@@ -87,37 +87,36 @@ isStarted() {
 }
 
 isActive() {
-	local minimum_server_boot_time="$1"; shift
-	local minimum_disconnect_live_time="$1"; shift
-
-	local currentTimeStamp="$(date +"%s")"
-	local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
-	local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
-	local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
-	local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
-	
-	local running="$(isRunning)"
-	local count="$(getPlayerCount)"
-	
-	local minimumBootRemaining="$((minimum_server_boot_time-timeSinceStart))"
-	local minimumActiveRemaining="$((minimum_disconnect_live_time-timeSinceActive))"
-	
-	if [ "$running" == "true" ] && [ ! "$count" == 0 ]; then
-		if [ "$minimumBootRemaining" -ge "$minimum_disconnect_live_time" ]; then
-			echo "$minimumBootRemaining"
-		else
-			echo "$minimum_disconnect_live_time"
-		fi
-	elif [ "$running" == "true" ]; then
-		if [ "$minimumBootRemaining" -ge 0 ] && [ "$minimumBootRemaining" -ge "$minimumActiveRemaining" ]; then
-			echo "$minimumBootRemaining"
-		elif [ "$minimumActiveRemaining" -ge 0 ]; then
-			echo "$minimumActiveRemaining"
-		else
-			echo "0"
-		fi
-	else
+	if [ "$(isRunning)" != "true" ]; then
 		echo "0"
+	else
+		local minimum_server_boot_time="$1"; shift
+		local minimum_disconnect_live_time="$1"; shift
+
+		local currentTimeStamp="$(date +"%s")"
+		local startTimeStamp="$(date -d"$(getStartTime)" +"%s")"
+		local lastActivityTimeStamp="$(date -d"$(getLastActivityTime)" +"%s")"
+		local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
+		local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
+		
+		local minimumBootRemaining="$((minimum_server_boot_time-timeSinceStart))"
+		local minimumActiveRemaining="$((minimum_disconnect_live_time-timeSinceActive))"
+		
+		if [ ! "$(getPlayerCount)" == 0 ]; then
+			if [ "$minimumBootRemaining" -ge "$minimum_disconnect_live_time" ]; then
+				echo "$minimumBootRemaining"
+			else
+				echo "$minimum_disconnect_live_time"
+			fi
+		else
+			if [ "$minimumBootRemaining" -ge 0 ] && [ "$minimumBootRemaining" -ge "$minimumActiveRemaining" ]; then
+				echo "$minimumBootRemaining"
+			elif [ "$minimumActiveRemaining" -ge 0 ]; then
+				echo "$minimumActiveRemaining"
+			else
+				echo "0"
+			fi
+		fi
 	fi
 }
 

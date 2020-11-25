@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#CRON: */5 * * * * root /root/inactiveServices.sh
+#CRON: */5 * * * * root /root/inactiveService.sh
 
 runningCommands=('sh /home/minecraft/ATM3Server.sh started'
 'sh /home/minecraft/ATM5Server.sh started'
@@ -21,7 +21,7 @@ activeCommands=('sh /home/minecraft/ATM3Server.sh active'
 'echo "$(if [ `/home/steam/dst-master.sh active` -gt 0 ] || [ `/home/steam/dst-caves.sh active` -gt 0 ]; then echo true; else echo false; fi)"')
 
 shutdownCommands=('systemctl stop minecraft-atm3.service; /home/minecraft/ATM3Server.sh stop'
-'systemctl stop minecraft-atm5-1-10.service; /home/minecraft/ATM3Server.sh stop'
+'systemctl stop minecraft-atm5-1-10.service; /home/minecraft/ATM5Server.sh stop'
 'systemctl stop minecraft-vanilla-1-15-2.service; /home/minecraft/VanillaServer.sh stop'
 'systemctl stop minecraft-vanilla-1-16-3.service; /home/minecraft/Vanilla-1-16-3.sh stop'
 'systemctl stop minecraft-rlcraft-1-5-0.service; /home/minecraft/RLCraftServer.sh stop'
@@ -51,8 +51,13 @@ shutdownIfNotActive() {
 }
 
 runCommands() {
+	local pids
 	for i in $(echo ${!runningCommands[@]}); do
 		shutdownIfNotActive "$i" &
+		pids[${i}]=$!
+	done
+	for pid in ${pids[*]}; do
+		wait $pid
 	done
 }
 
