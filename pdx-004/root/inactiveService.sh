@@ -47,7 +47,7 @@ shutdownIfNotActive() {
 	
 	
 	if [ "$isRunning" == "true" ] && [ "$isActive" == "false" ]; then
-		echo "${index}: ${shutdownCommand}"
+		eval "${shutdownCommand}"
 	fi
 }
 
