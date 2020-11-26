@@ -19,7 +19,7 @@ getDisk() {
 }
 
 
-echo '<html><body><p>'
+echo '<html><head><meta http-equiv="refresh" content="30"></head><body><p>'
 echo "<b>Server Stats</b><br/>"
 echo "&nbsp;&nbsp;Date: $(date +"%D %T")<br/>"
 echo "&nbsp;&nbsp;Uptime: $(getUptime "$(awk '{print $1}' /proc/uptime)")<br/>"

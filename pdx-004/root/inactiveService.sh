@@ -45,7 +45,6 @@ shutdownIfNotActive() {
 	local isRunning="$(isTrue "$(eval "${runningCommand}")")"
 	local isActive="$(isTrue "$(eval "${activeCommand}")")"
 	
-	
 	if [ "$isRunning" == "true" ] && [ "$isActive" == "false" ]; then
 		eval "${shutdownCommand}"
 	fi

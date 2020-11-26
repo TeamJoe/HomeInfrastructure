@@ -112,7 +112,7 @@ runAllCommands() {
 }
 
 getResults() {
-	echo '<html><body><p>'
+	echo '<html><head><meta http-equiv="refresh" content="5"></head><body><p>'
 	for i in $(echo ${!stats[@]}); do
 		echo "$(cat "/tmp/status-${i}.result")"
 		rm "/tmp/status-${i}.result"
