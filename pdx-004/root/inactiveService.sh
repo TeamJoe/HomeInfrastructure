@@ -9,7 +9,7 @@ runningCommands=('sh /home/minecraft/ATM3Server.sh started'
 'sh /home/minecraft/RLCraftServer.sh started'
 'sh /home/minecraft/SkyFactory4Server.sh started'
 'sh /home/minecraft/SevTechServer.sh started'
-'echo "$(if [ `/home/steam/dst-master.sh started` == "true" ] || [ `/home/steam/dst-caves.sh started` == "true" ]; then echo true; else echo false; fi)"')
+'echo "$(if [ $(/home/steam/dst-master.sh started) == "true" ] || [ $(/home/steam/dst-caves.sh started) == "true" ]; then echo true; else echo false; fi)"')
 
 activeCommands=('sh /home/minecraft/ATM3Server.sh active'
 'sh /home/minecraft/ATM5Server.sh active'
@@ -18,7 +18,7 @@ activeCommands=('sh /home/minecraft/ATM3Server.sh active'
 'sh /home/minecraft/RLCraftServer.sh active'
 'sh /home/minecraft/SkyFactory4Server.sh active'
 'sh /home/minecraft/SevTechServer.sh active'
-'echo "$(if [ `/home/steam/dst-master.sh active` -gt 0 ] || [ `/home/steam/dst-caves.sh active` -gt 0 ]; then echo true; else echo false; fi)"')
+'echo "$(if [ $(/home/steam/dst-master.sh active) -gt "0" ] || [ $(/home/steam/dst-caves.sh active) -gt "0" ]; then echo true; else echo false; fi)"')
 
 shutdownCommands=('systemctl stop minecraft-atm3.service; /home/minecraft/ATM3Server.sh stop'
 'systemctl stop minecraft-atm5-1-10.service; /home/minecraft/ATM5Server.sh stop'
@@ -42,11 +42,12 @@ shutdownIfNotActive() {
 	local runningCommand="${runningCommands[${index}]}"
 	local activeCommand="${activeCommands[${index}]}"
 	local shutdownCommand="${shutdownCommands[${index}]}"
-	local isRunning="$(isTrue "$(eval '${runningCommand}')")"
-	local isActive="$(isTrue "$(eval '${activeCommand}')")"
+	local isRunning="$(isTrue "$(eval "${runningCommand}")")"
+	local isActive="$(isTrue "$(eval "${activeCommand}")")"
+	
 	
 	if [ "$isRunning" == "true" ] && [ "$isActive" == "false" ]; then
-		eval "${shutdownCommand}"
+		echo "${index}: ${shutdownCommand}"
 	fi
 }
 
