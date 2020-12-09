@@ -16,7 +16,7 @@ vanilla15() {
 }
 
 vanilla16() {
-	sudo -u minecraft /home/minecraft/Vanilla-1-16-3.sh "$@"
+	sudo -u minecraft /home/minecraft/Vanilla-1-16.sh "$@"
 }
 
 rl() {

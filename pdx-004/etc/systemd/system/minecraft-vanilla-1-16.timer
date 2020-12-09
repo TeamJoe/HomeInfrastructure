@@ -1,0 +1,10 @@
+#/etc/systemd/system
+[Unit]
+Description=Run Minecraft Vanilla 1.16 5 Minutes After Boot
+
+[Timer]
+OnBootSec=5min
+Unit=minecraft-vanilla-1-16.service
+
+[Install]
+WantedBy=timers.target

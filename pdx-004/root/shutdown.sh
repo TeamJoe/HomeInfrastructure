@@ -5,7 +5,7 @@
 command=('/home/minecraft/ATM3Server.sh active'
 '/home/minecraft/ATM5Server.sh active'
 '/home/minecraft/VanillaServer.sh active'
-'/home/minecraft/Vanilla-1-16-3.sh active'
+'/home/minecraft/Vanilla-1-16.sh active'
 '/home/minecraft/RLCraftServer.sh active'
 '/home/minecraft/SkyFactory4Server.sh active'
 '/home/minecraft/SevTechServer.sh active'
