@@ -92,7 +92,7 @@ getPlayerList() {
 	if [ "$(isRunning)" != "true" ]; then
 		echo ""
 	else
-		echo "$(${executable_file} players-online)"
+		echo "$(${executable_file} players-online)" | tr -s '[:blank:]' | tr -s '[:space:]' | xargs
 	fi
 }
 
@@ -188,6 +188,8 @@ runCommand() {
 	elif [ "$command" == 'stop' ]; then
 		stop
 	elif [ "$command" == 'count' ]; then
+		echo "$(getPlayerCount)"
+	elif [ "$command" == 'list' ]; then
 		echo "$(getPlayerCount) $(getPlayerList)"
 	elif [ "$command" == 'started' ]; then
 		echo "$(isStarted)"
@@ -206,7 +208,7 @@ runCommand() {
 	elif [ "$command" == 'info' ]; then
 		echo "$(info)"
 	else
-		echo "Usage: $runPath [start|restart|stop|count|started|running|status|uptime|simple|logs|active|info] [-update true|false] [-port ####]"
+		echo "Usage: $runPath [start|restart|stop|count|list|started|running|status|uptime|simple|logs|active|info] [-update true|false] [-port ####]"
 		exit 1
 	fi
 }
