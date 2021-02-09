@@ -137,16 +137,18 @@ regExMatch() {
 	fi
 }
 
-getBootTime() {
-	local simple_server_starting_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Starting'
+extractLogValue() {
+	local regex_pattern="$1"; shift
+	local extract_group="$1"; shift
+	local default_value="$1"; shift
 
 	local match=""
-	local output=""
+	local output="$default_value"
 	local line=""
-	
 	IFS=$'\n'
+	
 	for line in $(cat "$simple_output_file"); do
-		match="$(regExMatch "$line" "$simple_server_starting_pattern" 1)"
+		match="$(regExMatch "$line" "$regex_pattern" $extract_group)"
 		if [ -n "$match" ]; then
 			output="$match"
 		fi
@@ -155,22 +157,14 @@ getBootTime() {
 	echo "$output"
 }
 
+getBootTime() {
+	local simple_server_starting_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Starting'
+	echo "$(extractLogValue "$simple_server_starting_pattern" 1 "")"
+}
+
 getStartTime() {
 	local simple_server_started_pattern='\[([^\]]+)\][[:blank:]]Server[[:blank:]]Started'
-
-	local match=""
-	local output=""
-	local line=""
-	IFS=$'\n'
-	
-	for line in $(cat "$simple_output_file"); do
-		match="$(regExMatch "$line" "$simple_server_started_pattern" 1)"
-		if [ -n "$match" ]; then
-			output="$match"
-		fi
-	done
-	
-	echo "$output"
+	echo "$(extractLogValue "$simple_server_started_pattern" 1 "")"
 }
 
 getLastActivityTime() {
@@ -206,6 +200,8 @@ execute() {
 	
 	if [ "$command" == 'log' ]; then
 		log "$1"
+	elif [ "$command" == 'extract' ]; then
+		extractLogValue "$1" "$2" "$3"
 	elif [ "$command" == 'status' ]; then
 		echo "$(getStatus)"
 	elif [ "$command" == 'uptime' ]; then
@@ -217,7 +213,7 @@ execute() {
 	elif [ "$command" == 'active' ]; then
 		echo "$(isActive "$1" "$2")"
 	else
-		echo "Usage: $path [log|status|uptime|booted|started|active] [log message]"
+		echo "Usage: $path [log|extract|status|uptime|booted|started|active] [log message]"
 		exit 1
 	fi
 }

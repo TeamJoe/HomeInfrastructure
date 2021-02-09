@@ -3,6 +3,10 @@
 export GOPATH=$HOME/.go
 export PATH=$PATH:$GOPATH/bin
 
+factorio() {
+	sudo -u factorio /home/factorio/init/factorio "$@"
+}
+
 atm3() {
 	sudo -u minecraft /home/minecraft/ATM3Server.sh "$@"
 }

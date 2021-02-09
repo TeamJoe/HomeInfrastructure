@@ -11,6 +11,9 @@ RestartSec=5
 User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=60 -port=28080 \
 	/status "cat /home/joe/status.out" \
+	/factorio/start "systemctl start factorio.service; sleep 5; echo 'Starting Up'" \
+	/factorio/logs "/home/factorio/FactorioServer.sh logs" \
+	/factorio/simple "/home/factorio/FactorioServer.sh simple" \
 	/atm3/start "systemctl start minecraft-atm3.service; sleep 10; echo 'Starting Up'" \
 	/atm3/logs "/home/minecraft/ATM3Server.sh logs" \
 	/atm3/simple "/home/minecraft/ATM3Server.sh simple" \

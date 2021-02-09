@@ -2,7 +2,8 @@
 
 #CRON: */5 * * * * root /root/shutdown.sh
 
-command=('/home/minecraft/ATM3Server.sh active'
+command=('/home/factorio/FactorioServer.sh active'
+'/home/minecraft/ATM3Server.sh active'
 '/home/minecraft/ATM5Server.sh active'
 '/home/minecraft/VanillaServer.sh active'
 '/home/minecraft/Vanilla-1-16.sh active'
