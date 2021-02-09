@@ -67,7 +67,7 @@ regExMatch() {
 
 getPort() {
 	local line="$(cat "${config_file}" | awk '/PORT=.*/{print $1}')"
-	echo "${line:12}"
+	echo "${line:5}"
 }
 
 changePort() {
