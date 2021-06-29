@@ -1,0 +1,72 @@
+~Install sftp
+opkg update && opkg install openssh-sftp-server
+
+~Upload /wrt/* to /*
+
+~Update /root/host-update.sh
+~Update /root/domain.sh
+
+~Add Cron
+crontab -e
+0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/checkspeed.sh
+*/5 * * * * /root/domain.sh
+*/5 * * * * /root/host-update.sh
+
+~Install sudo
+opkg update && opkg install sudo
+
+~Update permissions
+chmod +x /usr/sbin/shell2http /usr/sbin/speedtest
+chmod +x /etc/init.d/http-service
+chmod +x /root/*.sh
+
+~Fix http warnings
+opkg update; opkg install ca-bundle; opkg upgrade ca-bundle
+
+~Accept speedtest license
+speedtest
+
+~Enable https
+opkg update && opkg install luci-ssl
+/etc/init.d/uhttpd restart
+
+~Install vmstat
+opkg update && opkg install procps-ng-vmstat
+
+~Enable hhtp-service
+/etc/init.d/http-service enable
+/etc/init.d/http-service start
+
+~Update Additional Host files
+Network -> DHCP and DNS -> Additional Host files -> /tmp/generated_hosts
+
+~Static Lease Addresses
+Network -> Static Routes
+
+~Setup Port Forwarding
+Network -> Firewall - > Port Forwards
+Router HTTP -> 8080:192.168.1.1:20000
+
+PORESX001 SSH -> 10022:192.168.1.231:22
+PORESX001 HTTP -> 18080:192.168.1.231:18080
+PORESX001 HTTPS -> 18443:192.168.1.231:18443
+PORESX001 Gaming -> 15000-16000:192.168.1.231:15000-16000
+PORESX001-ILO HTTPS -> 10443:192.168.1.241:443
+
+PORESX002 SSH -> 20022:192.168.1.232:22
+PORESX002 HTTP -> 28080:192.168.1.232:48080
+PORESX002 HTTPS -> 28443:192.168.1.232:48443
+PORESX002 Gaming -> 25000-26000:192.168.1.232:25000-26000
+PORESX002-ILO HTTPS -> 20443:192.168.1.242:443
+
+PORESX003 SSH -> 30022:192.168.1.233:22
+PORESX003 HTTP -> 38080:192.168.1.233:38080
+PORESX003 HTTPS -> 38443:192.168.1.233:38443
+PORESX003 Gaming -> 35000-46000:192.168.1.233:35000-36000
+PORESX003-ILO HTTPS -> 30443:192.168.1.243:443
+
+PORESX004 SSH -> 40022:192.168.1.234:22
+PORESX004 HTTP -> 48080:192.168.1.234:48080
+PORESX004 HTTPS -> 48443:192.168.1.234:48443
+PORESX004 Gaming -> 45000-46000:192.168.1.234:45000-46000
+PORESX004-ILO HTTPS -> 40443:192.168.1.244:443
