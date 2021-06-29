@@ -7,8 +7,8 @@ Type=simple
 Restart=always
 RestartSec=5
 User=minecraft
-ExecStart=/home/minecraft/Vanilla-1-16.sh start -connect false -output on -service true -port 45568
-ExecReload=/home/minecraft/Vanilla-1-16.sh restart -connect false -output on -service true -port 45568
+ExecStart=/home/minecraft/Vanilla-1-16.sh start -connect false -output on -service true -port 44568
+ExecReload=/home/minecraft/Vanilla-1-16.sh restart -connect false -output on -service true -port 44568
 ExecStop=/home/minecraft/Vanilla-1-16.sh stop -connect false -output on -service true
 
 [Install]

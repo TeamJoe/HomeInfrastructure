@@ -8,7 +8,7 @@ PIDFile=/home/factorio/game/server.pid
 
 Type=forking
 TimeoutStartSec=20
-ExecStart=/home/factorio/FactorioServer.sh start -update true -port 35505
+ExecStart=/home/factorio/FactorioServer.sh start -update true -port 44505
 TimeoutStopSec=20
 ExecStop=/home/factorio/FactorioServer.sh stop
 RestartSec=20

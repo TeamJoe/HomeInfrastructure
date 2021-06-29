@@ -7,8 +7,8 @@ Type=simple
 Restart=always
 RestartSec=5
 User=minecraft
-ExecStart=/home/minecraft/SkyFactory4Server.sh start -connect false -output on -service true -port 45570
-ExecReload=/home/minecraft/SkyFactory4Server.sh restart -connect false -output on -service true -port 45570
+ExecStart=/home/minecraft/SkyFactory4Server.sh start -connect false -output on -service true -port 44570
+ExecReload=/home/minecraft/SkyFactory4Server.sh restart -connect false -output on -service true -port 44570
 ExecStop=/home/minecraft/SkyFactory4Server.sh stop -connect false -output on -service true
 
 [Install]

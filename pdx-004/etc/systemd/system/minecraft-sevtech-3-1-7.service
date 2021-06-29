@@ -7,8 +7,8 @@ Type=simple
 Restart=always
 RestartSec=5
 User=minecraft
-ExecStart=/home/minecraft/SevTechServer.sh start -connect false -output on -service true -port 45571
-ExecReload=/home/minecraft/SevTechServer.sh restart -connect false -output on -service true -port 45571
+ExecStart=/home/minecraft/SevTechServer.sh start -connect false -output on -service true -port 44571
+ExecReload=/home/minecraft/SevTechServer.sh restart -connect false -output on -service true -port 44571
 ExecStop=/home/minecraft/SevTechServer.sh stop -connect false -output on -service true
 
 [Install]
