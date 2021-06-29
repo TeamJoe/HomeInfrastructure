@@ -12,8 +12,8 @@ crontab -e
 */5 * * * * /root/domain.sh
 */5 * * * * /root/host-update.sh
 
-~Install sudo
-opkg update && opkg install sudo
+~Install curl
+opkg update && opkg install curl
 
 ~Update permissions
 chmod +x /usr/sbin/shell2http /usr/sbin/speedtest
