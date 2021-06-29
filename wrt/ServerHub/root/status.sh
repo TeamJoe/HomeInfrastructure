@@ -1,8 +1,16 @@
 #!/bin/sh
 # /root/status.sh
 
+getHostname() {
+	echo "$(cat /proc/sys/kernel/hostname)"
+}
+
+getDate() {
+	echo "$(date +"%D %T")"
+}
+
 getUptime() {
-	local uptime="$1"
+	local uptime="$(awk '{print $1}' /proc/uptime)"
 	echo "$(($(date -d@$(printf '%.0f\n' "${uptime}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${uptime}") -u +'%-H Hours %-M Minutes %-S Seconds')"
 }
 
@@ -21,8 +29,9 @@ getDisk() {
 
 echo '<html><head><meta http-equiv="refresh" content="30"></head><body><p>'
 echo "<b>Server Stats</b><br/>"
-echo "&nbsp;&nbsp;Date: $(date +"%D %T")<br/>"
-echo "&nbsp;&nbsp;Uptime: $(getUptime "$(awk '{print $1}' /proc/uptime)")<br/>"
+echo "&nbsp;&nbsp;Host: $(getHostname)<br/>"
+echo "&nbsp;&nbsp;Date: $(getDate)<br/>"
+echo "&nbsp;&nbsp;Uptime: $(getUptime)<br/>"
 echo "&nbsp;&nbsp;CPU: $(getCPU)<br/>"
 echo "&nbsp;&nbsp;Memory: $(getMemory)<br/>"
 echo "&nbsp;&nbsp;Disk: $(getDisk)<br/>"

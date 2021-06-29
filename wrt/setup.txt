@@ -43,6 +43,11 @@ Network -> DHCP and DNS -> Additional Host files -> /tmp/generated_hosts
 ~Static Lease Addresses
 Network -> Static Routes
 
+~Increase Download Speed
+~~ Put following in /etc/rc.local
+echo 2 > /proc/irq/49/smp_affinity
+echo 2 > /proc/irq/50/smp_affinity
+
 ~Setup Port Forwarding
 Network -> Firewall - > Port Forwards
 Router HTTP -> 8080:192.168.1.1:20000
