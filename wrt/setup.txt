@@ -47,6 +47,18 @@ Network -> Static Routes
 ~~ Put following in /etc/rc.local
 echo 2 > /proc/irq/49/smp_affinity
 echo 2 > /proc/irq/50/smp_affinity
+~~Change Wireless Settings
+for cipher select “force ccmp” - that gets you the best WPA2 encryption
+in advanced settings I turn off “allow legacy 802.11b”
+~~Change Firewall Settings
+turn on software offloading
+~Add noscan
+uci set wireless.radio0.noscan=1
+uci set wireless.radio1.noscan=1
+uci set wireless.radio2.noscan=1
+uci commit
+
+
 
 ~Setup Port Forwarding
 Network -> Firewall - > Port Forwards
