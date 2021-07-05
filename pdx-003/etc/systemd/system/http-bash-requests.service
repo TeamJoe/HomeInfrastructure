@@ -1,0 +1,16 @@
+#/etc/systemd/system
+[Unit]
+Description=Gets http requests and responses to them
+
+[Service]
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
+User=root
+ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=60 -port=80 \
+	/status "cat /home/joe/status.out"
+
+[Install]
+WantedBy=multi-user.target

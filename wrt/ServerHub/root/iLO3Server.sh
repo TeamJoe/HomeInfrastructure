@@ -1,7 +1,8 @@
 #!/bin/sh
-# /root/GenericServer.sh
+# /root/iLO4Server.sh
 
 path="$1"; shift
+description="$1"; shift
 iloApiAddress="$1"; shift
 iloAddress="$1"; shift
 serverInternalAddresss="$1"; shift
@@ -52,6 +53,10 @@ currentStatus() {
 	fi
 }
 
+getDescription() {
+	echo "$description"
+}
+
 runCommand() {
 	local runPath="$1"; shift
 	local command="$1"; shift
@@ -60,12 +65,14 @@ runCommand() {
 		startUp
 	elif [ "$command" == "status" ]; then
 		currentStatus
+	elif [ "$command" == "description" ]; then
+		getDescription
 	elif [ "$command" == "ilo" ]; then
 		echo "$iloAddress"
 	elif [ "$command" == "address" ]; then
 		echo "$serverExternalAddress"
 	else
-		echo "Usage: $runPath [start|status|ilo|address]"
+		echo "Usage: $runPath [start|status|description|ilo|address]"
 		exit 1
 	fi
 }

@@ -1,7 +1,7 @@
 #!/bin/sh
-# /root/pdx-004.sh
+# /root/pdx-003.sh
 
-description="Don't Starve | Factorio | Minecraft | ATM3R | ATM5 | RLCraft | SevTech | SkyFactory"
+description="Nothing Installed"
 iloApiAddress='https://<REDACTED>/rest/v1/Systems/1'
 iloAddress='<REDACTED>'
 serverInternalAddresss='<REDACTED>'
