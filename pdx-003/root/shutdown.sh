@@ -36,9 +36,9 @@ checkActive() {
 	if [ $minimum_server_boot_time -lt $timeSinceBoot ]; then
 		local isActive="$(checkIfAnyCommandReturnsTrue)"
 		if [ "$isActive" == "false" ]; then
-			shutdown
+			/usr/sbin/shutdown
 		fi
 	fi
 }
 
-checkActive
+checkActive >> /home/joe/shutdown.log 2>&1
