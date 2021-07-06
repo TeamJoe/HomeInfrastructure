@@ -7,7 +7,7 @@ serverExternalAddress="$1"; shift
 command="$1"; shift
 
 isBooted() {
-	local status="$(curl "${serverInternalAddresss}/status" --connect-timeout 1 -s | grep 'Uptime')"
+	local status="$(curl "${serverInternalAddresss}/ping" --max-time 1 -s | grep 'PONG')"
 	if [ -n "${status}" ]; then
 		echo "true"
 	else

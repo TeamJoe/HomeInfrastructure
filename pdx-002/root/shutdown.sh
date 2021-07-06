@@ -1,8 +1,9 @@
 #!/bin/bash
 
-#CRON: */5 * * * * root /root/shutdown.sh
+# sudo crontab -u root -e
+# */5 * * * * /root/shutdown.sh
 
-command=('echo "false"')
+command=('echo false')
 
 minimum_server_boot_time=3600
 
@@ -32,7 +33,6 @@ checkIfAnyCommandReturnsTrue() {
 
 checkActive() {
 	local timeSinceBoot="$(printf '%.0f\n' "$(awk '{print $1}' /proc/uptime)")"
-	
 	if [ $minimum_server_boot_time -lt $timeSinceBoot ]; then
 		local isActive="$(checkIfAnyCommandReturnsTrue)"
 		if [ "$isActive" == "false" ]; then

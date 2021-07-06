@@ -1,12 +1,13 @@
 #!/bin/bash
 
-#CRON: */5 * * * * root /root/inactiveService.sh
+# sudo crontab -u root -e
+# */5 * * * * /root/inactiveService.sh
 
-runningCommands=('echo "false"')
+runningCommands=('echo false')
 
-activeCommands=('echo "false"')
+activeCommands=('echo false')
 
-shutdownCommands=('echo "No Action"')
+shutdownCommands=('echo No-Action')
 
 isTrue() {
 	if [ "${1}" == "false" ] || [ "${1}" == "0" ]; then
