@@ -22,7 +22,14 @@ isPoweredOn() {
 }
 
 powerOn() {
-	curl --max-time 30 --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' "$iloApiAddress" --insecure --user "${user}:${password}" --silent --location
+	
+	local result="$(curl "$iloApiAddress" --max-time 30 --insecure --user "${user}:${password}" --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' --silent --location)"
+	local result="$(echo "$state" | grep -o 'success')"
+	if [ -z "${result}" ]; then
+		echo "Failed to Start"
+	else
+		echo "Starting Server"
+	fi
 }
 
 isBooted() {
@@ -36,8 +43,7 @@ isBooted() {
 
 startUp() {
 	if [ "$(isPoweredOn)" != "true" ]; then
-		powerOn
-		echo "Powering On"
+		echo "$(powerOn)"
 	else
 		echo "Already On"
 	fi
