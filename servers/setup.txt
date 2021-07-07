@@ -1,0 +1,8 @@
+~Install shell2http
+sudo snap install shell2http
+
+~Install net-tools
+sudo apt install net-tools
+
+~Disable unused ports
+sudo ifconfig <name> down

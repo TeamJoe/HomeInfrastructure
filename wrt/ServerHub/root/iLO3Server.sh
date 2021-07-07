@@ -12,8 +12,8 @@ password="$1"; shift
 command="$1"; shift
 
 isPoweredOn() {
-	local state="$(curl "$iloApiAddress" --fail --max-time 5 --insecure --user "${user}:${password}" --silent --location | awk '{print tolower($0)}')"
-	local power="$(echo "$state" | grep -o '"power":"[^"]*",' | grep -o ':"[^"]*"' | grep -o '"[^"]*"' | grep -o '[^"]*' | awk '{print tolower($0)}')"
+	local state="$(curl "$iloApiAddress" --fail --max-time 5 --insecure --data "<RIBCL VERSION=\"2.0\"><LOGIN USER_LOGIN=\"${user}\" PASSWORD=\"${password}\"><SERVER_INFO MODE=\"read\"><GET_HOST_POWER_STATUS/></SERVER_INFO></LOGIN></RIBCL>" --silent --location | awk '{print tolower($0)}')"
+	local power="$(echo "$state" | grep -o 'host_power="[^"]*"' | grep -o '="[^"]*"' | grep -o '"[^"]*"' | grep -o '[^"]*' | awk '{print tolower($0)}')"
 	if [ "${power}" == "off" ] || [ -z "${power}" ]; then
 		echo "false"
 	else
@@ -22,7 +22,7 @@ isPoweredOn() {
 }
 
 powerOn() {
-	curl --max-time 30 --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' "$iloApiAddress" --insecure --user "${user}:${password}" --silent --location
+	curl "$iloApiAddress" --max-time 30 --insecure --data "<RIBCL VERSION=\"2.0\"> <LOGIN USER_LOGIN=\"${user}\" PASSWORD=\"${password}\"><SERVER_INFO MODE=\"write\"><HOLD_PWR_BTN TOGGLE=\"YES\"/></SERVER_INFO></LOGIN></RIBCL>" --silent --location
 }
 
 isBooted() {

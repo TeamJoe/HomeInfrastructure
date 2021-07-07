@@ -2,7 +2,7 @@
 # /root/pdx-002.sh
 
 description="Nothing Installed"
-iloApiAddress='https://<REDACTED>/rest/v1/Systems/1'
+iloApiAddress='http://<REDACTED>/ribcl'
 iloAddress='<REDACTED>'
 serverInternalAddresss='<REDACTED>'
 serverExternalAddress='<REDACTED>'
