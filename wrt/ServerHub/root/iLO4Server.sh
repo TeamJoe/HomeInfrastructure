@@ -23,7 +23,7 @@ isPoweredOn() {
 
 powerOn() {
 	
-	local result="$(curl "$iloApiAddress" --max-time 30 --insecure --user "${user}:${password}" --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' --silent --location)"
+	local state="$(curl "$iloApiAddress" --max-time 30 --insecure --user "${user}:${password}" --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' --silent --location)"
 	local result="$(echo "$state" | grep -o 'success')"
 	if [ -z "${result}" ]; then
 		echo "Failed to Start"
@@ -42,10 +42,12 @@ isBooted() {
 }
 
 startUp() {
-	if [ "$(isPoweredOn)" != "true" ]; then
-		echo "$(powerOn)"
-	else
+	if [ "$(isBooted)" == "true" ]; then
 		echo "Already On"
+	elif [ "$(isPoweredOn)" == "true" ]; then
+		echo "Starting"
+	else
+		echo "$(powerOn)"
 	fi
 }
 

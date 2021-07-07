@@ -22,8 +22,8 @@ isPoweredOn() {
 }
 
 powerOn() {
-	local result="$(curl "$iloApiAddress" --max-time 30 --insecure --data "<RIBCL VERSION=\"2.0\"> <LOGIN USER_LOGIN=\"${user}\" PASSWORD=\"${password}\"><SERVER_INFO MODE=\"write\"><PRESS_PWR_BTN/></SERVER_INFO></LOGIN></RIBCL>" --silent --location | awk '{print tolower($0)}')"
-	local result="$(echo "$state" | grep -o 'no_error')"
+	local state="$(curl "$iloApiAddress" --max-time 30 --insecure --data "<RIBCL VERSION=\"2.0\"> <LOGIN USER_LOGIN=\"${user}\" PASSWORD=\"${password}\"><SERVER_INFO MODE=\"write\"><PRESS_PWR_BTN/></SERVER_INFO></LOGIN></RIBCL>" --silent --location | awk '{print tolower($0)}')"
+	local result="$(echo "$state" | grep -o 'no error')"
 	if [ -z "${result}" ]; then
 		echo "Failed to Start"
 	else
@@ -41,10 +41,12 @@ isBooted() {
 }
 
 startUp() {
-	if [ "$(isPoweredOn)" != "true" ]; then
-		echo "$(powerOn)"
-	else
+	if [ "$(isBooted)" == "true" ]; then
 		echo "Already On"
+	elif [ "$(isPoweredOn)" == "true" ]; then
+		echo "Starting"
+	else
+		echo "$(powerOn)"
 	fi
 }
 
