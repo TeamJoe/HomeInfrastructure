@@ -33,6 +33,9 @@ opkg update && opkg install luci-ssl
 ~Install vmstat
 opkg update && opkg install procps-ng-vmstat
 
+~Install bash
+opkg update && opkg install bash
+
 ~Enable hhtp-service
 /etc/init.d/http-service enable
 /etc/init.d/http-service start

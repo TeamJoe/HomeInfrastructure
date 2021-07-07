@@ -41,4 +41,4 @@ runCommands() {
 	done
 }
 
-runCommands
+runCommands >> /home/joe/inactiveService.log 2>&1

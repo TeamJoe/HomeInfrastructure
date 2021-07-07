@@ -3,28 +3,35 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
-command=('echo false')
+shutdownCommands=('echo false')
 
 minimum_server_boot_time=3600
 
-checkIfCommandReturnsFalse() {
-	local isActive="$(${1})"
-	if [ "$isActive" == "false" ] || [ "$isActive" == "0" ]; then
-		echo "true"
-	else
+isTrue() {
+	if [ "${1}" == "false" ] || [ "${1}" == "0" ]; then
 		echo "false"
+	else
+		echo "true"
 	fi
 }
 
-checkIfAnyCommandReturnsTrue() {
-	for i in $(echo ${!command[@]}); do
-		local isActive="$(checkIfCommandReturnsFalse "${command[$i]}")"
-		if [ "$isActive" == "false" ]; then
+isActive() {
+	local index="${1}"
+	local activeCommand="${activeCommands[${index}]}"
+	local active="$(isTrue "$(eval "${activeCommand}")")"
+	
+	echo "${active}"
+}
+
+runCommands() {
+	for i in $(echo ${!activeCommands[@]}); do
+		local active="$(isActive "$i")"
+		if [ "$active" == "true" ]; then
 			break
 		fi
 	done
 	
-	if [ "$isActive" == "false" ]; then
+	if [ "$active" == "true" ]; then
 		echo "true"
 	else
 		echo "false"
@@ -33,12 +40,13 @@ checkIfAnyCommandReturnsTrue() {
 
 checkActive() {
 	local timeSinceBoot="$(printf '%.0f\n' "$(awk '{print $1}' /proc/uptime)")"
+	
 	if [ $minimum_server_boot_time -lt $timeSinceBoot ]; then
-		local isActive="$(checkIfAnyCommandReturnsTrue)"
+		local isActive="$(runCommands)"
 		if [ "$isActive" == "false" ]; then
-			shutdown
+			/usr/sbin/shutdown
 		fi
 	fi
 }
 
-checkActive
+checkActive >> /home/joe/shutdown.log 2>&1

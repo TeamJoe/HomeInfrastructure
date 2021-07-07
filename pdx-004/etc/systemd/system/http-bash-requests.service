@@ -10,6 +10,7 @@ Restart=always
 RestartSec=5
 User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=60 -port=80 \
+	/ping "echo 'PONG'" \
 	/status "cat /home/joe/status.out" \
 	/factorio/start "systemctl start factorio.service; sleep 5; echo 'Starting Up'" \
 	/factorio/logs "/home/factorio/FactorioServer.sh logs" \

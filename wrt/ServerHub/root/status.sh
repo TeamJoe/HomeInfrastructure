@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # /root/status.sh
 
 getHostname() {
@@ -26,33 +26,62 @@ getDisk() {
 	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
 }
 
+tmpStatusFile='/tmp/status.out'
+statusFile='/root/status.out'
+stats=('echo "<b>Server Stats</b>"'
+'echo "&nbsp;&nbsp;Host: $(getHostname)"'
+'echo "&nbsp;&nbsp;Date: $(getDate)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
+'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
+'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
+'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
+'echo ""'
+'echo "<b>Portland 001</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/pdx-001.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/root/pdx-001.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-001/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-001.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-001.sh address)/status'"'"'>Status</a>"'
+'echo ""'
+'echo "<b>Portland 002</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/pdx-002.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/root/pdx-002.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-002/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-002.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-002.sh address)/status'"'"'>Status</a>"'
+'echo ""'
+'echo "<b>Portland 003</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/pdx-003.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/root/pdx-003.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-003/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-003.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-003.sh address)/status'"'"'>Status</a>"'
+'echo ""'
+'echo "<b>Portland 004</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/pdx-004.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/root/pdx-004.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-004/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-004.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-004.sh address)/status'"'"'>Status</a>"')
 
-echo '<html><head><meta http-equiv="refresh" content="30"></head><body><p>'
-echo "<b>Server Stats</b><br/>"
-echo "&nbsp;&nbsp;Host: $(getHostname)<br/>"
-echo "&nbsp;&nbsp;Date: $(getDate)<br/>"
-echo "&nbsp;&nbsp;Uptime: $(getUptime)<br/>"
-echo "&nbsp;&nbsp;CPU: $(getCPU)<br/>"
-echo "&nbsp;&nbsp;Memory: $(getMemory)<br/>"
-echo "&nbsp;&nbsp;Disk: $(getDisk)<br/>"
-echo "<br/>"
-echo "<b>Portland 001</b><br/>"
-echo "&nbsp;&nbsp;Status: $(/root/pdx-001.sh status)<br/>"
-echo "&nbsp;&nbsp;Description: $(/root/pdx-001.sh description)<br/>"
-echo "&nbsp;&nbsp;Links: <a href='/pdx-001/start'>Start</a> | <a href='$(/root/pdx-001.sh ilo)'>iLO</a> | <a href='$(/root/pdx-001.sh address)/status'>Status</a><br/>"
-echo "<br/>"
-echo "<b>Portland 002</b><br/>"
-echo "&nbsp;&nbsp;Status: $(/root/pdx-002.sh status)<br/>"
-echo "&nbsp;&nbsp;Description: $(/root/pdx-002.sh description)<br/>"
-echo "&nbsp;&nbsp;Links: <a href='/pdx-002/start'>Start</a> | <a href='$(/root/pdx-002.sh ilo)'>iLO</a> | <a href='$(/root/pdx-002.sh address)/status'>Status</a><br/>"
-echo "<br/>"
-echo "<b>Portland 003</b><br/>"
-echo "&nbsp;&nbsp;Status: $(/root/pdx-003.sh status)<br/>"
-echo "&nbsp;&nbsp;Description: $(/root/pdx-003.sh description)<br/>"
-echo "&nbsp;&nbsp;Links: <a href='/pdx-003/start'>Start</a> | <a href='$(/root/pdx-003.sh ilo)'>iLO</a> | <a href='$(/root/pdx-003.sh address)/status'>Status</a><br/>"
-echo "<br/>"
-echo "<b>Portland 004</b><br/>"
-echo "&nbsp;&nbsp;Status: $(/root/pdx-004.sh status)<br/>"
-echo "&nbsp;&nbsp;Description: $(/root/pdx-004.sh description)<br/>"
-echo "&nbsp;&nbsp;Links: <a href='/pdx-004/start'>Start</a> | <a href='$(/root/pdx-004.sh ilo)'>iLO</a> | <a href='$(/root/pdx-004.sh address)/status'>Status</a><br/>"
-echo '</p></body></html>'
+runAllCommands() {
+	local pids
+	for i in $(echo ${!stats[@]}); do
+		eval "${stats[$i]}" > "/tmp/status-${i}.result" &
+		pids[${i}]=$!
+	done
+	for pid in ${pids[*]}; do
+		wait $pid
+	done
+}
+
+getResults() {
+	echo '<html><head><meta http-equiv="refresh" content="5"></head><body><p>'
+	for i in $(echo ${!stats[@]}); do
+		echo "$(cat "/tmp/status-${i}.result")"
+		rm "/tmp/status-${i}.result"
+		echo '</br>'
+	done
+	echo '</p></body></html>'
+}
+
+createResultFile() {
+	runAllCommands
+	getResults > "$tmpStatusFile"
+	mv "$tmpStatusFile" "$statusFile"
+}
+
+createResultFile
+cat "$statusFile"

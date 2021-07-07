@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#CRON: */5 * * * * root /root/inactiveService.sh
+# sudo crontab -u root -e
+# */5 * * * * /root/inactiveService.sh
 
 runningCommands=('sh /home/factorio/FactorioServer.sh started'
 'sh /home/minecraft/ATM3Server.sh started'
@@ -64,4 +65,4 @@ runCommands() {
 	done
 }
 
-runCommands
+runCommands >> /home/joe/inactiveService.log 2>&1

@@ -12,9 +12,9 @@ password="$1"; shift
 command="$1"; shift
 
 isPoweredOn() {
-	local state="$(curl "$iloApiAddress"  --max-time 5 --insecure -u "${user}:${password}" -L | awk '{print tolower($0)}')"
+	local state="$(curl "$iloApiAddress" --fail --max-time 5 --insecure --user "${user}:${password}" --silent --location | awk '{print tolower($0)}')"
 	local power="$(echo "$state" | grep -o '"power":"[^"]*",' | grep -o ':"[^"]*"' | grep -o '"[^"]*"' | grep -o '[^"]*' | awk '{print tolower($0)}')"
-	if [ "${power}" == "off" ]; then
+	if [ "${power}" == "off" ] || [ -z "${power}" ]; then
 		echo "false"
 	else
 		echo "true"
@@ -22,11 +22,11 @@ isPoweredOn() {
 }
 
 powerOn() {
-	curl  --max-time 30 -d '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' -H 'Content-Type: application/json' "$iloApiAddress" --insecure -u "${user}:${password}" -L
+	curl --max-time 30 --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' "$iloApiAddress" --insecure --user "${user}:${password}" --silent --location
 }
 
 isBooted() {
-	local status="$(curl "${serverInternalAddresss}/ping" --max-time 1 -s | grep 'PONG')"
+	local status="$(curl "${serverInternalAddresss}/ping" --fail --max-time 1 --silent | grep 'PONG')"
 	if [ -n "${status}" ]; then
 		echo "true"
 	else
