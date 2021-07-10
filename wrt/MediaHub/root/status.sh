@@ -34,15 +34,7 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
-'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
-'echo ""'
-'echo "<b>ServerHub</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/serverhub.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/serverhub.sh address)/status'"'"'>Status</a>"'
-'echo ""'
-'echo "<b>MediaHub</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/mediahub.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/mediahub.sh address)/status'"'"'>Status</a>"')
+'echo "&nbsp;&nbsp;Disk: $(getDisk)"')
 
 runAllCommands() {
 	local pids
