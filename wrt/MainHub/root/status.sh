@@ -23,7 +23,19 @@ getMemory() {
 }
 
 getDisk() {
-	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
+	local totalUsed="$(df | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')"
+	local mediaUsed="$(df | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')"
+	local totalAvailable="$(df | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')"
+	local mediaAvailable="$(df | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')"
+	
+	echo "$((totalUsed - mediaUsed))kB/$((totalAvailable - mediaAvailable))kB"
+}
+
+getMediaDisk() {
+	local mediaUsed="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')"
+	local mediaAvailable="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')"
+	
+	echo "${mediaUsed}MB/${mediaAvailable}MB"
 }
 
 tmpStatusFile='/tmp/status.out'
@@ -35,6 +47,7 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
 'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
+'echo "&nbsp;&nbsp;Media Disk: $(getMediaDisk)"'
 'echo ""'
 'echo "<b>ServerHub</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/serverhub.sh status)"'
