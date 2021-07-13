@@ -61,6 +61,30 @@ uci set wireless.radio1.noscan=1
 uci set wireless.radio2.noscan=1
 uci commit
 
+~Setup Mounted Drive
+opkg update && opkg install block-mount e2fsprogs kmod-fs-ext4 kmod-usb-storage kmod-usb2 kmod-usb3
+ls -al /dev/sd*
+mkfs.ext4 /dev/sda1
+block detect | uci import fstab
+uci set fstab.@mount[0].enabled='1' && uci set fstab.@global[0].anon_mount='1' && uci commit fstab
+/etc/init.d/fstab boot
+
+~Setup ftp
+opkg update && opkg install vsftpd-tls
+openssl req -x509 -nodes -days 10000 -newkey rsa:2048 -keyout /etc/vsftpd/vsftpd_privkey.pem -out /etc/vsftpd/vsftpd_cert.pem -subj /C="US"/ST="Oregon"/L="Portland"/CN="MainHub"
+
+~Setup Samba
+opkg update && opkg install samba36-server kmod-fs-ext4 kmod-usb-storage kmod-usb2 kmod-usb3 luci-app-samba
+/etc/init.d/samba disable
+smbd -D
+nmbd -D
+
+~Setup Users
+vi /etc/passwd
+joe:x:1000:55::/mnt/sda1:/bin/false
+passwd joe
+smbpasswd -a joe
+
 
 
 ~Setup Port Forwarding
