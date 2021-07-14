@@ -23,12 +23,10 @@ getMemory() {
 }
 
 getDisk() {
-	local totalUsed="$(df | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')"
-	local mediaUsed="$(df | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')"
-	local totalAvailable="$(df | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')"
-	local mediaAvailable="$(df | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')"
+	local totalUsed="$(df | awk 'NR>2 && /^\/dev\/[^s]/{sum+=$3}END{print sum}')"
+	local totalAvailable="$(df | awk 'NR>2 && /^\/dev\/[^s]/{sum+=$2}END{print sum}')"
 	
-	echo "$((totalUsed - mediaUsed))kB/$((totalAvailable - mediaAvailable))kB"
+	echo "$((totalUsed))kB/$((totalAvailable))kB"
 }
 
 getMediaDisk() {
