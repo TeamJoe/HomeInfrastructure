@@ -22,6 +22,32 @@ getDisk() {
 	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
 }
 
+getAdapterTemperature() {
+	local temp1="$(sensors | grep '.*temp1:.*' | awk 'NR==2{print $2}' | cut -c 2-)"
+	local temp2="$(sensors | grep '.*temp1:.*' | awk 'NR==1{print $2}' | cut -c 2-)"
+	echo "$temp1 $temp2"
+}
+
+getCPUTemperature() {
+	local core000="$(sensors | grep '.*Core 0:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core001="$(sensors | grep '.*Core 1:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core002="$(sensors | grep '.*Core 2:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core003="$(sensors | grep '.*Core 3:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core004="$(sensors | grep '.*Core 4:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core005="$(sensors | grep '.*Core 5:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core006="$(sensors | grep '.*Core 6:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core007="$(sensors | grep '.*Core 7:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core100="$(sensors | grep '.*Core 0:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core101="$(sensors | grep '.*Core 1:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core102="$(sensors | grep '.*Core 2:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core103="$(sensors | grep '.*Core 3:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core104="$(sensors | grep '.*Core 4:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core105="$(sensors | grep '.*Core 5:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core106="$(sensors | grep '.*Core 6:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core107="$(sensors | grep '.*Core 7:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	echo "$core000 $core001 $core002 $core003 $core004 $core005 $core006 $core007 $core100 $core101 $core102 $core103 $core104 $core105 $core106 $core107"
+}
+
 tmpStatusFile='/tmp/status.out'
 statusFile='/home/joe/status.out'
 stats=('echo "<b>Server Stats</b>"'
@@ -31,6 +57,8 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
 'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
+'echo "&nbsp;&nbsp;Adapter Temperature: $(getAdapterTemperature)"'
+'echo "&nbsp;&nbsp;CPU Temperature: $(getCPUTemperature)"'
 'echo ""'
 'echo "<b>Factorio</b>"'
 'echo "&nbsp;&nbsp;$(/home/factorio/FactorioServer.sh info)"'

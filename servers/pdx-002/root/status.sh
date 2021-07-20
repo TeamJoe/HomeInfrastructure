@@ -22,6 +22,27 @@ getDisk() {
 	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
 }
 
+getAdapterTemperature() {
+	local temp1="$(sensors | grep '.*temp1:.*' | awk 'NR==1{print $2}' | cut -c 2-)"
+	echo "$temp1"
+}
+
+getCPUTemperature() {
+	local core000="$(sensors | grep '.*Core 0:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core001="$(sensors | grep '.*Core 1:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core002="$(sensors | grep '.*Core 2:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core008="$(sensors | grep '.*Core 8:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core009="$(sensors | grep '.*Core 9:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core010="$(sensors | grep '.*Core 10:.*' | awk 'NR==1{print $3}' | cut -c 2-)"
+	local core100="$(sensors | grep '.*Core 0:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core101="$(sensors | grep '.*Core 1:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core102="$(sensors | grep '.*Core 2:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core108="$(sensors | grep '.*Core 8:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core109="$(sensors | grep '.*Core 9:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	local core110="$(sensors | grep '.*Core 10:.*' | awk 'NR==2{print $3}' | cut -c 2-)"
+	echo "$core000 $core001 $core002 $core008 $core009 $core010 $core100 $core101 $core102 $core108 $core109 $core110"
+}
+
 tmpStatusFile='/tmp/status.out'
 statusFile='/home/joe/status.out'
 stats=('echo "<b>Server Stats</b>"'
@@ -30,7 +51,9 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(awk '"'"'{print $1}'"'"' /proc/uptime)")"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
-'echo "&nbsp;&nbsp;Disk: $(getDisk)"')
+'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
+'echo "&nbsp;&nbsp;Adapter Temperature: $(getAdapterTemperature)"'
+'echo "&nbsp;&nbsp;CPU Temperature: $(getCPUTemperature)"')
 
 
 runAllCommands() {
