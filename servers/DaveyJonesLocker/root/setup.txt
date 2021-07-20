@@ -1,0 +1,25 @@
+
+~Mount Media Drive
+~~mkdir /mnt/public
+~~sudo apt-get install cifs-utils
+~~sudo vi /etc/fstab
+//mainhub.lan/Public /mnt/public cifs username=plex,password=<Redacted>,workgroup=WORKGROUP,vers=2.0,users,auto,sec=ntlmv2,user_xattr 0 0
+~~sudo mount -a 
+
+~ Install Sensors
+sudo apt install lm-sensors
+
+~Install shell2http
+sudo snap install shell2http
+
+~Install Plex Media Server
+https://www.plex.tv/media-server-downloads/
+
+~Install sonarr
+https://sonarr.tv/#features
+
+~Install radarr
+https://radarr.video/
+
+~Install lidarr
+https://lidarr.audio/

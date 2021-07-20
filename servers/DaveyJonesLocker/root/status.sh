@@ -5,12 +5,8 @@ getHostname() {
 	echo "$(cat /proc/sys/kernel/hostname)"
 }
 
-getDate() {
-	echo "$(date +"%D %T")"
-}
-
 getUptime() {
-	local uptime="$(awk '{print $1}' /proc/uptime)"
+	local uptime="$1"
 	echo "$(($(date -d@$(printf '%.0f\n' "${uptime}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${uptime}") -u +'%-H Hours %-M Minutes %-S Seconds')"
 }
 
@@ -19,7 +15,7 @@ getCPU() {
 }
 
 getMemory() {
-	echo "$((($(free | awk '/^Mem/ {print $3}')) / 1024))Mb/$((($(free | awk '/^Mem/ {print $2}')) / 1024))Mb"
+	echo "$(free -m | awk '/^Mem/ {print $3}')Mb/$(free -m | awk '/^Mem/ {print $2}')Mb"
 }
 
 getDisk() {
@@ -27,29 +23,20 @@ getDisk() {
 }
 
 getTemperature() {
-	local temp1="$(sensors | grep '.*temp1.*' | awk 'NR==1{print $2}' | cut -c 2-)"
-	local temp2="$(sensors | grep '.*temp1.*' | awk 'NR==2{print $2}' | cut -c 2-)"
-	local temp3="$(sensors | grep '.*temp2.*' | awk 'NR==1{print $2}' | cut -c 2-)"
-	echo "$temp1 $temp2 $temp3"
+	echo "$( sensors | grep '.*temp1.*' | awk '{print $2}' | cut -c 2-)"
 }
 
-getSsid() {
-	local ssid1="$(cat /etc/config/wireless | grep '.*ssid.*' | awk 'NR==1{print $3}')"
-	local ssid2="$(cat /etc/config/wireless | grep '.*ssid.*' | awk 'NR==2{print $3}')"
-	echo "${ssid1:1:-1} ${ssid2:1:-1}"
-}
-
-tmpStatusFile='/tmp/status.out'
-statusFile='/root/status.out'
 stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Host: $(getHostname)"'
-'echo "&nbsp;&nbsp;Date: $(getDate)"'
-'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
-'echo "&nbsp;&nbsp;SSID: $(getSsid)"'
+'echo "&nbsp;&nbsp;Date: $(date +"%D %T")"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(awk '"'"'{print $1}'"'"' /proc/uptime)")"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
 'echo "&nbsp;&nbsp;Temperature: $(getTemperature)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
-'echo "&nbsp;&nbsp;Disk: $(getDisk)"')
+'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
+''
+'echo "&nbsp;&nbsp;Plex: "')
+
 
 runAllCommands() {
 	local pids
@@ -72,11 +59,5 @@ getResults() {
 	echo '</p></body></html>'
 }
 
-createResultFile() {
-	runAllCommands
-	getResults > "$tmpStatusFile"
-	mv "$tmpStatusFile" "$statusFile"
-}
-
-createResultFile
-cat "$statusFile"
+runAllCommands
+getResults

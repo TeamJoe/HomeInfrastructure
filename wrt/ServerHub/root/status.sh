@@ -26,35 +26,31 @@ getDisk() {
 	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
 }
 
+getTemperature() {
+	local temp1="$(sensors | grep '.*temp1.*' | awk 'NR==1{print $2}' | cut -c 2-)"
+	local temp2="$(sensors | grep '.*temp1.*' | awk 'NR==2{print $2}' | cut -c 2-)"
+	local temp3="$(sensors | grep '.*temp2.*' | awk 'NR==1{print $2}' | cut -c 2-)"
+	echo "$temp1 $temp2 $temp3"
+}
+
+getSsid() {
+	local ssid1="$(cat /etc/config/wireless | grep '.*ssid.*' | awk 'NR==1{print $3}')"
+	local ssid2="$(cat /etc/config/wireless | grep '.*ssid.*' | awk 'NR==2{print $3}')"
+	local ssid3="$(cat /etc/config/wireless | grep '.*ssid.*' | awk 'NR==3{print $3}')"
+	echo "${ssid1:1:-1} ${ssid2:1:-1} ${ssid3:1:-1}"
+}
+
 tmpStatusFile='/tmp/status.out'
 statusFile='/root/status.out'
 stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Host: $(getHostname)"'
 'echo "&nbsp;&nbsp;Date: $(getDate)"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
+'echo "&nbsp;&nbsp;SSID: $(getSsid)"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
+'echo "&nbsp;&nbsp;Temperature: $(getTemperature)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
-'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
-'echo ""'
-'echo "<b>Portland 001</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/pdx-001.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/pdx-001.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-001/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-001.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-001.sh address)/status'"'"'>Status</a>"'
-'echo ""'
-'echo "<b>Portland 002</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/pdx-002.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/pdx-002.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-002/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-002.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-002.sh address)/status'"'"'>Status</a>"'
-'echo ""'
-'echo "<b>Portland 003</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/pdx-003.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/pdx-003.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-003/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-003.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-003.sh address)/status'"'"'>Status</a>"'
-'echo ""'
-'echo "<b>Portland 004</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/pdx-004.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/pdx-004.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-004/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-004.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-004.sh address)/status'"'"'>Status</a>"')
+'echo "&nbsp;&nbsp;Disk: $(getDisk)"')
 
 runAllCommands() {
 	local pids
