@@ -23,17 +23,10 @@ getMemory() {
 }
 
 getDisk() {
-	local totalUsed="$(df | awk 'NR>2 && /^\/dev\/[^s]/{sum+=$3}END{print sum}')"
-	local totalAvailable="$(df | awk 'NR>2 && /^\/dev\/[^s]/{sum+=$2}END{print sum}')"
+	local totalUsed="$(df | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')"
+	local totalAvailable="$(df | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')"
 	
 	echo "$((totalUsed))kB/$((totalAvailable))kB"
-}
-
-getMediaDisk() {
-	local mediaUsed="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')"
-	local mediaAvailable="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')"
-	
-	echo "${mediaUsed}MB/${mediaAvailable}MB"
 }
 
 getTemperature() {
@@ -61,15 +54,18 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Temperature: $(getTemperature)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
 'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
-'echo "&nbsp;&nbsp;Media Disk: $(getMediaDisk)"'
-'echo ""'
-'echo "<b>ServerHub</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/serverhub.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/serverhub.sh address)/status'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>MediaHub</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/mediahub.sh status)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/mediahub.sh address)/status'"'"'>Status</a>"'
+'echo ""'
+'echo "<b>HeavenHub</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/heavenhub.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/heavenhub.sh address)/status'"'"'>Status</a>"'
+'echo ""'
+'echo "<b>ServerHub</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/serverhub.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/serverhub.sh address)/status'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>Portland 001</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/pdx-001.sh status)"'

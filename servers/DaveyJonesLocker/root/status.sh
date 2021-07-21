@@ -19,7 +19,17 @@ getMemory() {
 }
 
 getDisk() {
-	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
+	local totalUsed="$(df -m | awk 'NR>2 && /^\/dev\/[^s]/{sum+=$3}END{print sum}')"
+	local totalAvailable="$(df -m | awk 'NR>2 && /^\/dev\/[^s]/{sum+=$2}END{print sum}')"
+	
+	echo "$((totalUsed))MiB/$((totalAvailable))MiB"
+}
+
+getMediaDisk() {
+	local mediaUsed="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')"
+	local mediaAvailable="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')"
+	
+	echo "${mediaUsed}MiB/${mediaAvailable}MiB"
 }
 
 getTemperature() {
@@ -34,8 +44,23 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Temperature: $(getTemperature)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
 'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
+'echo "&nbsp;&nbsp;Media Drive: $(getMediaDisk)"'
 ''
-'echo "&nbsp;&nbsp;Plex: "')
+'echo "<b>Plex</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/plex.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/plex.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Sonarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/sonarr.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/sonarr.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Radarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/radarr.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/radarr.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Lidarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/lidarr.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/lidarr.sh address)'"'"'>Link</a>"')
 
 
 runAllCommands() {

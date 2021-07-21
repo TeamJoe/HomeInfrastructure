@@ -39,7 +39,7 @@ opkg update && opkg install procps-ng-vmstat
 ~Install bash
 opkg update && opkg install bash
 
-~Enable hhtp-service
+~Enable http-service
 /etc/init.d/http-service enable
 /etc/init.d/http-service start
 

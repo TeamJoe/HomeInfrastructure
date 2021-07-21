@@ -14,6 +14,7 @@ start_service() {
 			/ping "echo 'PONG'" \
 			/status "/root/status.sh" \
 			/mediahub/status "/root/mediahub.sh status" \
+			/heavenhub/status "/root/heavenhub.sh status" \
 			/serverhub/status "/root/serverhub.sh status" \
 			/pdx-001/status "/root/pdx-001.sh status" \
 			/pdx-001/start "/root/pdx-001.sh start" \
@@ -22,6 +23,7 @@ start_service() {
 			/pdx-003/status "/root/pdx-003.sh status" \
 			/pdx-003/start "/root/pdx-003.sh start" \
 			/pdx-004/status "/root/pdx-004.sh status" \
-			/pdx-004/start "/root/pdx-004.sh start"
+			/pdx-004/start "/root/pdx-004.sh start" \
+			/daveyjoneslocker/status "/root/daveyjoneslocker.sh status"
 	procd_close_instance
 }
