@@ -3,6 +3,7 @@
 
 path="$1"; shift
 service="$1"; shift
+description="$1"; shift
 externalAddress="$1"; shift
 command="$1"; shift
 
@@ -43,10 +44,12 @@ runCommand() {
 		startUp
 	elif [ "$command" == "status" ]; then
 		currentStatus
+	elif [ "$command" == "description" ]; then
+		echo "$description"
 	elif [ "$command" == "address" ]; then
 		echo "$externalAddress"
 	else
-		echo "Usage: $runPath [start|status|address]"
+		echo "Usage: $runPath [start|status|description|address]"
 		exit 1
 	fi
 }
