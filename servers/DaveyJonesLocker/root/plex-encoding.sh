@@ -26,6 +26,11 @@ bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mp4'
 compressionExtension='.compression'
 
+getCommand() {
+	local command="${1}"
+	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cext '${compressionExtension}' $(if [ "$cleanRun" = true ]; then echo '--clean '; fi) --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
+}
+
 getAudioEncodingSettings() {
 	local inputFile="${1}"
 	audioEncoding=""
@@ -160,7 +165,7 @@ startDaemon() {
 	else
 		echo "Starting Daemon"
 		local vars="$(getCommand "start-local")"
-		nohup $vars >/dev/null 2>&1 &
+		eval "nohup $vars >/dev/null 2>&1 &"
 	fi
 }
 
@@ -209,12 +214,6 @@ getComplexityOrder() {
 	esac
 }
 
-getCommand() {
-	local command="${1}"
-
-	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cext '${compressionExtension}' $(if [ "$cleanRun" = true ]; then echo '--clean '; fi) --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
-}
-
 runCommand() {
 	local command="${1}"
 	
@@ -237,7 +236,7 @@ runCommand() {
 		echo "$(getCommand "$command")"
 		echo "$(stopProcess)"
 	else
-		echo "$(getCommand "$command")"
+		echo "$(getCommand "${1}")"
 		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
 		exit 1
 	fi
@@ -263,5 +262,6 @@ while true; do
 		* ) break;;
 	esac
 done
+
 
 runCommand "$command"
