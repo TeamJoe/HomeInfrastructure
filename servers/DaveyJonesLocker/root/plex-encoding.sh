@@ -137,8 +137,7 @@ convert() {
 convertAll() {
 	local inputDirectory="${1}"
 	local tmpDirectory="${2}"
-	local dryRun="${3}"
-	local cleanRun="${4}"
+	local pid="${3}"
 	IFS=$'\n'
 	if [ "$cleanRun" = "true" ]; then
 		find "${inputDirectory}" -type f -name "*${compressionExtension}.${compressComplexity}" -delete
@@ -146,7 +145,7 @@ convertAll() {
 
 	echo "[$(date +%FT%T)] Starting"
 	for file in $(find "${inputDirectory}" -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p'); do
-		if [ "$$" != "$(cat "$pidLocation")" ]; then
+		if [ "$pid" != "$(cat "$pidLocation")" ]; then
 			echo "[$(date +%FT%T)] PID mismatch; Stopping"
 			break
 		fi
@@ -222,9 +221,10 @@ startLocal() {
 		echo "Daemon is already running"
 	else
 		echo "Starting On Local Process"
-		echo "$$" > "$pidLocation"
+		pid="$$"
+		echo "$pid" > "$pidLocation"
 		echo "$(getCommand "$command")" >> "${logFile}"
-		convertAll "${inputDirectory}" "${tmpDirectory}" "${dryRun}" "${cleanRun}" >> "${logFile}"
+		convertAll "${inputDirectory}" "${tmpDirectory}" "${pid}" >> "${logFile}"
 	fi
 }
 
@@ -241,17 +241,20 @@ startDaemon() {
 isRunning() {
 	if [ -f "$pidLocation" ]; then
 		local pid="$(cat "$pidLocation")"
-		if [ -z "$pid" ]; then
-			echo "false"
-			rm "$pidLocation"
-		elif ps -p "$pid" > /dev/null; then
-			echo "true"
+		
+		if [ -n "$pid" ]; then
+			local isRunning="$(ps ax | awk '{print $1}' | grep "$pid")"
+			if [ -n "$isRunning" ]; then
+				echo 'true'
+			else
+				echo 'false'
+				rm -v "$pidLocation"
+			fi
 		else
-			echo "false"
-			rm "$pidLocation"
+			echo 'false'
 		fi
 	else
-		echo "false"
+		echo 'false'
 	fi
 }
 
