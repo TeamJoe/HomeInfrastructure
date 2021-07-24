@@ -22,28 +22,27 @@ encodingQuality=18 # 1-50, lower is better quailty
 compressComplexity='veryslow' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 audioCodec='aac' #libfdk_aac
 videoCodec='libx264'
-subtitlesCodec='srt'
+subtitlesImageCodec='dvbsub'
+subtitlesTextCodec='srt'
 bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mp4'
 compressionExtension='.compression'
 
 getCommand() {
 	local command="${1}"
-	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cext '${compressionExtension}' $(if [ "$cleanRun" = true ]; then echo '--clean '; fi) --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --sub '${subtitlesCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
+	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cext '${compressionExtension}' $(if [ "$cleanRun" = true ]; then echo '--clean '; fi) --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --subi '${subtitlesImageCodec}' --subt '${subtitlesTextCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
 }
 
 getAudioEncodingSettings() {
 	local inputFile="${1}"
-	audioEncoding=""
-	streamCount="$(ffprobe "$inputFile" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
+	local streamCount="$(ffprobe "$inputFile" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
 	for (( i=0; i<=${streamCount}; i++ )); do
-		channelCount="$(ffprobe -i "$inputFile" -show_streams -select_streams a:${i} | grep -o '^channels=[0-9]*$' | grep -o '[0-9]*')"
+		local channelCount="$(ffprobe -i "$inputFile" -show_streams -select_streams a:${i} | grep -o '^channels=[0-9]*$' | grep -o '[0-9]*')"
 		if [ -n "$channelCount" ]; then
-			bitrate="$(( $channelCount * $bitratePerAudioChannel))"
-			audioEncoding="${audioEncoding} -c:a:${i} $audioCodec -b:a:${i} ${bitrate}k"
+			local bitrate="$(( $channelCount * $bitratePerAudioChannel))"
+			echo " -c:a:${i} $audioCodec -b:a:${i} ${bitrate}k"
 		fi
 	done
-	echo "$audioEncoding"
 }
 
 getVideoEncodingSettings() {
@@ -51,9 +50,56 @@ getVideoEncodingSettings() {
 	echo " -c:v $videoCodec"
 }
 
+getSubtitleEncodingType() {
+	local codec="${1}"
+	case "$compressComplexity" in
+		dvb_subtitle ) echo 'image';;
+		dvbsub ) echo 'image';;
+		dvd_subtitle ) echo 'image';;
+		dvdsub ) echo 'image';;
+		hdmv_pgs_subtitle ) echo 'image';;
+		pgssub ) echo 'image';;
+		xsub ) echo 'image';;
+		arib_caption ) echo 'text';;
+		ass ) echo 'text';;
+		cc_dec ) echo 'text';;
+		dvb_teletext ) echo 'text';;
+		eia_608 ) echo 'text';;
+		hdmv_text_subtitle ) echo 'text';;
+		jacosub ) echo 'text';;
+		libzvbi_teletextdec ) echo 'text';;
+		microdvd ) echo 'text';;
+		mov_text ) echo 'text';;
+		mpl2 ) echo 'text';;
+		realtext ) echo 'text';;
+		sami ) echo 'text';;
+		srt ) echo 'text';;
+		ssa ) echo 'text';;
+		stl ) echo 'text';;
+		subrip ) echo 'text';;
+		subviewer ) echo 'text';;
+		text ) echo 'text';;
+		ttml ) echo 'text';;
+		vplayer ) echo 'text';;
+		webvtt ) echo 'text';;
+		* ) echo 'unknown';;
+	esac
+}
+
 getSubtitleEncodingSettings() {
 	local inputFile="${1}"
-	echo " -c:s $subtitlesCodec"
+	local streamCount="$(ffprobe "$inputFile" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
+	for (( i=0; i<=${streamCount}; i++ )); do
+		local codecName="$(ffprobe -i "$inputFile" -show_streams -select_streams s:${i} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+		if [ -n "$codecName" ]; then
+			local codecType="$(getSubtitleEncodingType "${codecName}")"
+			if [ "${codecType}" = "image" ]; then
+				echo " -c:s:${i} $subtitlesImageCodec"
+			else
+				echo " -c:s:${i} $subtitlesTextCodec"
+			fi
+		fi
+	done
 }
 
 assembleArguments() {
@@ -145,7 +191,7 @@ convertAll() {
 						echo "[$(date +%FT%T)] File '$file' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
 					else
 						echo "$(cat "${fileLogPath}")"
-						echo "[$(date +%FT%T)] Failed to compress '${file}'"
+						echo "[$(date +%FT%T)] Failed to compress '${file}'. Exit Code '$convertErrorCode' Final Size '$finalSize' Original Size '$originalSize'"
 						rm "${fileLogPath}"
 					fi
 				fi
@@ -241,7 +287,7 @@ runCommand() {
 		echo "$(stopProcess)"
 	else
 		echo "$(getCommand "${1}")"
-		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--sub subtitlesCodec srt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
+		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--subi subtitlesImageCodec vobsub] [--subt subtitlesTextCodec webvtt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
 		exit 1
 	fi
 }
@@ -259,7 +305,8 @@ while true; do
 		--log ) logFile="${2}"; shift 2;;
 		--pid ) pidLocation="${2}"; shift 2;;
 		--quality ) encodingQuality="${2}"; shift 2;;
-		--sub ) subtitlesCodec="${2}"; shift 2;;
+		--subi ) subtitlesImageCodec="${2}"; shift 2;;
+		--subt ) subtitlesTextCodec="${2}"; shift 2;;
 		--thread ) threadCount="${2}"; shift 2;;
 		--tmp ) tmpDirectory="${2}"; shift 2;;
 		--video ) videoCodec="${2}"; shift 2;;
