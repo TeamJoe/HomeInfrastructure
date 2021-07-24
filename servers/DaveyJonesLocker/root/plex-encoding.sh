@@ -76,6 +76,7 @@ convertAll() {
 		local mod="$(stat --format '%a' "$file")"
 		local owner="$(ls -al "$file"  | awk '{print $3}')"
 		local group="$(ls -al "$file"  | awk '{print $4}')"
+		local originalSize="$(($(ls -al "$file" | awk '{print $5}')/1024/1024))"
 		local filePath="$(echo "$file" | sed 's/\(.*\)\..*/\1/')"
 		local fileNameWithExt="$(basename "$file")"
 		local fileName="$(basename "$filePath")"
@@ -84,18 +85,32 @@ convertAll() {
 			local tmpFile="${tmpDriectory}/${fileName}${outputExtension}"
 			echo "[$(date +%FT%T)] Converting '${file}' to '${filePath}${outputExtension}'"
 			if [ "$dryRun" = "true" ]; then
-				echo "DryRun" > "${filePath}.compression"
-				echo "convert \"${file}\" \"${tmpFile}\"" >> "${filePath}.compression"
-				echo "rm -v \"$file\"" >> "${filePath}.compression"
-				echo "mv -v \"$tmpFile\" \"${filePath}${outputExtension}\"" >> "${filePath}.compression"
+				echo "convert \"${file}\" \"${tmpFile}\""
+				echo "rm -v \"$file\""
+				echo "mv -v \"$tmpFile\" \"${filePath}${outputExtension}\""
+				echo "chown \"${owner}:${group}\" -v \"${filePath}${outputExtension}\""
+				echo "chown \"${owner}:${group}\" -v \"${filePath}.compression\""
+				echo "chmod $mod -v \"${filePath}${outputExtension}\""
+				echo "chmod 444 -v \"${filePath}.compression\""
+				local finalSize="$(($(ls -al "${file}" | awk '{print $5}')/1024/1024))"
+				echo "File reduced to ${finalSize}MiB from original size ${originalSize}MiB"
 			else
 				convert "${file}" "${tmpFile}" > "${filePath}.compression"
-				rm -v "$file" >> "${filePath}.compression"
-				mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}.compression"
-				chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${filePath}.compression"
-				chown "${owner}:${group}" -v "${filePath}.compression" >> "${filePath}.compression"
-				chmod $mod -v "${filePath}${outputExtension}" >> "${filePath}.compression"
-				chmod 444 -v "${filePath}.compression" >> "${filePath}.compression"
+				if [ -f "${tmpFile}" ]; then
+					rm -v "$file" >> "${filePath}.compression"
+					mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}.compression"
+					chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${filePath}.compression"
+					chown "${owner}:${group}" -v "${filePath}.compression" >> "${filePath}.compression"
+					chmod $mod -v "${filePath}${outputExtension}" >> "${filePath}.compression"
+					chmod 444 -v "${filePath}.compression" >> "${filePath}.compression"
+					local finalSize="$(($(ls -al "${filePath}${outputExtension}" | awk '{print $5}')/1024/1024))"
+					echo "File reduced to ${finalSize}MiB from original size ${originalSize}MiB" >> "${filePath}.compression"
+					echo "[$(date +%FT%T)] File reduced to ${finalSize}MiB from original size ${originalSize}MiB"
+				else
+					echo "$(cat "${filePath}.compression")"
+					echo "[$(date +%FT%T)] Failed to compress '${file}'"
+					rm "${filePath}.compression"
+				fi
 			fi
 		fi
 	done
