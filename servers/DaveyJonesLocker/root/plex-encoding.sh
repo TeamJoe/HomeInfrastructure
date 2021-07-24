@@ -22,13 +22,14 @@ encodingQuality=18 # 1-50, lower is better quailty
 compressComplexity='veryslow' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 audioCodec='aac' #libfdk_aac
 videoCodec='libx264'
+subtitlesCodec='srt'
 bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mp4'
 compressionExtension='.compression'
 
 getCommand() {
 	local command="${1}"
-	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cext '${compressionExtension}' $(if [ "$cleanRun" = true ]; then echo '--clean '; fi) --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
+	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cext '${compressionExtension}' $(if [ "$cleanRun" = true ]; then echo '--clean '; fi) --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --sub '${subtitlesCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
 }
 
 getAudioEncodingSettings() {
@@ -52,7 +53,7 @@ getVideoEncodingSettings() {
 
 getSubtitleEncodingSettings() {
 	local inputFile="${1}"
-	echo " -scodec copy"
+	echo " -c:s $subtitlesCodec"
 }
 
 assembleArguments() {
@@ -83,9 +84,9 @@ convertAll() {
 
 	echo "[$(date +%FT%T)] Starting"
 	for file in $(find "${inputDirectory}" -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p'); do
-		if [ "$$" -ne "$(cat "$pidLocation")" ]; then
+		if [ "$$" != "$(cat "$pidLocation")" ]; then
 			echo "[$(date +%FT%T)] PID mismatch; Stopping"
-			exit 1
+			break
 		fi
 		local mod="$(stat --format '%a' "$file")"
 		local owner="$(ls -al "$file"  | awk '{print $3}')"
@@ -132,11 +133,11 @@ convertAll() {
 				else
 					convert "${file}" "${tmpFile}" > "${fileLogPath}"
 					local finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
-					if [ -f "${tmpFile}" ] && [ "$convertErrorCode" -eq 0 ] && [ "$finalSize" -gt 0 ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
+					if [ -f "${tmpFile}" ] && [ "$convertErrorCode" = "0" ] && [ -n "$finalSize" ] && [ "$finalSize" -gt 0 ] && [ -n "$originalSize" ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
 						rm -v "$file" >> "${fileLogPath}"
 						mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${fileLogPath}"
 						chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${fileLogPath}"
-						chown "${owner}:${group}" -v "${fileLogPath}" >> "${fileLogPath}}"
+						chown "${owner}:${group}" -v "${fileLogPath}" >> "${fileLogPath}"
 						chmod "$mod" -v "${filePath}${outputExtension}" >> "${fileLogPath}"
 						chmod "444" -v "${fileLogPath}" >> "${fileLogPath}"
 						local finalSize="$(ls -al "${file}" | awk '{print $5}')"
@@ -152,7 +153,6 @@ convertAll() {
 		fi
 	done
 	echo "[$(date +%FT%T)] Completed"
-	exit 0
 }
 
 startLocal() {
@@ -241,7 +241,7 @@ runCommand() {
 		echo "$(stopProcess)"
 	else
 		echo "$(getCommand "${1}")"
-		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
+		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--sub subtitlesCodec srt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
 		exit 1
 	fi
 }
@@ -259,6 +259,7 @@ while true; do
 		--log ) logFile="${2}"; shift 2;;
 		--pid ) pidLocation="${2}"; shift 2;;
 		--quality ) encodingQuality="${2}"; shift 2;;
+		--sub ) subtitlesCodec="${2}"; shift 2;;
 		--thread ) threadCount="${2}"; shift 2;;
 		--tmp ) tmpDirectory="${2}"; shift 2;;
 		--video ) videoCodec="${2}"; shift 2;;
