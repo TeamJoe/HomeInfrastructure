@@ -73,6 +73,9 @@ convertAll() {
 
 	echo "[$(date +%FT%T)] Starting"
 	for file in $(find "${inputDirectory}" -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p'); do
+		local mod="$(stat --format '%a' "$file")"
+		local owner="$(ls -al "$file"  | awk '{print $3}')"
+		local group="$(ls -al "$file"  | awk '{print $4}')"
 		local filePath="$(echo "$file" | sed 's/\(.*\)\..*/\1/')"
 		local fileNameWithExt="$(basename "$file")"
 		local fileName="$(basename "$filePath")"
@@ -89,6 +92,10 @@ convertAll() {
 				convert "${file}" "${tmpFile}" > "${filePath}.compression"
 				rm -v "$file" >> "${filePath}.compression"
 				mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}.compression"
+				chown "${owner}:${group}" "${filePath}${outputExtension}"
+				chown "${owner}:${group}" "${filePath}.compression"
+				chmod $mod "${filePath}${outputExtension}"
+				chmod 444 "${filePath}.compression"
 			fi
 		fi
 	done
