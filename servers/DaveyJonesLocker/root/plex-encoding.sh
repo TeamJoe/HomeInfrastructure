@@ -92,10 +92,10 @@ convertAll() {
 				convert "${file}" "${tmpFile}" > "${filePath}.compression"
 				rm -v "$file" >> "${filePath}.compression"
 				mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}.compression"
-				chown "${owner}:${group}" "${filePath}${outputExtension}"
-				chown "${owner}:${group}" "${filePath}.compression"
-				chmod $mod "${filePath}${outputExtension}"
-				chmod 444 "${filePath}.compression"
+				chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${filePath}.compression"
+				chown "${owner}:${group}" -v "${filePath}.compression" >> "${filePath}.compression"
+				chmod $mod -v "${filePath}${outputExtension}" >> "${filePath}.compression"
+				chmod 444 -v "${filePath}.compression" >> "${filePath}.compression"
 			fi
 		fi
 	done
