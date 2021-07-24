@@ -1,6 +1,10 @@
 #!/bin/bash
 # /root/status.sh
 
+tmpStatusFile='/tmp/status.out'
+statusFile='/home/joe/status.out'
+sleepTimeInSeconds=60
+
 getHostname() {
 	echo "$(cat /proc/sys/kernel/hostname)"
 }
@@ -11,7 +15,7 @@ getUptime() {
 }
 
 getCPU() {
-	echo "$((100 - ($(vmstat | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'))))%"
+	echo "$((100 - ($(vmstat 1 2 | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'))))%"
 }
 
 getMemory() {
@@ -26,10 +30,10 @@ getDisk() {
 }
 
 getMediaDisk() {
-	local mediaUsed="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')"
-	local mediaAvailable="$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')"
+	local mediaUsed="$(( "$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$3}END{print sum}')" / 1024 ))"
+	local mediaAvailable="$(( "$(df -m | awk 'NR>2 && /^\/dev\/sda1/{sum+=$2}END{print sum}')" / 1024 ))"
 	
-	echo "${mediaUsed}MiB/${mediaAvailable}MiB"
+	echo "${mediaUsed}GiB/${mediaAvailable}GiB"
 }
 
 getTemperature() {
@@ -93,5 +97,9 @@ getResults() {
 	echo '</p></body></html>'
 }
 
-runAllCommands
-getResults
+while true; do
+	runAllCommands
+	getResults > "$tmpStatusFile"
+	mv "$tmpStatusFile" "$statusFile"
+	sleep "$sleepTimeInSeconds"
+done

@@ -11,7 +11,7 @@ RestartSec=5
 User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5 -port=80 \
 	/ping "echo 'PONG'" \
-	/status "/root/status.sh"
+	/status "cat /home/joe/status.out"
 
 [Install]
 WantedBy=multi-user.target

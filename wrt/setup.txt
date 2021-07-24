@@ -21,6 +21,7 @@ opkg update && opkg install curl
 ~Update permissions
 chmod +x /usr/sbin/shell2http /usr/sbin/speedtest
 chmod +x /etc/init.d/http-service
+chmod +x /etc/init.d/server-status
 chmod +x /root/*.sh
 
 ~Fix http warnings
@@ -42,6 +43,8 @@ opkg update && opkg install bash
 ~Enable http-service
 /etc/init.d/http-service enable
 /etc/init.d/http-service start
+/etc/init.d/server-status enable
+/etc/init.d/server-status start
 
 ~Update Additional Host files
 Network -> DHCP and DNS -> Additional Host files -> /tmp/generated_hosts
