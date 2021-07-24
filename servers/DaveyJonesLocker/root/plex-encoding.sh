@@ -102,7 +102,7 @@ startLocal() {
 	else
 		echo "Starting On Local Process"
 		echo $$ > "$pidLocation"
-		convertAll "${inputDirectory}" "${tmpDriectory}" "${dryRun}" "${cleanRun}" >> "${outputFile}" 2>&1
+		convertAll "${inputDirectory}" "${tmpDriectory}" "${dryRun}" "${cleanRun}" >> "${outputFile}"
 	fi
 }
 
@@ -136,8 +136,8 @@ stopProcess() {
 	if [ "$(isRunning)" = "true" ]; then
 		local pid="$(cat "$pidLocation")"
 		kill -9 $pid
-		if [ "$(isRunning)" = "false" ]; then
-			rm "$pidLocation"
+		if [ "$(isRunning)" = "true" ]; then
+			echo "Failed to remove process"
 		fi
 	else
 		echo "Daemon is not running"

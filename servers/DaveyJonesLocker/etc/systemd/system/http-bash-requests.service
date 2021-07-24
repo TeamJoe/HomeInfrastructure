@@ -11,7 +11,9 @@ RestartSec=5
 User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5 -port=80 \
 	/ping "echo 'PONG'" \
-	/status "cat /home/joe/status.out"
+	/status "cat /home/joe/status.out" \
+	/compression/start "/root/compression.sh start" \
+	/compression/output "/root/compression.sh output"
 
 [Install]
 WantedBy=multi-user.target

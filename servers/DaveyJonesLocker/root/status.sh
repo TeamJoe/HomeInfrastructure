@@ -73,7 +73,11 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "<b>Transmission</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/transmission.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/root/transmission.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/transmission.sh address)'"'"'>Link</a>"')
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/transmission.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Compression</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status)"'
+'echo "&nbsp;&nbsp;Links: <a href='/compression/start'>Start</a> | <a href='/compression/output'>Output</a>"')
 
 
 runAllCommands() {
