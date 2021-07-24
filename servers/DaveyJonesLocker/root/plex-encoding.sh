@@ -8,6 +8,7 @@ audioCodec='aac' #libfdk_aac
 videoCodec='libx264'
 bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mp4'
+compressionExtension='.compression'
 threadCount=3 # 0 is unlimited
 encodingQuality=18 # 1-50, lower is better quailty
 
@@ -15,7 +16,7 @@ encodingQuality=18 # 1-50, lower is better quailty
 path="${0}"
 command="${1}"
 inputDirectory="${2}" #/home/public/Videos/TV/Sonarr
-tmpDriectory="${3:-/tmp}"
+tmpDirectory="${3:-/tmp}"
 outputFile="${4:-~/encoding.results}"
 dryRun="${5:-true}"
 cleanRun="${6:-false}"
@@ -47,8 +48,8 @@ getSubtitleEncodingSettings() {
 }
 
 assembleArguments() {
-	local inputFile="${1}"
-	local outputFile="${2}"
+	local inputFile="$(echo "${1}" | sed -e "s/'/'\"'\"'/g")"
+	local outputFile="$(echo "${2}" | sed -e "s/'/'\"'\"'/g")"
 
 	echo "-i '${inputFile}' -crf 18 -map 0 $(getAudioEncodingSettings "${inputFile}") $(getSubtitleEncodingSettings "${inputFile}") $(getVideoEncodingSettings "${inputFile}") -threads ${threadCount} -preset veryslow '${outputFile}'"
 }
@@ -63,12 +64,12 @@ convert() {
 
 convertAll() {
 	local inputDirectory="${1}"
-	local tmpDriectory="${2}"
+	local tmpDirectory="${2}"
 	local dryRun="${3}"
 	local cleanRun="${4}"
 	IFS=$'\n'
 	if [ "$cleanRun" = "true" ]; then
-		find "${inputDirectory}" -type f -name "*.compression" -delete
+		find "${inputDirectory}" -type f -name "*${compressionExtension}" -delete
 	fi
 
 	echo "[$(date +%FT%T)] Starting"
@@ -81,35 +82,35 @@ convertAll() {
 		local fileNameWithExt="$(basename "$file")"
 		local fileName="$(basename "$filePath")"
 		local oldExt="${fileNameWithExt##*.}"
-		if [ "$oldExt" != "part" ] && [ ! -f "${filePath}.compression" ]; then
-			local tmpFile="${tmpDriectory}/${fileName}${outputExtension}"
+		if [ "$oldExt" != "part" ] && [ ! -f "${filePath}${compressionExtension}" ]; then
+			local tmpFile="${tmpDirectory}/${fileName}${outputExtension}"
 			echo "[$(date +%FT%T)] Converting '${file}' to '${filePath}${outputExtension}'"
 			if [ "$dryRun" = "true" ]; then
 				echo "convert \"${file}\" \"${tmpFile}\""
 				echo "rm -v \"$file\""
 				echo "mv -v \"$tmpFile\" \"${filePath}${outputExtension}\""
 				echo "chown \"${owner}:${group}\" -v \"${filePath}${outputExtension}\""
-				echo "chown \"${owner}:${group}\" -v \"${filePath}.compression\""
+				echo "chown \"${owner}:${group}\" -v \"${filePath}${compressionExtension}\""
 				echo "chmod $mod -v \"${filePath}${outputExtension}\""
-				echo "chmod 444 -v \"${filePath}.compression\""
+				echo "chmod 444 -v \"${filePath}${compressionExtension}\""
 				local finalSize="$(($(ls -al "${file}" | awk '{print $5}')/1024/1024))"
 				echo "File reduced to ${finalSize}MiB from original size ${originalSize}MiB"
 			else
-				convert "${file}" "${tmpFile}" > "${filePath}.compression"
+				convert "${file}" "${tmpFile}" > "${filePath}${compressionExtension}"
 				if [ -f "${tmpFile}" ]; then
-					rm -v "$file" >> "${filePath}.compression"
-					mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}.compression"
-					chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${filePath}.compression"
-					chown "${owner}:${group}" -v "${filePath}.compression" >> "${filePath}.compression"
-					chmod $mod -v "${filePath}${outputExtension}" >> "${filePath}.compression"
-					chmod 444 -v "${filePath}.compression" >> "${filePath}.compression"
+					rm -v "$file" >> "${filePath}${compressionExtension}"
+					mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}${compressionExtension}"
+					chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${filePath}${compressionExtension}"
+					chown "${owner}:${group}" -v "${filePath}${compressionExtension}" >> "${filePath}${compressionExtension}"
+					chmod $mod -v "${filePath}${outputExtension}" >> "${filePath}${compressionExtension}"
+					chmod 444 -v "${filePath}${compressionExtension}" >> "${filePath}${compressionExtension}"
 					local finalSize="$(($(ls -al "${filePath}${outputExtension}" | awk '{print $5}')/1024/1024))"
-					echo "File reduced to ${finalSize}MiB from original size ${originalSize}MiB" >> "${filePath}.compression"
+					echo "File reduced to ${finalSize}MiB from original size ${originalSize}MiB" >> "${filePath}${compressionExtension}"
 					echo "[$(date +%FT%T)] File reduced to ${finalSize}MiB from original size ${originalSize}MiB"
 				else
-					echo "$(cat "${filePath}.compression")"
+					echo "$(cat "${filePath}${compressionExtension}")"
 					echo "[$(date +%FT%T)] Failed to compress '${file}'"
-					rm "${filePath}.compression"
+					rm "${filePath}${compressionExtension}"
 				fi
 			fi
 		fi
@@ -124,7 +125,7 @@ startLocal() {
 	else
 		echo "Starting On Local Process"
 		echo $$ > "$pidLocation"
-		convertAll "${inputDirectory}" "${tmpDriectory}" "${dryRun}" "${cleanRun}" >> "${outputFile}"
+		convertAll "${inputDirectory}" "${tmpDirectory}" "${dryRun}" "${cleanRun}" >> "${outputFile}"
 	fi
 }
 
@@ -133,7 +134,7 @@ startDaemon() {
 		echo "Daemon is already running"
 	else
 		echo "Starting Daemon"
-		nohup "$path" "start-local" "$inputDirectory" "$tmpDriectory" "$outputFile" "$dryRun" "$cleanRun" "$pidLocation" >/dev/null 2>&1 &
+		nohup "$path" "start-local" "$inputDirectory" "$tmpDirectory" "$outputFile" "$dryRun" "$cleanRun" "$pidLocation" >/dev/null 2>&1 &
 	fi
 }
 
