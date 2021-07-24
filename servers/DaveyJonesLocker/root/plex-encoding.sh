@@ -25,7 +25,7 @@ videoCodec='libx264'
 subtitlesImageCodec='dvbsub'
 subtitlesTextCodec='srt'
 bitratePerAudioChannel=96 # 64 is default
-outputExtension='.mp4'
+outputExtension='.mkv'
 compressionExtension='.compression'
 
 getCommand() {
