@@ -75,9 +75,17 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Description: $(/root/transmission.sh description)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/transmission.sh address)'"'"'>Link</a>"'
 ''
-'echo "<b>Compression</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='/compression/start'>Start</a> | <a href='/compression/output'>Output</a>"')
+'echo "<b>Compression - Ultra Fast</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status ultrafast 3)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/ultrafast/start'"'"'>Start</a> | <a href='"'"'/compression/ultrafast/output'"'"'>Output</a>"'
+''
+'echo "<b>Compression - Fast</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status fast 2)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/fast/start'"'"'>Start</a> | <a href='"'"'/compression/fast/output'"'"'>Output</a>"'
+''
+'echo "<b>Compression - Very Slow</b>"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status veryslow 1)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/veryslow/start'"'"'>Start</a> | <a href='"'"'/compression/veryslow/output'"'"'>Output</a>"')
 
 
 runAllCommands() {
