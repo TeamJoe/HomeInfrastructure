@@ -49,7 +49,19 @@ getAudioEncodingSettings() {
 
 getVideoEncodingSettings() {
 	local inputFile="${1}"
-	echo " -c:v $videoCodec"
+	local videoEncoding=""
+	local streamCount="$(ffprobe "$inputFile" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
+	for (( i=0; i<=${streamCount}; i++ )); do
+		local codecName="$(ffprobe -i "$inputFile" -show_streams -select_streams v:${i} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+		if [ -n "$codecName" ]; then
+			if [ "$codecName" == 'h264' ] && [ "${videoCodec}" == 'libx264' ] && [ "${compressComplexity}" == 'ultrafast' ]; then
+				local videoEncoding="${videoEncoding} -c:v:${i} copy"
+			else
+				local videoEncoding="${videoEncoding} -c:v:${i} $videoCodec"
+			fi
+		fi
+	done
+	echo "${videoEncoding}"
 }
 
 getSubtitleEncodingType() {
