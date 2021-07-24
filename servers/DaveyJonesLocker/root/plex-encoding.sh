@@ -68,6 +68,7 @@ convert() {
 	arguments="$(assembleArguments "${inputFile}" "${logFile}")"
 	echo "ffmpeg ${arguments}"
 	eval "ffmpeg ${arguments}"
+	convertErrorCode=$?
 }
 
 convertAll() {
@@ -82,16 +83,21 @@ convertAll() {
 
 	echo "[$(date +%FT%T)] Starting"
 	for file in $(find "${inputDirectory}" -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p'); do
+		if [ "$$" -ne "$(cat "$pidLocation")" ]; then
+			echo "[$(date +%FT%T)] PID mismatch; Stopping"
+			exit 1
+		fi
 		local mod="$(stat --format '%a' "$file")"
 		local owner="$(ls -al "$file"  | awk '{print $3}')"
 		local group="$(ls -al "$file"  | awk '{print $4}')"
-		local originalSize="$(($(ls -al "$file" | awk '{print $5}')/1024/1024))"
+		local originalSize="$(ls -al "$file" | awk '{print $5}')"
 		local filePath="$(echo "$file" | sed 's/\(.*\)\..*/\1/')"
 		local fileNameWithExt="$(basename "$file")"
 		local fileName="$(basename "$filePath")"
 		local oldExt="${fileNameWithExt##*.}"
 		local newComplexity="$(getComplexityOrder "${compressComplexity}")"
-		if [ "$oldExt" != "part" ] && [ ! -f "${filePath}${compressionExtension}.${compressComplexity}" ]; then		
+		local fileLogPath="${filePath}${compressionExtension}.${compressComplexity}"
+		if [ "$oldExt" != "part" ] && [ ! -f "${fileLogPath}" ]; then		
 			local tmpFile="${tmpDirectory}/${fileName}${outputExtension}"
 			echo "[$(date +%FT%T)] Converting '${file}' to '${filePath}${outputExtension}'"
 			local currentComplexity="0"
@@ -114,38 +120,39 @@ convertAll() {
 					echo "rm -v \"$file\""
 					echo "mv -v \"$tmpFile\" \"${filePath}${outputExtension}\""
 					echo "chown \"${owner}:${group}\" -v \"${filePath}${outputExtension}\""
-					echo "chown \"${owner}:${group}\" -v \"${filePath}${compressionExtension}.${compressComplexity}\""
-					echo "chmod $mod -v \"${filePath}${outputExtension}\""
-					echo "chmod 444 -v \"${filePath}${compressionExtension}.${compressComplexity}\""
-					local finalSize="$(($(ls -al "${file}" | awk '{print $5}')/1024/1024))"
-					echo "File '$file' reduced to ${finalSize}MiB from original size ${originalSize}MiB"
+					echo "chown \"${owner}:${group}\" -v \"${fileLogPath}\""
+					echo "chmod \"$mod\" -v \"${filePath}${outputExtension}\""
+					echo "chmod \"444\" -v \"${fileLogPath}\""
+					local finalSize="$(ls -al "${file}" | awk '{print $5}')"
+					echo "File '$file' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
 				fi
 			else
 				if [ "$currentComplexity" -gt "$newComplexity" ]; then
-					echo "File is already '$currentFileExt' compressed, will not compress to worse '$compressComplexity' format" > "${filePath}${compressionExtension}.${compressComplexity}"
+					echo "File is already '$currentFileExt' compressed, will not compress to worse '$compressComplexity' format" > "${fileLogPath}"
 				else
-					convert "${file}" "${tmpFile}" > "${filePath}${compressionExtension}.${compressComplexity}"
-					if [ -f "${tmpFile}" ]; then
-						rm -v "$file" >> "${filePath}${compressionExtension}.${compressComplexity}"
-						mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${filePath}${compressionExtension}.${compressComplexity}"
-						chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${filePath}${compressionExtension}.${compressComplexity}"
-						chown "${owner}:${group}" -v "${filePath}${compressionExtension}.${compressComplexity}" >> "${filePath}${compressionExtension.${compressComplexity}}"
-						chmod $mod -v "${filePath}${outputExtension}" >> "${filePath}${compressionExtension}.${compressComplexity}"
-						chmod 444 -v "${filePath}${compressionExtension}.${compressComplexity}" >> "${filePath}${compressionExtension}.${compressComplexity}"
-						local finalSize="$(($(ls -al "${filePath}${outputExtension}" | awk '{print $5}')/1024/1024))"
-						echo "File reduced to ${finalSize}MiB from original size ${originalSize}MiB" >> "${filePath}${compressionExtension}.${compressComplexity}"
-						echo "[$(date +%FT%T)] File reduced to ${finalSize}MiB from original size ${originalSize}MiB"
+					convert "${file}" "${tmpFile}" > "${fileLogPath}"
+					local finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
+					if [ -f "${tmpFile}" ] && [ "$convertErrorCode" -eq 0 ] && [ "$finalSize" -gt 0 ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
+						rm -v "$file" >> "${fileLogPath}"
+						mv -v "$tmpFile" "${filePath}${outputExtension}" >> "${fileLogPath}"
+						chown "${owner}:${group}" -v "${filePath}${outputExtension}" >> "${fileLogPath}"
+						chown "${owner}:${group}" -v "${fileLogPath}" >> "${fileLogPath}}"
+						chmod "$mod" -v "${filePath}${outputExtension}" >> "${fileLogPath}"
+						chmod "444" -v "${fileLogPath}" >> "${fileLogPath}"
+						local finalSize="$(ls -al "${file}" | awk '{print $5}')"
+						echo "[$(date +%FT%T)] File '$file' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB" >> "${fileLogPath}"
+						echo "[$(date +%FT%T)] File '$file' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
 					else
-						echo "$(cat "${filePath}${compressionExtension}.${compressComplexity}")"
+						echo "$(cat "${fileLogPath}")"
 						echo "[$(date +%FT%T)] Failed to compress '${file}'"
-						rm "${filePath}${compressionExtension}.${compressComplexity}"
+						rm "${fileLogPath}"
 					fi
 				fi
 			fi
 		fi
 	done
 	echo "[$(date +%FT%T)] Completed"
-	rm "$pidLocation"
+	exit 0
 }
 
 startLocal() {
@@ -153,7 +160,7 @@ startLocal() {
 		echo "Daemon is already running"
 	else
 		echo "Starting On Local Process"
-		echo $$ > "$pidLocation"
+		echo "$$" > "$pidLocation"
 		echo "$(getCommand "$command")" >> "${logFile}"
 		convertAll "${inputDirectory}" "${tmpDirectory}" "${dryRun}" "${cleanRun}" >> "${logFile}"
 	fi
@@ -175,7 +182,7 @@ isRunning() {
 		if [ -z "$pid" ]; then
 			echo "false"
 			rm "$pidLocation"
-		elif ps -p $pid > /dev/null; then
+		elif ps -p "$pid" > /dev/null; then
 			echo "true"
 		else
 			echo "false"
@@ -189,10 +196,7 @@ isRunning() {
 stopProcess() {
 	if [ "$(isRunning)" = "true" ]; then
 		local pid="$(cat "$pidLocation")"
-		kill -9 $pid
-		if [ "$(isRunning)" = "true" ]; then
-			echo "Failed to remove process"
-		fi
+		echo "-1" >> "$pidLocation"
 	else
 		echo "Daemon is not running"
 	fi
