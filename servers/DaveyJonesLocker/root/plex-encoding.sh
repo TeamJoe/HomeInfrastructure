@@ -35,14 +35,16 @@ getCommand() {
 
 getAudioEncodingSettings() {
 	local inputFile="${1}"
+	local audioEncoding=""
 	local streamCount="$(ffprobe "$inputFile" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
 	for (( i=0; i<=${streamCount}; i++ )); do
 		local channelCount="$(ffprobe -i "$inputFile" -show_streams -select_streams a:${i} | grep -o '^channels=[0-9]*$' | grep -o '[0-9]*')"
 		if [ -n "$channelCount" ]; then
 			local bitrate="$(( $channelCount * $bitratePerAudioChannel))"
-			echo " -c:a:${i} $audioCodec -b:a:${i} ${bitrate}k"
+			local audioEncoding="${audioEncoding} -c:a:${i} $audioCodec -b:a:${i} ${bitrate}k"
 		fi
 	done
+	echo "${audioEncoding}"
 }
 
 getVideoEncodingSettings() {
@@ -52,7 +54,7 @@ getVideoEncodingSettings() {
 
 getSubtitleEncodingType() {
 	local codec="${1}"
-	case "$compressComplexity" in
+	case "$codec" in
 		dvb_subtitle ) echo 'image';;
 		dvbsub ) echo 'image';;
 		dvd_subtitle ) echo 'image';;
@@ -88,18 +90,20 @@ getSubtitleEncodingType() {
 
 getSubtitleEncodingSettings() {
 	local inputFile="${1}"
+	local subtitleEncoding=""
 	local streamCount="$(ffprobe "$inputFile" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
 	for (( i=0; i<=${streamCount}; i++ )); do
 		local codecName="$(ffprobe -i "$inputFile" -show_streams -select_streams s:${i} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		if [ -n "$codecName" ]; then
 			local codecType="$(getSubtitleEncodingType "${codecName}")"
 			if [ "${codecType}" = "image" ]; then
-				echo " -c:s:${i} $subtitlesImageCodec"
+				local subtitleEncoding="${subtitleEncoding} -c:s:${i} $subtitlesImageCodec"
 			else
-				echo " -c:s:${i} $subtitlesTextCodec"
+				local subtitleEncoding="${subtitleEncoding} -c:s:${i} $subtitlesTextCodec"
 			fi
 		fi
 	done
+	echo "${subtitleEncoding}"
 }
 
 assembleArguments() {
@@ -287,7 +291,7 @@ runCommand() {
 		echo "$(stopProcess)"
 	else
 		echo "$(getCommand "${1}")"
-		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--subi subtitlesImageCodec vobsub] [--subt subtitlesTextCodec webvtt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
+		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cext compressionExtension .compression] [--clean] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--subi subtitlesImageCodec dvbsub] [--subt subtitlesTextCodec srt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
 		exit 1
 	fi
 }
@@ -317,3 +321,5 @@ done
 
 
 runCommand "$command"
+
+
