@@ -1,0 +1,15 @@
+#/etc/systemd/system
+[Unit]
+Description=Transmission Torrent Client
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+ExecStart=/root/transmission.sh start
+ExecStop=/root/transmission.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
