@@ -91,17 +91,17 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Description: $(/root/ombi.sh description)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/ombi.sh address)'"'"'>Link</a>"'
 ''
-'echo "<b>Compression - Ultra Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status ultrafast 1 date)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/ultrafast/start'"'"'>Start</a> | <a href='"'"'/compression/ultrafast/output'"'"'>Output</a>"'
+'echo "<b>Compression - x264 - Ultra Fast</b>"'
+'echo "&nbsp;&nbsp;Status: $(curl localhost/compression/x264/ultrafast/status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/ultrafast/start'"'"'>Start</a> | <a href='"'"'/compression/x264/ultrafast/output'"'"'>Output</a>"'
 ''
-'echo "<b>Compression - Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status fast 1 size)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/fast/start'"'"'>Start</a> | <a href='"'"'/compression/fast/output'"'"'>Output</a>"'
+'echo "<b>Compression - x264 - Fast</b>"'
+'echo "&nbsp;&nbsp;Status: $(curl localhost/compression/x264/fast/status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/fast/start'"'"'>Start</a> | <a href='"'"'/compression/x264/fast/output'"'"'>Output</a>"'
 ''
-'echo "<b>Compression - Very Slow</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status veryslow 1 size)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/veryslow/start'"'"'>Start</a> | <a href='"'"'/compression/veryslow/output'"'"'>Output</a>"')
+'echo "<b>Compression - x264 - Very Slow</b>"'
+'echo "&nbsp;&nbsp;Status: $(curl localhost/compression/x264/veryslow/status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/veryslow/start'"'"'>Start</a> | <a href='"'"'/compression/x264/veryslow/output'"'"'>Output</a>"')
 
 
 runAllCommands() {

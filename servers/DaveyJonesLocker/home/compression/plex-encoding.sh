@@ -11,13 +11,13 @@ tmpDirectory='/tmp'
 logFile='~/encoding.results'
 dryRun='false'
 pidLocation='~/plex-encoding.pid'
-threadCount=0 # 0 is unlimited
-encodingQuality=18 # 1-50, lower is better quailty
-compressComplexity='veryslow' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
-audioCodec='aac' #libfdk_aac
-videoCodec='libx264'
+threadCount=4 # 0 is unlimited
+encodingQuality=20 # 1-50, lower is better quailty
+compressComplexity='fast' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
+audioCodec='aac'
+videoCodec='libx265'
 subtitlesImageCodec='dvbsub'
-subtitlesTextCodec='srt'
+subtitlesTextCodec='subrip'
 bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mkv'
 sortBy='size'
@@ -57,11 +57,44 @@ getTime() {
 getCommand() {
 	local command="${1}"
 	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --sort '${sortBy}' --subi '${subtitlesImageCodec}' --subt '${subtitlesTextCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
+} 
+
+
+normalizeAudioCodec() {
+	local codecName="${1,,}"
+	case "${codecName}" in
+		libfdk_aac | aac | aac_fixed ) echo 'aac';;
+		libfdk_ac3 | ac3 | ac3_fixed ) echo 'ac3';;
+		* ) echo "${codecName}";;
+	esac
+}
+
+normalizeVideoCodec() {
+	local codecName="${1,,}"
+	case "${codecName}" in
+		libx265 | h265 | x265 | hevc | hevc_v4l2m2m | hevc_vaapi ) echo 'hevc';;
+		libx264 | h264 | x264 | libx264rgb | h264_v4l2m2m | h264_vaapi | h264_omx ) echo 'h264';; 
+		* ) echo "${codecName}";;
+	esac
+}
+
+normalizeSubtitleCodec() {
+	local codecName="${1,,}"
+	case "${codecName}" in
+		subrip | srt ) echo 'subrip';;
+		dvbsub | dvb_subtitle ) echo 'dvbsub';;
+		dvdsub | dvd_subtitle ) echo 'dvdsub';;
+		pgssub | hdmv_pgs_subtitle ) echo 'pgssub';;
+		cc_dec | eia_608 ) echo 'cc_dec';;
+		libzvbi_teletextdec | dvb_teletext ) echo 'libzvbi_teletextdec';;
+		ssa | ass ) echo 'ass';;
+		* ) echo "${codecName}";;
+	esac
 }
 
 getComplexityOrder() {
-	local compressComplexity="${1}"
-	case "$compressComplexity" in
+	local compressComplexity="${1,,}"
+	case "${compressComplexity}" in
 		ultrafast ) echo '1';;
 		superfast ) echo '2';; 
 		veryfast ) echo '3';;
@@ -76,20 +109,15 @@ getComplexityOrder() {
 }
 
 getSubtitleEncodingType() {
-	local codec="${1}"
-	case "$codec" in
-		dvb_subtitle ) echo 'image';;
+	local codecName="${1,,}"
+	case "${codecName}" in
 		dvbsub ) echo 'image';;
-		dvd_subtitle ) echo 'image';;
 		dvdsub ) echo 'image';;
-		hdmv_pgs_subtitle ) echo 'image';;
 		pgssub ) echo 'image';;
 		xsub ) echo 'image';;
 		arib_caption ) echo 'text';;
 		ass ) echo 'text';;
 		cc_dec ) echo 'text';;
-		dvb_teletext ) echo 'text';;
-		eia_608 ) echo 'text';;
 		hdmv_text_subtitle ) echo 'text';;
 		jacosub ) echo 'text';;
 		libzvbi_teletextdec ) echo 'text';;
@@ -98,8 +126,6 @@ getSubtitleEncodingType() {
 		mpl2 ) echo 'text';;
 		realtext ) echo 'text';;
 		sami ) echo 'text';;
-		srt ) echo 'text';;
-		ssa ) echo 'text';;
 		stl ) echo 'text';;
 		subrip ) echo 'text';;
 		subviewer ) echo 'text';;
@@ -150,10 +176,12 @@ getAudioEncodingSettings() {
 			wantedBitRate="${oldBitRate}"
 		fi
 		if [ -n "${codecName}" ]; then
-			if [ "${codecName}" = "$audioCodec" ] && [ "${oldBitRate}" -le "${wantedBitRate}" ]; then
-				audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $oldBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
+			normalizedOldCodecName="$(normalizeAudioCodec "${codecName}")"
+			normalizedNewCodecName="$(normalizeAudioCodec "${audioCodec}")"
+			if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ] && [ "${oldBitRate}" -le "${wantedBitRate}" ]; then
+				audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $oldBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${codecName}"
 			else
-				audioEncoding="${audioEncoding} -c:a:${stream} $audioCodec -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
+				audioEncoding="${audioEncoding} -c:a:${stream} ${audioCodec} -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
 			fi
 		fi
 	done
@@ -186,14 +214,14 @@ getVideoEncodingSettings() {
 			oldQuality=0
 		fi
 		if [ -n "${codecName}" ]; then
-			if [ "${codecName}" = 'h264' ] && [ "${videoCodec}" = 'libx264' ] && [ "${oldComplexity}" -ge "${newComplexity}" ] && [ "${oldQuality}" -ge "${encodingQuality}" ]; then
-				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
-			elif [ "${codecName}" = "${videoCodec}" ] && [ "${oldComplexity}" -ge "${newComplexity}" ] && [ "${oldQuality}" -ge "${encodingQuality}" ]; then
-				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
-			elif [ "${codecName}" = 'h264' ] && [ "${videoCodec}" = 'libx264' ] && [ "${compressComplexity}" = 'ultrafast' ]; then
-				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
+			normalizedOldCodecName="$(normalizeVideoCodec "${codecName}")"
+			normalizedNewCodecName="$(normalizeVideoCodec "${videoCodec}")"
+			if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ] && [ "${oldComplexity}" -ge "${newComplexity}" ] && [ "${oldQuality}" -ge "${encodingQuality}" ]; then
+				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${codecName}"
+			elif [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${compressComplexity}" = 'ultrafast' ]; then
+				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${codecName}"
 			else
-				videoEncoding="${videoEncoding} -c:v:${stream} $videoCodec -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${encodingQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
+				videoEncoding="${videoEncoding} -c:v:${stream} ${videoCodec} -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${encodingQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
 			fi
 		fi
 	done
@@ -215,16 +243,19 @@ getSubtitleEncodingSettings() {
 			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -n "${codecName}" ]; then
+			normalizedOldCodecName="$(normalizeSubtitleCodec "${codecName}")"
 			codecType="$(getSubtitleEncodingType "${codecName}")"
 			if [ "${codecType}" = "image" ]; then
-				if [ "${codecName}" = "${subtitlesImageCodec}" ]; then
-					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
+				normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesImageCodec}")"
+				if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]; then
+					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
 				else
 					subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesImageCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
 				fi
 			else
-				if [ "${codecName}" = "${subtitlesTextCodec}" ]; then
-					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
+				normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesTextCodec}")"
+				if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]; then
+					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
 				else
 					subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesTextCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
 				fi
