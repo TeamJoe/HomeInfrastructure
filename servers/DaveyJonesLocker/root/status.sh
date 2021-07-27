@@ -15,7 +15,7 @@ getUptime() {
 }
 
 getCPU() {
-	echo "$((100 - ($(vmstat 1 2 | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}'))))%"
+	echo "$((100 - $(vmstat 2 2 | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}')))%"
 }
 
 getMemory() {
@@ -92,15 +92,15 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/ombi.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Compression - Ultra Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status ultrafast 3)"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status ultrafast 1 date)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/ultrafast/start'"'"'>Start</a> | <a href='"'"'/compression/ultrafast/output'"'"'>Output</a>"'
 ''
 'echo "<b>Compression - Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status fast 2)"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status fast 1 size)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/fast/start'"'"'>Start</a> | <a href='"'"'/compression/fast/output'"'"'>Output</a>"'
 ''
 'echo "<b>Compression - Very Slow</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status veryslow 1)"'
+'echo "&nbsp;&nbsp;Status: $(/root/compression.sh status veryslow 1 size)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/veryslow/start'"'"'>Start</a> | <a href='"'"'/compression/veryslow/output'"'"'>Output</a>"')
 
 

@@ -20,6 +20,7 @@ subtitlesImageCodec='dvbsub'
 subtitlesTextCodec='srt'
 bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mkv'
+sortBy='size'
 metadataCodecName='ENCODER-CODEC'
 metadataAudioBitRate='ENCODER-BIT-RATE'
 metadataVideoPreset='ENCODER-PRESET'
@@ -55,7 +56,7 @@ getTime() {
 
 getCommand() {
 	local command="${1}"
-	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --subi '${subtitlesImageCodec}' --subt '${subtitlesTextCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
+	echo "'$path' '$command' --audio '${audioCodec}' --bit '${bitratePerAudioChannel}' --cplex '${compressComplexity}' $(if [ "$dryRun" = true ]; then echo '--dry '; fi) --ext '${outputExtension}' -i '${inputDirectory}' --log '${logFile}' --pid '${pidLocation}' --quality '${encodingQuality}' --sort '${sortBy}' --subi '${subtitlesImageCodec}' --subt '${subtitlesTextCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}'"
 }
 
 getComplexityOrder() {
@@ -128,7 +129,7 @@ getAudioEncodingSettings() {
 		fi
 		channelCount="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^channels=.*$' | grep -o '[^=]*$')"
 		if [ -z "$channelCount" ]; then
-			channelCount=1
+			channelCount=2
 		fi
 		oldBitRate="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ]; then
@@ -237,17 +238,31 @@ assembleArguments() {
 	local inputFile="${1}"
 	local outputFile="${2}"
 
-	echo "-i '$(echo "${inputFile}" | sed -e "s/'/'\"'\"'/g")' -crf ${encodingQuality} -map 0 $(getAudioEncodingSettings "${inputFile}") $(getSubtitleEncodingSettings "${inputFile}") $(getVideoEncodingSettings "${inputFile}") -threads ${threadCount} -preset ${compressComplexity} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+	local videoArguments=" $(getVideoEncodingSettings "${inputFile}")"
+	local audioArguments=" $(getAudioEncodingSettings "${inputFile}")"
+	local subtitleArguments=" $(getSubtitleEncodingSettings "${inputFile}")"
+
+	echo "-i '$(echo "${inputFile}" | sed -e "s/'/'\"'\"'/g")' -crf ${encodingQuality} -map 0 ${videoArguments} ${audioArguments} ${subtitleArguments} -threads ${threadCount} -preset ${compressComplexity} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
 }
 
 convert() {
 	local inputFile="${1}"
 	local outputFile="${2}"
-
-	arguments="$(assembleArguments "${inputFile}" "${outputFile}")"
+	
+	local arguments="$(assembleArguments "${inputFile}" "${outputFile}")"
+	
 	debug "ffmpeg ${arguments}"
-	eval "ffmpeg ${arguments}"
-	convertErrorCode=$?
+	if [[ "${arguments}" =~ .*-c:v:[0-9]+' '*"${videoCodec}".* ]] \
+		|| [[ "${arguments}" =~ .*-c:a:[0-9]+' '*"${audioCodec}".* ]] \
+		|| [[ "${arguments}" =~ .*-c:s:[0-9]+' '*"${subtitlesImageCodec}".* ]] \
+		|| [[ "${arguments}" =~ .*-c:s:[0-9]+' '*"${subtitlesTextCodec}".* ]]; then
+		hasCodecChanges='true'
+		eval "ffmpeg ${arguments}"
+		convertErrorCode=$?
+	else
+		hasCodecChanges='false'
+		convertErrorCode=0
+	fi
 }
 
 convertFile() {
@@ -272,7 +287,9 @@ convertFile() {
 	else
 		convert "${inputFile}" "${tmpFile}"
 		finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
-		if [ -f "${tmpFile}" ] && [ "${convertErrorCode}" = "0" ] && [ -n "${finalSize}" ] && [ "${finalSize}" -gt 0 ] && [ -n "${originalSize}" ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
+		if [ "${hasCodecChanges}" = 'false' ]; then
+			trace "Not processing file '${inputFile}', as no changes would be made."
+		elif [ -f "${tmpFile}" ] && [ "${convertErrorCode}" = "0" ] && [ -n "${finalSize}" ] && [ "${finalSize}" -gt 0 ] && [ -n "${originalSize}" ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
 			rm "${inputFile}"
 			mv "$tmpFile" "${outputFile}"
 			chown "${owner}:${group}" "${outputFile}"
@@ -294,10 +311,13 @@ convertAll() {
 	local currentExt=''
 	local tmpFile=''
 	local outputFile=''
+	local inputFile=''
+	local sortingType="$( if [ "${sortBy^^}" = 'DATE' ]; then echo '%T@ %p\n'; else echo '%s %p\n'; fi )"
+	local allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort -rn | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
 	
 	info "Starting"
 	IFS=$'\n'
-	for inputFile in $(find "${inputDirectory}" -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p'); do
+	for inputFile in ${allInputFiles[@]}; do
 		if [ "${pid}" != "$(cat "${pidLocation}")" ]; then
 			info "PID mismatch; Stopping"
 			break
@@ -405,7 +425,7 @@ runCommand() {
 		echo "$(stopProcess)"
 	else
 		echo "$(getCommand "${1}")"
-		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--subi subtitlesImageCodec dvbsub] [--subt subtitlesTextCodec srt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
+		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--bit bitratePerAudioChannel 96] [--cplex compressComplexity ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--dry] [--ext outputExtension .mp4] [-i inputDirectory ~/Video] [--log logFile ~/encoding.results] [--pid pidFile ~/plex-encoding.pid] [--sort sortBy date|size] [--subi subtitlesImageCodec dvbsub] [--subt subtitlesTextCodec srt] [--quality encodingQuality 1-50] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264]"
 		exit 1
 	fi
 }
@@ -421,6 +441,7 @@ while true; do
 		--log ) logFile="${2}"; shift 2;;
 		--pid ) pidLocation="${2}"; shift 2;;
 		--quality ) encodingQuality="${2}"; shift 2;;
+		--sort ) sortBy="${2}"; shift 2;;
 		--subi ) subtitlesImageCodec="${2}"; shift 2;;
 		--subt ) subtitlesTextCodec="${2}"; shift 2;;
 		--thread ) threadCount="${2}"; shift 2;;
