@@ -112,40 +112,47 @@ getSubtitleEncodingType() {
 
 getAudioEncodingSettings() {
 	local inputFile="${1}"
+
 	local audioEncoding=""
 	local streamCount="$(ffprobe "${inputFile}" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
-	for (( i=0; i<=${streamCount}; i++ )); do
-		local codecName="$(ffprobe -i "${inputFile}" -show_streams -select_streams a:${i} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+	local stream=0
+	local codecName=''
+	local channelCount=''
+	local oldBitRate=''
+	local wantedBitRate=''
+
+	for stream in $(seq 0 1 ${streamCount}); do
+		codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			local codecName="$(ffprobe -i "${inputFile}" -show_streams -select_streams a:${i} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
-		local channelCount="$(ffprobe -i "${inputFile}" -show_streams -select_streams a:${i} | grep -o '^channels=.*$' | grep -o '[^=]*$')"
+		channelCount="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^channels=.*$' | grep -o '[^=]*$')"
 		if [ -z "$channelCount" ]; then
-			local channelCount=1
+			channelCount=1
 		fi
-		local oldBitRate="$(ffprobe -i "${inputFile}" -show_streams -select_streams a:${i} | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
+		oldBitRate="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ]; then
-			local oldBitRate="$(ffprobe -i "${inputFile}" -show_streams -select_streams a:${i} | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
+			oldBitRate="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ] || [ "$oldBitRate" = "0" ]; then
-			local oldBitRate="$((100 * 1024 * 1024))"
+			oldBitRate="$(( 100 * 1024 * 1024 ))"
 		fi
 		if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
-			local oldBitRate="$(( "${oldBitRate::-1}" ))"
+			oldBitRate="$(( "${oldBitRate::-1}" ))"
 		elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
-			local oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
+			oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
 		else
-			local oldBitRate="$(( "${oldBitRate}" / 1024 ))"
+			oldBitRate="$(( "${oldBitRate}" / 1024 ))"
 		fi
-		if [ -z "${codecName}" ]; then
-			local wantedBitRate="$(( $channelCount * $bitratePerAudioChannel))"
-			if [ "${wantedBitRate}" -gt "${oldBitRate}" ]; then
-				wantedBitRate="${oldBitRate}"
-			fi
+		wantedBitRate="$(( $channelCount * $bitratePerAudioChannel ))"
+		if [ "${wantedBitRate}" -gt "${oldBitRate}" ]; then
+			wantedBitRate="${oldBitRate}"
+		fi
+		if [ -n "${codecName}" ]; then
 			if [ "${codecName}" = "$audioCodec" ] && [ "${oldBitRate}" -le "${wantedBitRate}" ]; then
-				local audioEncoding="${audioEncoding} -c:a:${i} copy -metadata:s:a:${i} ${metadataAudioBitRate}=$(($oldBitRate * 1024)) -metadata:s:a:${i} ${metadataCodecName}=${audioCodec}"
+				audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $oldBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
 			else
-				local audioEncoding="${audioEncoding} -c:a:${i} $audioCodec -b:a:${i} ${wantedBitRate}k -metadata:s:a:${i} ${metadataAudioBitRate}=$(($wantedBitRate * 1024)) -metadata:s:a:${i} ${metadataCodecName}=${audioCodec}"
+				audioEncoding="${audioEncoding} -c:a:${stream} $audioCodec -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
 			fi
 		fi
 	done
@@ -154,30 +161,38 @@ getAudioEncodingSettings() {
 
 getVideoEncodingSettings() {
 	local inputFile="${1}"
+
 	local videoEncoding=""
 	local streamCount="$(ffprobe "${inputFile}" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
-	for (( i=0; i<=${streamCount}; i++ )); do
-		local codecName="$(ffprobe -i "${inputFile}" -show_streams -select_streams v:${i} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+	local stream=0
+	local codecName=''
+	local oldPreset=''
+	local oldQuality=''
+	local oldComplexity=''
+	local newComplexity=''
+
+	for stream in $(seq 0 1 ${streamCount}); do
+		codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			local codecName="$(ffprobe -i "${inputFile}" -show_streams -select_streams v:${i} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
-		local oldPreset="$(ffprobe -i "${inputFile}" -show_streams -select_streams v:${i} | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
-		local oldQuality="$(ffprobe -i "${inputFile}" -show_streams -select_streams v:${i} | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
-		local oldComplexity="$(getComplexityOrder "$oldPreset")"
-		local newComplexity="$(getComplexityOrder "$compressComplexity")"
+		oldPreset="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
+		oldQuality="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
+		oldComplexity="$(getComplexityOrder "$oldPreset")"
+		newComplexity="$(getComplexityOrder "$compressComplexity")"
 		
 		if [ -z "$oldQuality" ]; then
 			oldQuality=0
 		fi
 		if [ -n "${codecName}" ]; then
 			if [ "${codecName}" = 'h264' ] && [ "${videoCodec}" = 'libx264' ] && [ "${oldComplexity}" -ge "${newComplexity}" ] && [ "${oldQuality}" -ge "${encodingQuality}" ]; then
-				local videoEncoding="${videoEncoding} -c:v:${i} copy -metadata:s:v:${i} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${i} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${i} ${metadataCodecName}=${videoCodec}"
+				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
 			elif [ "${codecName}" = "${videoCodec}" ] && [ "${oldComplexity}" -ge "${newComplexity}" ] && [ "${oldQuality}" -ge "${encodingQuality}" ]; then
-				local videoEncoding="${videoEncoding} -c:v:${i} copy -metadata:s:v:${i} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${i} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${i} ${metadataCodecName}=${videoCodec}"
+				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
 			elif [ "${codecName}" = 'h264' ] && [ "${videoCodec}" = 'libx264' ] && [ "${compressComplexity}" = 'ultrafast' ]; then
-				local videoEncoding="${videoEncoding} -c:v:${i} copy -metadata:s:v:${i} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${i} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${i} ${metadataCodecName}=${videoCodec}"
+				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
 			else
-				local videoEncoding="${videoEncoding} -c:v:${i} $videoCodec -metadata:s:v:${i} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${i} ${metadataVideoQuality}=${encodingQuality} -metadata:s:v:${i} ${metadataCodecName}=${videoCodec}"
+				videoEncoding="${videoEncoding} -c:v:${stream} $videoCodec -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${encodingQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
 			fi
 		fi
 	done
@@ -186,26 +201,31 @@ getVideoEncodingSettings() {
 
 getSubtitleEncodingSettings() {
 	local inputFile="${1}"
+
 	local subtitleEncoding=""
 	local streamCount="$(ffprobe "${inputFile}" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
-	for (( i=0; i<=${streamCount}; i++ )); do
-		local codecName="$(ffprobe -i "${inputFile}" -show_streams -select_streams s:${i} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+	local stream=0
+	local codecName=''
+	local codecType=''
+
+	for stream in $(seq 0 1 ${streamCount}); do
+		codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			local codecName="$(ffprobe -i "${inputFile}" -show_streams -select_streams s:${i} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -n "${codecName}" ]; then
-			local codecType="$(getSubtitleEncodingType "${codecName}")"
+			codecType="$(getSubtitleEncodingType "${codecName}")"
 			if [ "${codecType}" = "image" ]; then
 				if [ "${codecName}" = "${subtitlesImageCodec}" ]; then
-					local subtitleEncoding="${subtitleEncoding} -c:s:${i} copy -metadata:s:s:${i} ${metadataCodecName}=${subtitlesImageCodec}"
+					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
 				else
-					local subtitleEncoding="${subtitleEncoding} -c:s:${i} ${subtitlesImageCodec} -metadata:s:s:${i} ${metadataCodecName}=${subtitlesImageCodec}"
+					subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesImageCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
 				fi
 			else
 				if [ "${codecName}" = "${subtitlesTextCodec}" ]; then
-					local subtitleEncoding="${subtitleEncoding} -c:s:${i} copy -metadata:s:s:${i} ${metadataCodecName}=${subtitlesTextCodec}"
+					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
 				else
-					local subtitleEncoding="${subtitleEncoding} -c:s:${i} ${subtitlesTextCodec} -metadata:s:s:${i} ${metadataCodecName}=${subtitlesTextCodec}"
+					subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesTextCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
 				fi
 			fi
 		fi
@@ -214,15 +234,16 @@ getSubtitleEncodingSettings() {
 }
 
 assembleArguments() {
-	local inputFile="$(echo "${1}" | sed -e "s/'/'\"'\"'/g")"
-	local outputFile="$(echo "${2}" | sed -e "s/'/'\"'\"'/g")"
+	local inputFile="${1}"
+	local outputFile="${2}"
 
-	echo "-i '${inputFile}' -crf ${encodingQuality} -map 0 $(getAudioEncodingSettings "${inputFile}") $(getSubtitleEncodingSettings "${inputFile}") $(getVideoEncodingSettings "${inputFile}") -threads ${threadCount} -preset ${compressComplexity} '${outputFile}'"
+	echo "-i '$(echo "${inputFile}" | sed -e "s/'/'\"'\"'/g")' -crf ${encodingQuality} -map 0 $(getAudioEncodingSettings "${inputFile}") $(getSubtitleEncodingSettings "${inputFile}") $(getVideoEncodingSettings "${inputFile}") -threads ${threadCount} -preset ${compressComplexity} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
 }
 
 convert() {
 	local inputFile="${1}"
 	local outputFile="${2}"
+
 	arguments="$(assembleArguments "${inputFile}" "${outputFile}")"
 	debug "ffmpeg ${arguments}"
 	eval "ffmpeg ${arguments}"
@@ -233,16 +254,15 @@ convertFile() {
 	local inputFile="${1}"
 	local tmpFile="${2}"
 	local outputFile="${3}"
-	
+
 	local mod="$(stat --format '%a' "${inputFile}")"
 	local owner="$(ls -al "${inputFile}" | awk '{print $3}')"
 	local group="$(ls -al "${inputFile}" | awk '{print $4}')"
 	local originalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
-
-	local finalSize=""
+	local finalSize=''
 	
 	if [ "$dryRun" = "true" ]; then
-		local finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
+		finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
 		echo "convert \"${inputFile}\" \"${tmpFile}\""
 		echo "rm -v \"${inputFile}\""
 		echo "mv -v \"$tmpFile\" \"${outputFile}\""
@@ -251,7 +271,7 @@ convertFile() {
 		echo "File '${inputFile}' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
 	else
 		convert "${inputFile}" "${tmpFile}"
-		local finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
+		finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
 		if [ -f "${tmpFile}" ] && [ "${convertErrorCode}" = "0" ] && [ -n "${finalSize}" ] && [ "${finalSize}" -gt 0 ] && [ -n "${originalSize}" ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
 			rm "${inputFile}"
 			mv "$tmpFile" "${outputFile}"
@@ -269,7 +289,12 @@ convertAll() {
 	local inputDirectory="${1}"
 	local tmpDirectory="${2}"
 	local pid="${3}"
-
+	local filePath=''
+	local fileNameWithExt=''
+	local currentExt=''
+	local tmpFile=''
+	local outputFile=''
+	
 	info "Starting"
 	IFS=$'\n'
 	for inputFile in $(find "${inputDirectory}" -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p'); do
@@ -278,15 +303,15 @@ convertAll() {
 			break
 		fi
 
-		local filePath="$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')"
-		local fileNameWithExt="$(basename "${inputFile}")"
-		local currentExt="${fileNameWithExt##*.}"
+		filePath="$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')"
+		fileNameWithExt="$(basename "${inputFile}")"
+		currentExt="${fileNameWithExt##*.}"
 		if [ "${currentExt}" != "part" ]; then
-			local tmpFile="${tmpDirectory}/$(basename "${filePath}")${outputExtension}"
+			tmpFile="${tmpDirectory}/$(basename "${filePath}")${outputExtension}"
 			if [ -f "${tmpFile}" ]; then
 				rm -f "${tmpFile}"
 			fi
-			local outputFile="${filePath}${outputExtension}"
+			outputFile="${filePath}${outputExtension}"
 			if [ -f "${outputFile}" ] && [ "${inputFile}" != "${outputFile}" ]; then
 				warn "Cannot convert '${inputFile}' as it would overwrite '${outputFile}'"
 			else
@@ -300,6 +325,8 @@ convertAll() {
 }
 
 startLocal() {
+	local pid=''
+
 	if [ "$(isRunning)" = "true" ]; then
 		echo "Daemon is already running"
 	else
@@ -313,21 +340,26 @@ startLocal() {
 }
 
 startDaemon() {
+	local var=''
+
 	if [ "$(isRunning)" = "true" ]; then
 		echo "Daemon is already running"
 	else
 		echo "Starting Daemon"
-		local vars="$(getCommand "start-local")"
+		vars="$(getCommand "start-local")"
 		eval "nohup $vars >/dev/null 2>&1 &"
 	fi
 }
 
 isRunning() {
+	local pid=''
+	local isRunning=''
+
 	if [ -f "${pidLocation}" ]; then
-		local pid="$(cat "${pidLocation}" | awk 'NR==1{print $1}')"
+		pid="$(cat "${pidLocation}" | awk 'NR==1{print $1}')"
 		
 		if [ -n "${pid}" ]; then
-			local isRunning="$(ps ax | awk '{print $1}' | grep "${pid}")"
+			isRunning="$(ps ax | awk '{print $1}' | grep "${pid}")"
 			if [ -n "$isRunning" ]; then
 				echo 'true'
 			else
