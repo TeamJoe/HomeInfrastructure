@@ -2,8 +2,8 @@
 # /root/compression.sh
 
 # sudo crontab -u root -e
-# 0 * * * * /root/compression.sh start ultrafast 3
-# 0 4 * * * /root/compression.sh start fast 2
+# 0 * * * * /root/compression.sh start ultrafast 1
+# 0 4 * * * /root/compression.sh start fast 1
 # 0 8 * * 1 /root/compression.sh start veryslow 1
 
 path="${0}"

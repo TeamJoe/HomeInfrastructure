@@ -12,12 +12,12 @@ User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5 -port=80 \
 	/ping "echo 'PONG'" \
 	/status "cat /home/joe/status.out" \
-	/compression/ultrafast/start "/root/compression.sh start ultrafast 3" \
-	/compression/ultrafast/status "/root/compression.sh status ultrafast 3" \
-	/compression/ultrafast/output "/root/compression.sh output ultrafast 3" \
-	/compression/fast/start "/root/compression.sh start fast 2" \
-	/compression/fast/status "/root/compression.sh status fast 2" \
-	/compression/fast/output "/root/compression.sh output fast 2" \
+	/compression/ultrafast/start "/root/compression.sh start ultrafast 1" \
+	/compression/ultrafast/status "/root/compression.sh status ultrafast 1" \
+	/compression/ultrafast/output "/root/compression.sh output ultrafast 1" \
+	/compression/fast/start "/root/compression.sh start fast 1" \
+	/compression/fast/status "/root/compression.sh status fast 1" \
+	/compression/fast/output "/root/compression.sh output fast 1" \
 	/compression/veryslow/start "/root/compression.sh start veryslow 1" \
 	/compression/veryslow/status "/root/compression.sh status veryslow 1" \
 	/compression/veryslow/output "/root/compression.sh output veryslow 1"
