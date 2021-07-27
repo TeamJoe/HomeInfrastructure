@@ -141,7 +141,8 @@ getAudioEncodingSettings() {
 	local inputFile="${1}"
 
 	local audioEncoding=""
-	local streamCount="$(ffprobe "${inputFile}" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
+	local streamCount="$(ffprobe "${inputFile}" -loglevel error -select_streams a -show_entries stream=index -of csv=p=0 | wc -l)"
+	local probeResult=''
 	local stream=0
 	local codecName=''
 	local channelCount=''
@@ -149,17 +150,18 @@ getAudioEncodingSettings() {
 	local wantedBitRate=''
 
 	for stream in $(seq 0 1 ${streamCount}); do
-		codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream})"
+		codecName="$(${probeResult} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(${probeResult} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
-		channelCount="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^channels=.*$' | grep -o '[^=]*$')"
+		channelCount="$(${probeResult} | grep -o '^channels=.*$' | grep -o '[^=]*$')"
 		if [ -z "$channelCount" ]; then
 			channelCount=2
 		fi
-		oldBitRate="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
+		oldBitRate="$(${probeResult} | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ]; then
-			oldBitRate="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream} | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
+			oldBitRate="$(${probeResult} | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ] || [ "$oldBitRate" = "0" ]; then
 			oldBitRate="$(( 100 * 1024 * 1024 ))"
@@ -192,7 +194,8 @@ getVideoEncodingSettings() {
 	local inputFile="${1}"
 
 	local videoEncoding=""
-	local streamCount="$(ffprobe "${inputFile}" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
+	local streamCount="$(ffprobe "${inputFile}" -loglevel error -select_streams v -show_entries stream=index -of csv=p=0 | wc -l)"
+	local probeResult=''
 	local stream=0
 	local codecName=''
 	local oldPreset=''
@@ -201,12 +204,13 @@ getVideoEncodingSettings() {
 	local newComplexity=''
 
 	for stream in $(seq 0 1 ${streamCount}); do
-		codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
+		codecName="$(${probeResult} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(${probeResult} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
-		oldPreset="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
-		oldQuality="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream} | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
+		oldPreset="$(${probeResult} | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
+		oldQuality="$(${probeResult} | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
 		oldComplexity="$(getComplexityOrder "$oldPreset")"
 		newComplexity="$(getComplexityOrder "$compressComplexity")"
 		
@@ -232,15 +236,17 @@ getSubtitleEncodingSettings() {
 	local inputFile="${1}"
 
 	local subtitleEncoding=""
-	local streamCount="$(ffprobe "${inputFile}" -show_entries format=nb_streams -v 1 -of compact=p=0:nk=1)"
+	local streamCount="$(ffprobe "${inputFile}" -loglevel error -select_streams s -show_entries stream=index -of csv=p=0 | wc -l)"
+	local probeResult=''
 	local stream=0
 	local codecName=''
 	local codecType=''
 
 	for stream in $(seq 0 1 ${streamCount}); do
-		codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
+		codecName="$(${probeResult} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			codecName="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(${probeResult} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -n "${codecName}" ]; then
 			normalizedOldCodecName="$(normalizeSubtitleCodec "${codecName}")"

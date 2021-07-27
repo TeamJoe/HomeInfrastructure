@@ -15,7 +15,7 @@ getUptime() {
 }
 
 getCPU() {
-	echo "$((100 - $(vmstat 2 2 | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}')))%"
+	echo "$((100 - $(vmstat 1 3 | awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}')))%"
 }
 
 getMemory() {
