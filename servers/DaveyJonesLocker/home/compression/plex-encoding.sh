@@ -12,10 +12,10 @@ logFile='~/encoding.results'
 dryRun='false'
 pidLocation='~/plex-encoding.pid'
 threadCount=4 # 0 is unlimited
-encodingQuality=20 # 1-50, lower is better quailty
+encodingQuality=18 # 1-50, lower is better quailty
 compressComplexity='fast' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 audioCodec='aac'
-videoCodec='libx265'
+videoCodec='libx264'
 subtitlesImageCodec='dvbsub'
 subtitlesTextCodec='subrip'
 bitratePerAudioChannel=96 # 64 is default
@@ -25,6 +25,7 @@ metadataCodecName='ENCODER-CODEC'
 metadataAudioBitRate='ENCODER-BIT-RATE'
 metadataVideoPreset='ENCODER-PRESET'
 metadataVideoQuality='ENCODER-QUALITY'
+lockfileExtension='.compression.lock.pid'
 
 error() {
 	log "[ERROR] $@"
@@ -151,17 +152,17 @@ getAudioEncodingSettings() {
 
 	for stream in $(seq 0 1 ${streamCount}); do
 		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream})"
-		codecName="$(${probeResult} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			codecName="$(${probeResult} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
-		channelCount="$(${probeResult} | grep -o '^channels=.*$' | grep -o '[^=]*$')"
+		channelCount="$(echo "${probeResult}" | grep -o '^channels=.*$' | grep -o '[^=]*$')"
 		if [ -z "$channelCount" ]; then
 			channelCount=2
 		fi
-		oldBitRate="$(${probeResult} | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
+		oldBitRate="$(echo "${probeResult}" | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ]; then
-			oldBitRate="$(${probeResult} | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
+			oldBitRate="$(echo "${probeResult}" | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ] || [ "$oldBitRate" = "0" ]; then
 			oldBitRate="$(( 100 * 1024 * 1024 ))"
@@ -205,12 +206,12 @@ getVideoEncodingSettings() {
 
 	for stream in $(seq 0 1 ${streamCount}); do
 		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
-		codecName="$(${probeResult} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			codecName="$(${probeResult} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
-		oldPreset="$(${probeResult} | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
-		oldQuality="$(${probeResult} | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
+		oldPreset="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
+		oldQuality="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
 		oldComplexity="$(getComplexityOrder "$oldPreset")"
 		newComplexity="$(getComplexityOrder "$compressComplexity")"
 		
@@ -244,9 +245,9 @@ getSubtitleEncodingSettings() {
 
 	for stream in $(seq 0 1 ${streamCount}); do
 		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
-		codecName="$(${probeResult} | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
 		if [ -z "${codecName}" ]; then
-			codecName="$(${probeResult} | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 		fi
 		if [ -n "${codecName}" ]; then
 			normalizedOldCodecName="$(normalizeSubtitleCodec "${codecName}")"
@@ -282,9 +283,40 @@ assembleArguments() {
 	echo "-i '$(echo "${inputFile}" | sed -e "s/'/'\"'\"'/g")' -crf ${encodingQuality} -map 0 ${videoArguments} ${audioArguments} ${subtitleArguments} -threads ${threadCount} -preset ${compressComplexity} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
 }
 
+lockFile() {
+	local inputFile="${1}"
+	local pid="${2}"
+	local lockedPid=''
+	if [ -f "${inputFile}${lockfileExtension}" ]; then
+		if [ "$(isPidRunning "$(cat "${inputFile}${lockfileExtension}")")" = 'false' ]; then
+			echo "${pid}" > "${inputFile}${lockfileExtension}"
+		fi
+	else
+		echo "${pid}" > "${inputFile}${lockfileExtension}"
+	fi
+	
+	if [ "$(cat "${inputFile}${lockfileExtension}")" = "${pid}" ]; then
+		echo 'true'
+	else
+		echo 'false'
+	fi
+}
+
+unlockFile() {
+	local inputFile="${1}"
+	local pid="${2}"
+	local lockedPid=''
+	if [ -f "${inputFile}${lockfileExtension}" ]; then
+		if [ "$(cat "${inputFile}${lockfileExtension}")" = "${pid}" ]; then
+			rm -f "${inputFile}${lockfileExtension}"
+		fi
+	fi
+}
+
 convert() {
 	local inputFile="${1}"
 	local outputFile="${2}"
+	local pid="${3}"
 	
 	local arguments="$(assembleArguments "${inputFile}" "${outputFile}")"
 	
@@ -293,9 +325,16 @@ convert() {
 		|| [[ "${arguments}" =~ .*-c:a:[0-9]+' '*"${audioCodec}".* ]] \
 		|| [[ "${arguments}" =~ .*-c:s:[0-9]+' '*"${subtitlesImageCodec}".* ]] \
 		|| [[ "${arguments}" =~ .*-c:s:[0-9]+' '*"${subtitlesTextCodec}".* ]]; then
-		hasCodecChanges='true'
-		eval "ffmpeg ${arguments}"
-		convertErrorCode=$?
+		
+		if [ "$(lockFile "${inputFile}" "${pid}")" = 'false' ]; then
+			hasCodecChanges='conflict'
+			convertErrorCode=0
+		else
+			hasCodecChanges='true'
+			eval "ffmpeg ${arguments}"
+			convertErrorCode=$?
+		fi
+		unlockFile "${inputFile}" "${pid}"
 	else
 		hasCodecChanges='false'
 		convertErrorCode=0
@@ -306,6 +345,7 @@ convertFile() {
 	local inputFile="${1}"
 	local tmpFile="${2}"
 	local outputFile="${3}"
+	local pid="${4}"
 
 	local mod="$(stat --format '%a' "${inputFile}")"
 	local owner="$(ls -al "${inputFile}" | awk '{print $3}')"
@@ -315,20 +355,22 @@ convertFile() {
 	
 	if [ "$dryRun" = "true" ]; then
 		finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
-		echo "convert \"${inputFile}\" \"${tmpFile}\""
+		echo "convert \"${inputFile}\" \"${tmpFile}\" \"${pid}\""
 		echo "rm -v \"${inputFile}\""
 		echo "mv -v \"$tmpFile\" \"${outputFile}\""
 		echo "chown \"${owner}:${group}\" -v \"${outputFile}\""
 		echo "chmod \"${mod}\" -v \"${outputFile}\""
 		echo "File '${inputFile}' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
 	else
-		convert "${inputFile}" "${tmpFile}"
+		convert "${inputFile}" "${tmpFile}" "${pid}"
 		finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
 		if [ "${hasCodecChanges}" = 'false' ]; then
 			trace "Not processing file '${inputFile}', as no changes would be made."
+		elif [ "${hasCodecChanges}" = 'conflict' ]; then
+			info "Cannot achieve lock on file '${inputFile}', Skipping."
 		elif [ -f "${tmpFile}" ] && [ "${convertErrorCode}" = "0" ] && [ -n "${finalSize}" ] && [ "${finalSize}" -gt 0 ] && [ -n "${originalSize}" ] && [ "$((${originalSize}/${finalSize}))" -lt 1000 ]; then
 			rm "${inputFile}"
-			mv "$tmpFile" "${outputFile}"
+			mv "${tmpFile}" "${outputFile}"
 			chown "${owner}:${group}" "${outputFile}"
 			chmod "${mod}" "${outputFile}"
 			trace "File '${inputFile}' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
@@ -374,7 +416,7 @@ convertAll() {
 				warn "Cannot convert '${inputFile}' as it would overwrite '${outputFile}'"
 			else
 				trace "Converting '${inputFile}' to '${outputFile}'"
-				convertFile "${inputFile}" "${tmpFile}" "${outputFile}"
+				convertFile "${inputFile}" "${tmpFile}" "${outputFile}" "${pid}"
 			fi
 		fi
 	done
@@ -409,23 +451,31 @@ startDaemon() {
 	fi
 }
 
+isPidRunning() {
+	local pid="${1}"
+	if [ -n "${pid}" ]; then
+		isRunning="$(ps ax | awk '{print $1}' | grep "${pid}")"
+		if [ -n "$isRunning" ]; then
+			echo 'true'
+		else
+			echo 'false'
+		fi
+	else
+		echo 'false'
+	fi
+}
+
 isRunning() {
 	local pid=''
 	local isRunning=''
 
 	if [ -f "${pidLocation}" ]; then
 		pid="$(cat "${pidLocation}" | awk 'NR==1{print $1}')"
-		
-		if [ -n "${pid}" ]; then
-			isRunning="$(ps ax | awk '{print $1}' | grep "${pid}")"
-			if [ -n "$isRunning" ]; then
-				echo 'true'
-			else
-				echo 'false'
-				rm "${pidLocation}"
-			fi
+		if [ "$(isPidRunning "${pid}")" = 'true' ]; then
+			echo 'true'
 		else
 			echo 'false'
+			rm "${pidLocation}"
 		fi
 	else
 		echo 'false'
