@@ -2,9 +2,16 @@
 
 FROM ghcr.io/linuxserver/jackett
 
-RUN apt-get update && \
+RUN echo "deb http://ports.ubuntu.com/ubuntu-ports focal main restricted" >> /etc/apt/sources.list && \
+	echo "deb http://ports.ubuntu.com/ubuntu-ports focal universe" >> /etc/apt/sources.list && \
+	echo "deb http://ports.ubuntu.com/ubuntu-ports focal-backports main restricted universe multiverse" >> /etc/apt/sources.list && \
+	echo "deb http://ports.ubuntu.com/ubuntu-ports focal-security main restricted" >> /etc/apt/sources.list && \
+	echo "deb http://ports.ubuntu.com/ubuntu-ports focal-security universe" >> /etc/apt/sources.list && \
+	echo "deb http://ports.ubuntu.com/ubuntu-ports focal-security multiverse" >> /etc/apt/sources.list && \
+	apt-get update && \
 	apt-get install -y \
 		sudo \
+		systemctl \
 		curl \
 		wget \
 		jq \
@@ -21,6 +28,7 @@ RUN cd /etc/openvpn && \
 	unzip ovpn.zip -d /etc/openvpn && \
 	unzip ovpn.zip -d "$(python3 -m pip show openpyn | grep 'Location' | awk '{print $2}')"/openpyn/files && \
 	rm ovpn.zip
+	
 
 # Only required if you want to store credentials right in the docker instance
 # Not Required if you mount the dockerfile instead
