@@ -44,7 +44,7 @@ RUN mkdir -p /var/log && \
 RUN mkdir build && \
 	echo '#!/bin/bash'"\n" \
 		'openpyn --update'"\n" \
-		'service openpyn start'"\n" \
+		'systemctl start openpyn'"\n" \
 		'while ! $NS_EXEC ip link show dev tun0 >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
 		'IP="$(hostname -I | awk '"'"'{print $2}'"'"')"'"\n" \
 		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
@@ -54,4 +54,4 @@ RUN mkdir build && \
 		'/init'"\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
-CMD ["/bin/bash", "/build/start.sh"]
+ENTRYPOINT ["/bin/bash", "/build/start.sh"]
