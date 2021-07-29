@@ -7,8 +7,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 User=root
-ExecStart=/root/transmission.sh start
-ExecStop=/root/transmission.sh stop
+ExecStart=/root/jackett.sh start
+ExecStop=/root/jackett.sh stop
 StandardOutput=syslog
 StandardError=syslog
 
