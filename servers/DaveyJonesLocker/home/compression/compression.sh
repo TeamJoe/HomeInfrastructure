@@ -17,10 +17,10 @@ target='/home/compression/plex-encoding.sh'
 indexFolder='/home/public/Videos'
 compressionFolder='/home/compression'
 
-start="${target} start -i '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --cplex '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
-active="${target} active -i '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --cplex '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
-output="${target} output -i '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --cplex '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
-stop="${target} stop -i '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --cplex '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
+start="${target} start --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
+active="${target} active --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
+output="${target} output --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
+stop="${target} stop --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
 
 isActive() {
 	local getValue="$(eval "$active")"
