@@ -18,10 +18,10 @@ videoCodec='libx264'
 videoPreset='fast' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 videoProfile='baseline'
 videoQuality=18 # 1-50, lower is better quailty
-videoTune='' # animation, fastdecode, film, grain, stillimage, zerolatency
+videoTune='fastdecode' # animation, fastdecode, film, grain, stillimage, zerolatency
 subtitlesImageCodec='copy' # dvbsub, dvdsub
 subtitlesTextCodec='copy' # srt, ass
-bitratePerAudioChannel=96 # 64 is default
+bitratePerAudioChannel=64 # 64 is default
 outputExtension='.mkv'
 sortBy='size' # date, size, reverse-date, reverse-size
 metadataCodecName='ENCODER-CODEC'
@@ -165,46 +165,44 @@ getAudioEncodingSettings() {
 	local wantedBitRate=''
 
 
-	if [[ -n "${audioCodec}" && "${audioCodec,,}" != "copy" ]]; then
-		for stream in $(seq 0 1 ${streamCount}); do
-			probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream})"
-			codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-			if [[ -z "${codecName}" ]]; then
-				codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-			fi
-			channelCount="$(echo "${probeResult}" | grep -o '^channels=.*$' | grep -o '[^=]*$')"
-			if [[ -z "$channelCount" ]]; then
-				channelCount=2
-			fi
-			oldBitRate="$(echo "${probeResult}" | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
-			if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" ]]; then
-				oldBitRate="$(echo "${probeResult}" | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
-			fi
-			if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" || "${oldBitRate}" = "0" ]]; then
-				oldBitRate="$(( 100 * 1024 * 1024 ))"
-			fi
-			if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
-				oldBitRate="$(( "${oldBitRate::-1}" ))"
-			elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
-				oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
+	for stream in $(seq 0 1 ${streamCount}); do
+		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream})"
+		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		if [[ -z "${codecName}" ]]; then
+			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+		fi
+		channelCount="$(echo "${probeResult}" | grep -o '^channels=.*$' | grep -o '[^=]*$')"
+		if [[ -z "$channelCount" ]]; then
+			channelCount=2
+		fi
+		oldBitRate="$(echo "${probeResult}" | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
+		if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" ]]; then
+			oldBitRate="$(echo "${probeResult}" | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
+		fi
+		if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" || "${oldBitRate}" = "0" ]]; then
+			oldBitRate="$(( 100 * 1024 * 1024 ))"
+		fi
+		if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
+			oldBitRate="$(( "${oldBitRate::-1}" ))"
+		elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
+			oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
+		else
+			oldBitRate="$(( "${oldBitRate}" / 1024 ))"
+		fi
+		wantedBitRate="$(( $channelCount * $bitratePerAudioChannel ))"
+		if [[ "${wantedBitRate}" -gt "${oldBitRate}" ]]; then
+			wantedBitRate="${oldBitRate}"
+		fi
+		if [[ -n "${codecName}" ]]; then
+			normalizedOldCodecName="$(normalizeAudioCodec "${codecName}")"
+			normalizedNewCodecName="$(normalizeAudioCodec "${audioCodec}")"
+			if [[ -z "${audioCodec}" || "${audioCodec,,}" = "copy" ]] || [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldBitRate}" -le "${wantedBitRate}" ]]; then
+				audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataCodecName}=${codecName}"
 			else
-				oldBitRate="$(( "${oldBitRate}" / 1024 ))"
+				audioEncoding="${audioEncoding} -c:a:${stream} ${audioCodec} -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
 			fi
-			wantedBitRate="$(( $channelCount * $bitratePerAudioChannel ))"
-			if [[ "${wantedBitRate}" -gt "${oldBitRate}" ]]; then
-				wantedBitRate="${oldBitRate}"
-			fi
-			if [[ -n "${codecName}" ]]; then
-				normalizedOldCodecName="$(normalizeAudioCodec "${codecName}")"
-				normalizedNewCodecName="$(normalizeAudioCodec "${audioCodec}")"
-				if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldBitRate}" -le "${wantedBitRate}" ]]; then
-					audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataCodecName}=${codecName}"
-				else
-					audioEncoding="${audioEncoding} -c:a:${stream} ${audioCodec} -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
-				fi
-			fi
-		done
-	fi
+		fi
+	done
 	echo "${audioEncoding}"
 }
 
@@ -230,60 +228,57 @@ getVideoEncodingSettings() {
 	local oldPresetComplexity=''
 	local oldProfileComplexity=''
 
-	
-	if [[ -n "${newCodec}" && "${newCodec,,}" != "copy" ]]; then
-		for stream in $(seq 0 1 ${streamCount}); do
-			probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
-			newCodec="${videoCodec}"
-			newPreset="${videoPreset}"
-			newProfile="${videoProfile}"
-			newQuality="${videoQuality}"
-			newTune="${videoTune}"
-			newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
-			newProfileComplexity="$(getProfileComplexityOrder "${newProfile}")"
-			oldCodec="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-			if [[ -z "${oldCodec}" ]]; then
-				oldCodec="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-			fi
-			oldPreset="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
-			oldProfile="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoProfile}=.*$" | grep -o '[^=]*$')"
-			oldQuality="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
-			oldTune="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoTune}=.*$" | grep -o '[^=]*$')"
-			oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
-			oldProfileComplexity="$(getProfileComplexityOrder "${oldProfile}")"
-			
-			if [[ -z "${oldQuality}" ]]; then
-				oldQuality=0
-			fi
-			if [[ "${oldQuality}" -gt "${videoQuality}" ]]; then
-				newQuality="${oldQuality}"
-			fi
-			if  [[ -z "${newTune}" ]]; then
-				newTune="${oldTune}"
-			fi 
-			if [[ -n "${oldCodec}" ]]; then
-				normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
-				normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
-				if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" ]] || ([[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${newPreset}" = 'ultrafast' ]); then
-					videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataCodecName}=${oldCodec}"
-				else
-					videoEncoding="${videoEncoding} -c:v:${stream} ${newCodec} -metadata:s:v:${stream} ${metadataCodecName}=${newCodec}"
-					if [[ -n "${newPreset}" ]]; then
-						videoEncoding="${videoEncoding} -preset:v:${stream} ${newPreset} -metadata:s:v:${stream} ${metadataVideoPreset}=${newPreset}"
-					fi
-					if [[ -n "${newQuality}" ]]; then
-						videoEncoding="${videoEncoding} -crf:v:${stream} ${newQuality} -metadata:s:v:${stream} ${metadataVideoQuality}=${newQuality}"
-					fi
-					if [[ -n "${videoProfile}" ]]; then
-						videoEncoding="${videoEncoding} -profile:v:${stream} ${videoProfile} -metadata:s:v:${stream} ${metadataVideoProfile}=${videoProfile}"
-					fi
-					if [[ -n "${newTune}" ]]; then
-						videoEncoding="${videoEncoding} -tune:v:${newTune} -metadata:s:v:${stream} ${metadataVideoTune}=${newTune}"
-					fi
+	for stream in $(seq 0 1 ${streamCount}); do
+		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
+		newCodec="${videoCodec}"
+		newPreset="${videoPreset}"
+		newProfile="${videoProfile}"
+		newQuality="${videoQuality}"
+		newTune="${videoTune}"
+		newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
+		newProfileComplexity="$(getProfileComplexityOrder "${newProfile}")"
+		oldCodec="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+		if [[ -z "${oldCodec}" ]]; then
+			oldCodec="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+		fi
+		oldPreset="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
+		oldProfile="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoProfile}=.*$" | grep -o '[^=]*$')"
+		oldQuality="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
+		oldTune="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoTune}=.*$" | grep -o '[^=]*$')"
+		oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
+		oldProfileComplexity="$(getProfileComplexityOrder "${oldProfile}")"
+		
+		if [[ -z "${oldQuality}" ]]; then
+			oldQuality=0
+		fi
+		if [[ "${oldQuality}" -gt "${videoQuality}" ]]; then
+			newQuality="${oldQuality}"
+		fi
+		if  [[ -z "${newTune}" ]]; then
+			newTune="${oldTune}"
+		fi 
+		if [[ -n "${oldCodec}" ]]; then
+			normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
+			normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
+			if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]] || [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" ]] || ([[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${newPreset}" = 'ultrafast' ]); then
+				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataCodecName}=${oldCodec}"
+			else
+				videoEncoding="${videoEncoding} -c:v:${stream} ${newCodec} -metadata:s:v:${stream} ${metadataCodecName}=${newCodec}"
+				if [[ -n "${newPreset}" ]]; then
+					videoEncoding="${videoEncoding} -preset:v:${stream} ${newPreset} -metadata:s:v:${stream} ${metadataVideoPreset}=${newPreset}"
+				fi
+				if [[ -n "${newQuality}" ]]; then
+					videoEncoding="${videoEncoding} -crf:v:${stream} ${newQuality} -metadata:s:v:${stream} ${metadataVideoQuality}=${newQuality}"
+				fi
+				if [[ -n "${videoProfile}" ]]; then
+					videoEncoding="${videoEncoding} -profile:v:${stream} ${videoProfile} -metadata:s:v:${stream} ${metadataVideoProfile}=${videoProfile}"
+				fi
+				if [[ -n "${newTune}" ]]; then
+					videoEncoding="${videoEncoding} -tune:v:${stream} ${newTune} -metadata:s:v:${stream} ${metadataVideoTune}=${newTune}"
 				fi
 			fi
-		done
-	fi
+		fi
+	done
 	echo "${videoEncoding}"
 }
 
@@ -297,7 +292,7 @@ getSubtitleEncodingSettings() {
 	local codecName=''
 	local codecType=''
 
-	if ([[ -n "${subtitlesImageCodec}" && "${subtitlesImageCodec,,}" != "copy" ]]) || ([[ -n "${subtitlesTextCodec}" && "${subtitlesTextCodec,,}" != "copy" ]]); then
+	if [[ -n "${subtitlesImageCodec}" || -n "${subtitlesTextCodec}" ]]; then
 		for stream in $(seq 0 1 ${streamCount}); do
 			probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream})"
 			codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
@@ -309,14 +304,14 @@ getSubtitleEncodingSettings() {
 				codecType="$(getSubtitleEncodingType "${codecName}")"
 				if [[ "${codecType}" = "image" ]]; then
 					normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesImageCodec}")"
-					if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${subtitlesImageCodec,,}" = "copy" ]]; then
+					if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || -z "${subtitlesImageCodec}" || "${subtitlesImageCodec,,}" = "copy" ]]; then
 						subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
 					else
 						subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesImageCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
 					fi
 				else
 					normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesTextCodec}")"
-					if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${subtitlesTextCodec,,}" = "copy" ]]; then
+					if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || -z "${subtitlesTextCodec}" || "${subtitlesTextCodec,,}" = "copy" ]]; then
 						subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
 					else
 						subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesTextCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
