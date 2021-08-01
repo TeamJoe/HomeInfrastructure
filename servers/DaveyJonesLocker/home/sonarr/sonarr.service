@@ -1,0 +1,17 @@
+#/etc/systemd/system
+[Unit]
+Description=Sonarr TV Series Manager
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=sonarr
+Group=docker
+ExecStart=/home/sonarr/sonarr.sh start
+ExecStop=/home/sonarr/sonarr.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

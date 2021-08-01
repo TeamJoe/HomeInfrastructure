@@ -1,5 +1,5 @@
 #!/bin/bash
-# /root/DockerService.sh
+# /server/DockerService.sh
 
 path="$1"; shift
 service="$1"; shift
@@ -28,7 +28,7 @@ powerOn() {
 
 getIP() {
 	if [ "$(isActive)" == "true" ]; then
-		echo "$(docker exec "$(getId)" curl -L ipconfig.me)"
+		echo "$(docker exec "$(getId)" curl --location --silent ipconfig.me)"
 	else
 		echo "Cannot get ip from terminated instance"
 	fi
@@ -60,7 +60,7 @@ currentStatus() {
 
 stopService() {
 	if [ "$(isActive)" == "true" ]; then
-		docker kill "$(getId)"
+		docker stop "$(getId)"
 	else
 		echo "Already Off"
 	fi

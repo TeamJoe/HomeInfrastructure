@@ -1,0 +1,17 @@
+#/etc/systemd/system
+[Unit]
+Description=OMBI Requesting Manager
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=ombi
+Group=docker
+ExecStart=/home/ombi/ombi.sh start
+ExecStop=/home/ombi/ombi.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

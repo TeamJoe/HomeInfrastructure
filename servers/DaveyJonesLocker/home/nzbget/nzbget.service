@@ -6,9 +6,10 @@ After=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-User=root
-ExecStart=/root/nzbget.sh start
-ExecStop=/root/nzbget.sh stop
+User=nzbget
+Group=docker
+ExecStart=/home/nzbget/nzbget.sh start
+ExecStop=/home/nzbget/nzbget.sh stop
 StandardOutput=syslog
 StandardError=syslog
 

@@ -1,0 +1,17 @@
+#/etc/systemd/system
+[Unit]
+Description=Lidarr Music Manager
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=lidarr
+Group=docker
+ExecStart=/home/lidarr/lidarr.sh start
+ExecStop=/home/lidarr/lidarr.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

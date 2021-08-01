@@ -1,5 +1,5 @@
 #!/bin/bash
-# /root/ServiceStatus.sh
+# /server/ServiceStatus.sh
 
 path="$1"; shift
 service="$1"; shift

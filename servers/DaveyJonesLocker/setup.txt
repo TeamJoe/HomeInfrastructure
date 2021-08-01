@@ -1,0 +1,137 @@
+#~Mount Media Drive
+sudo apt-get install cifs-utils
+sudo mount -a 
+
+#~Install Sensors
+sudo apt install lm-sensors
+
+#~Install shell2http
+sudo snap install shell2http
+
+#~Install samba
+sudo apt install samba
+
+#~Install docker
+sudo apt install docker
+
+#~Prepare the files
+chown root:root -R /server
+chmod 755 -R /server
+chown root:root -R /root
+chmod 700 -R /root
+
+#~Install Plex
+#https://www.plex.tv/media-server-downloads/
+useradd --system --shell /usr/bin/nologin plex 
+usermod -g media plex
+usermod -aG media plex
+usermod -aG plex plex
+usermod -aG docker plex
+chown plex:media -R /home/plex
+chmod 700 -R /home/plex
+systemctl enable /home/plex/plex.service
+(cd /etc/systemd/system; systemctl enable plex)
+
+#~Install Sonarr
+#https://sonarr.tv/#features
+useradd --system --shell /usr/bin/nologin sonarr
+usermod -g media sonarr
+usermod -aG media sonarr
+usermod -aG sonarr sonarr
+usermod -aG docker sonarr
+chown sonarr:media -R /home/sonarr
+chmod 700 -R /home/sonarr
+systemctl enable /home/sonarr/sonarr.service
+(cd /etc/systemd/system; systemctl enable sonarr)
+
+#~Install Radarr
+#https://radarr.video/
+useradd --system --shell /usr/bin/nologin radarr
+usermod -g media radarr
+usermod -aG media radarr
+usermod -aG radarr radarr
+usermod -aG docker radarr
+chown radarr:media -R /home/radarr
+chmod 700 -R /home/radarr
+systemctl enable /home/radarr/radarr.service
+(cd /etc/systemd/system; systemctl enable radarr)
+
+#~Install Lidarr
+#https://lidarr.audio/
+useradd --system --shell /usr/bin/nologin lidarr
+usermod -g media lidarr
+usermod -aG media lidarr
+usermod -aG lidarr lidarr
+usermod -aG docker lidarr
+chown lidarr:media -R /home/lidarr
+chmod 700 -R /home/lidarr
+systemctl enable /home/lidarr/lidarr.service
+(cd /etc/systemd/system; systemctl enable lidarr)
+
+#~Install Bazaar
+#https://www.bazarr.media/
+useradd --system --shell /usr/bin/nologin bazarr
+usermod -g media bazarr
+usermod -aG media bazarr
+usermod -aG bazarr bazarr
+usermod -aG docker bazarr
+chown bazarr:media -R /home/bazarr
+chmod 700 -R /home/bazarr
+systemctl enable /home/bazarr/bazarr.service
+(cd /etc/systemd/system; systemctl enable bazarr)
+
+
+#~Install OMBI
+#https://ombi.io/
+useradd --system --shell /usr/bin/nologin ombi
+usermod -g media ombi
+usermod -aG media ombi
+usermod -aG ombi ombi
+usermod -aG docker ombi
+chown ombi:media -R /home/ombi
+chmod 700 -R /home/ombi
+systemctl enable /home/ombi/ombi.service
+(cd /etc/systemd/system; systemctl enable ombi)
+
+#~Install Jackett
+#https://github.com/Jackett/Jackett
+useradd --system --shell /usr/bin/nologin jackett
+usermod -g media jackett
+usermod -aG media jackett
+usermod -aG jackett jackett
+usermod -aG docker jackett
+usermod -aG vpn jackett
+chown jackett:media -R /home/jackett
+chmod 700 -R /home/jackett
+(cd /home/jackett; docker build -f jackett.Dockerfile -t jackett .)
+systemctl enable /home/jackett/jackett.service
+(cd /etc/systemd/system; systemctl enable jackett)
+
+#~Install Transmission
+#https://transmissionbt.com/
+useradd --system --shell /usr/bin/nologin transmission
+usermod -g media transmission
+usermod -aG media transmission
+usermod -aG transmission transmission
+usermod -aG docker transmission
+usermod -aG vpn transmission
+chown transmission:media -R /home/transmission
+chmod 775 -R /home/transmission
+(cd /home/transmission; docker build -f transmission.Dockerfile -t transmission --build-arg TRANSMISSION_DIR=/home/transmission .)
+systemctl enable /home/transmission/transmission.service
+(cd /etc/systemd/system; systemctl enable transmission)
+
+#~Install Nzbget
+#https://nzbget.net/
+useradd --system --shell /usr/bin/nologin nzbget
+usermod -g media nzbget
+usermod -aG media nzbget
+usermod -aG nzbget nzbget
+usermod -aG docker nzbget
+usermod -aG vpn nzbget
+chown nzbget:media -R /home/nzbget
+chmod 775 -R /home/nzbget
+(cd /home/nzbget; docker build -f nzbget.Dockerfile -t nzbget --build-arg NZBGET_DIR=/home/nzbget .)
+systemctl enable /home/nzbget/nzbget.service
+(cd /etc/systemd/system; systemctl enable nzbget)
+

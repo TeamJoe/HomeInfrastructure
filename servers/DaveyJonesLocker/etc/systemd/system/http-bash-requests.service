@@ -11,16 +11,16 @@ RestartSec=5
 User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5 -port=80 \
 	/ping "echo 'PONG'" \
-	/status "cat /home/joe/status.out" \
+	/status "cat /root/status.out" \
 	/compression/x264/ultrafast/start "sudo su compression -s /home/compression/compression.sh start ultrafast 1 date libx264" \
 	/compression/x264/ultrafast/status "sudo su compression -s /home/compression/compression.sh status ultrafast 1 date libx264" \
 	/compression/x264/ultrafast/output "sudo su compression -s /home/compression/compression.sh output ultrafast 1 date libx264" \
 	/compression/x264/fast/start "sudo su compression -s /home/compression/compression.sh start fast 1 size libx264" \
 	/compression/x264/fast/status "sudo su compression -s /home/compression/compression.sh status fast 1 size libx264" \
 	/compression/x264/fast/output "sudo su compression -s /home/compression/compression.sh output fast 1 size libx264" \
-	/compression/x264/veryslow/start "sudo su compression -s /home/compression/compression.sh start veryslow 1 size libx264" \
-	/compression/x264/veryslow/status "sudo su compression -s /home/compression/compression.sh status veryslow 1 size libx264" \
-	/compression/x264/veryslow/output "sudo su compression -s /home/compression/compression.sh output veryslow 1 size libx264"
+	/compression/x264/slow/start "sudo su compression -s /home/compression/compression.sh start slow 1 size libx264" \
+	/compression/x264/slow/status "sudo su compression -s /home/compression/compression.sh status slow 1 size libx264" \
+	/compression/x264/slow/output "sudo su compression -s /home/compression/compression.sh output slow 1 size libx264"
 
 [Install]
 WantedBy=multi-user.target

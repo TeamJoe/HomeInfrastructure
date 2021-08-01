@@ -39,7 +39,7 @@ RUN mkdir -p /lib/nzbget && \
 	mkdir -p "${NZBGET_DIR}" && \
 	curl -L https://nzbget.net/download/nzbget-latest-bin-linux.run -o /lib/nzbget/nzbget-latest-bin-linux.run && \
 	sh /lib/nzbget/nzbget-latest-bin-linux.run --destdir /lib/nzbget --arch armhf && \
-	rm nzbget-latest-bin-linux.run && \
+	rm -f /lib/nzbget/nzbget-latest-bin-linux.run && \
 	mv /lib/nzbget/nzbget.conf "${NZBGET_DIR}/nzbget.conf" && \
 	ln "${NZBGET_DIR}/nzbget.conf" /lib/nzbget/nzbget.conf 
 

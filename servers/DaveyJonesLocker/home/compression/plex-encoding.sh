@@ -16,8 +16,8 @@ encodingQuality=18 # 1-50, lower is better quailty
 compressComplexity='fast' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 audioCodec='aac'
 videoCodec='libx264'
-subtitlesImageCodec='dvbsub'
-subtitlesTextCodec='subrip'
+subtitlesImageCodec='copy' # dvbsub, dvdsub
+subtitlesTextCodec='copy' # srt, ass
 bitratePerAudioChannel=96 # 64 is default
 outputExtension='.mkv'
 sortBy='size'
@@ -150,44 +150,47 @@ getAudioEncodingSettings() {
 	local oldBitRate=''
 	local wantedBitRate=''
 
-	for stream in $(seq 0 1 ${streamCount}); do
-		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream})"
-		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-		if [ -z "${codecName}" ]; then
-			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-		fi
-		channelCount="$(echo "${probeResult}" | grep -o '^channels=.*$' | grep -o '[^=]*$')"
-		if [ -z "$channelCount" ]; then
-			channelCount=2
-		fi
-		oldBitRate="$(echo "${probeResult}" | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
-		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ]; then
-			oldBitRate="$(echo "${probeResult}" | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
-		fi
-		if [ -z "$oldBitRate" ] || [ "$oldBitRate" = "N/A" ] || [ "$oldBitRate" = "0" ]; then
-			oldBitRate="$(( 100 * 1024 * 1024 ))"
-		fi
-		if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
-			oldBitRate="$(( "${oldBitRate::-1}" ))"
-		elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
-			oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
-		else
-			oldBitRate="$(( "${oldBitRate}" / 1024 ))"
-		fi
-		wantedBitRate="$(( $channelCount * $bitratePerAudioChannel ))"
-		if [ "${wantedBitRate}" -gt "${oldBitRate}" ]; then
-			wantedBitRate="${oldBitRate}"
-		fi
-		if [ -n "${codecName}" ]; then
-			normalizedOldCodecName="$(normalizeAudioCodec "${codecName}")"
-			normalizedNewCodecName="$(normalizeAudioCodec "${audioCodec}")"
-			if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ] && [ "${oldBitRate}" -le "${wantedBitRate}" ]; then
-				audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $oldBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${codecName}"
-			else
-				audioEncoding="${audioEncoding} -c:a:${stream} ${audioCodec} -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
+
+	if [[ -n "${audioCodec}" && "${audioCodec,,}" != "copy" ]]; then
+		for stream in $(seq 0 1 ${streamCount}); do
+			probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams a:${stream})"
+			codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+			if [ -z "${codecName}" ]; then
+				codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 			fi
-		fi
-	done
+			channelCount="$(echo "${probeResult}" | grep -o '^channels=.*$' | grep -o '[^=]*$')"
+			if [ -z "$channelCount" ]; then
+				channelCount=2
+			fi
+			oldBitRate="$(echo "${probeResult}" | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
+			if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" ]]; then
+				oldBitRate="$(echo "${probeResult}" | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
+			fi
+			if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" || "${oldBitRate}" = "0" ]]; then
+				oldBitRate="$(( 100 * 1024 * 1024 ))"
+			fi
+			if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
+				oldBitRate="$(( "${oldBitRate::-1}" ))"
+			elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
+				oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
+			else
+				oldBitRate="$(( "${oldBitRate}" / 1024 ))"
+			fi
+			wantedBitRate="$(( $channelCount * $bitratePerAudioChannel ))"
+			if [ "${wantedBitRate}" -gt "${oldBitRate}" ]; then
+				wantedBitRate="${oldBitRate}"
+			fi
+			if [ -n "${codecName}" ]; then
+				normalizedOldCodecName="$(normalizeAudioCodec "${codecName}")"
+				normalizedNewCodecName="$(normalizeAudioCodec "${audioCodec}")"
+				if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldBitRate}" -le "${wantedBitRate}" ]]; then
+					audioEncoding="${audioEncoding} -c:a:${stream} copy -metadata:s:a:${stream} ${metadataCodecName}=${codecName}"
+				else
+					audioEncoding="${audioEncoding} -c:a:${stream} ${audioCodec} -b:a:${stream} ${wantedBitRate}k -metadata:s:a:${stream} ${metadataAudioBitRate}=$(( $wantedBitRate * 1024 )) -metadata:s:a:${stream} ${metadataCodecName}=${audioCodec}"
+				fi
+			fi
+		done
+	fi
 	echo "${audioEncoding}"
 }
 
@@ -203,33 +206,33 @@ getVideoEncodingSettings() {
 	local oldQuality=''
 	local oldComplexity=''
 	local newComplexity=''
-
-	for stream in $(seq 0 1 ${streamCount}); do
-		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
-		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-		if [ -z "${codecName}" ]; then
-			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-		fi
-		oldPreset="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
-		oldQuality="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
-		oldComplexity="$(getComplexityOrder "$oldPreset")"
-		newComplexity="$(getComplexityOrder "$compressComplexity")"
-		
-		if [ -z "$oldQuality" ]; then
-			oldQuality=0
-		fi
-		if [ -n "${codecName}" ]; then
-			normalizedOldCodecName="$(normalizeVideoCodec "${codecName}")"
-			normalizedNewCodecName="$(normalizeVideoCodec "${videoCodec}")"
-			if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ] && [ "${oldComplexity}" -ge "${newComplexity}" ] && [ "${oldQuality}" -ge "${encodingQuality}" ]; then
-				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${oldPreset} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${codecName}"
-			elif [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${compressComplexity}" = 'ultrafast' ]; then
-				videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${oldQuality} -metadata:s:v:${stream} ${metadataCodecName}=${codecName}"
-			else
-				videoEncoding="${videoEncoding} -c:v:${stream} ${videoCodec} -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${encodingQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
+	
+	if [[ -n "${videoCodec}" && "${videoCodec,,}" != "copy" ]]; then
+		for stream in $(seq 0 1 ${streamCount}); do
+			probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
+			codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+			if [ -z "${codecName}" ]; then
+				codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
 			fi
-		fi
-	done
+			oldPreset="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
+			oldQuality="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
+			oldComplexity="$(getComplexityOrder "$oldPreset")"
+			newComplexity="$(getComplexityOrder "$compressComplexity")"
+			
+			if [ -z "${oldQuality}" ]; then
+				oldQuality=0
+			fi
+			if [ -n "${codecName}" ]; then
+				normalizedOldCodecName="$(normalizeVideoCodec "${codecName}")"
+				normalizedNewCodecName="$(normalizeVideoCodec "${videoCodec}")"
+				if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldComplexity}" -ge "${newComplexity}" && "${oldQuality}" -ge "${encodingQuality}" ]] || ([[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${compressComplexity}" = 'ultrafast' ]); then
+					videoEncoding="${videoEncoding} -c:v:${stream} copy -metadata:s:v:${stream} ${metadataCodecName}=${codecName}"
+				else
+					videoEncoding="${videoEncoding} -c:v:${stream} ${videoCodec} -metadata:s:v:${stream} ${metadataVideoPreset}=${compressComplexity} -metadata:s:v:${stream} ${metadataVideoQuality}=${encodingQuality} -metadata:s:v:${stream} ${metadataCodecName}=${videoCodec}"
+				fi
+			fi
+		done
+	fi
 	echo "${videoEncoding}"
 }
 
@@ -243,32 +246,34 @@ getSubtitleEncodingSettings() {
 	local codecName=''
 	local codecType=''
 
-	for stream in $(seq 0 1 ${streamCount}); do
-		probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams v:${stream})"
-		codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-		if [ -z "${codecName}" ]; then
-			codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-		fi
-		if [ -n "${codecName}" ]; then
-			normalizedOldCodecName="$(normalizeSubtitleCodec "${codecName}")"
-			codecType="$(getSubtitleEncodingType "${codecName}")"
-			if [ "${codecType}" = "image" ]; then
-				normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesImageCodec}")"
-				if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]; then
-					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
+	if ([[ -n "${subtitlesImageCodec}" && "${subtitlesImageCodec,,}" != "copy" ]]) || ([[ -n "${subtitlesTextCodec}" && "${subtitlesTextCodec,,}" != "copy" ]]); then
+		for stream in $(seq 0 1 ${streamCount}); do
+			probeResult="$(ffprobe -i "${inputFile}" -loglevel error -show_streams -select_streams s:${stream})"
+			codecName="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
+			if [ -z "${codecName}" ]; then
+				codecName="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
+			fi
+			if [ -n "${codecName}" ]; then
+				normalizedOldCodecName="$(normalizeSubtitleCodec "${codecName}")"
+				codecType="$(getSubtitleEncodingType "${codecName}")"
+				if [ "${codecType}" = "image" ]; then
+					normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesImageCodec}")"
+					if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${subtitlesImageCodec,,}" = "copy" ]]; then
+						subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
+					else
+						subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesImageCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
+					fi
 				else
-					subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesImageCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesImageCodec}"
-				fi
-			else
-				normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesTextCodec}")"
-				if [ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]; then
-					subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
-				else
-					subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesTextCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
+					normalizedNewCodecName="$(normalizeSubtitleCodec "${subtitlesTextCodec}")"
+					if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${subtitlesTextCodec,,}" = "copy" ]]; then
+						subtitleEncoding="${subtitleEncoding} -c:s:${stream} copy -metadata:s:s:${stream} ${metadataCodecName}=${codecName}"
+					else
+						subtitleEncoding="${subtitleEncoding} -c:s:${stream} ${subtitlesTextCodec} -metadata:s:s:${stream} ${metadataCodecName}=${subtitlesTextCodec}"
+					fi
 				fi
 			fi
-		fi
-	done
+		done
+	fi
 	echo "${subtitleEncoding}"
 }
 
@@ -279,7 +284,7 @@ assembleArguments() {
 	local videoArguments=" $(getVideoEncodingSettings "${inputFile}")"
 	local audioArguments=" $(getAudioEncodingSettings "${inputFile}")"
 	local subtitleArguments=" $(getSubtitleEncodingSettings "${inputFile}")"
-
+	
 	echo "-i '$(echo "${inputFile}" | sed -e "s/'/'\"'\"'/g")' -crf ${encodingQuality} -map 0 ${videoArguments} ${audioArguments} ${subtitleArguments} -threads ${threadCount} -preset ${compressComplexity} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
 }
 

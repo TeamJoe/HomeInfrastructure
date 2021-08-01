@@ -2,7 +2,7 @@
 # /root/status.sh
 
 tmpStatusFile='/tmp/status.out'
-statusFile='/home/joe/status.out'
+statusFile='/root/status.out'
 sleepTimeInSeconds=60
 
 getHostname() {
@@ -41,7 +41,7 @@ getTemperature() {
 }
 
 getIP() {
-	echo "$( curl -L ifconfig.co )"
+	echo "$( curl --location --silent ifconfig.co )"
 }
 
 stats=('echo "<b>Server Stats</b>"'
@@ -56,67 +56,67 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Media Drive: $(getMediaDisk)"'
 ''
 'echo "<b>Plex</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/plex.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/plex.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/plex.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>Sonarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/sonarr.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/sonarr.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/sonarr.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>Radarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/radarr.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/radarr.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/radarr.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>Lidarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/lidarr.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/lidarr.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/lidarr.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>Bazarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/bazarr.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/bazarr.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/bazarr.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>Jackett</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/jackett.sh status)"'
-'echo "&nbsp;&nbsp;IP: $(/root/jackett.sh ip)"'
-'echo "&nbsp;&nbsp;Description: $(/root/jackett.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/jackett.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>Transmission</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/transmission.sh status)"'
-'echo "&nbsp;&nbsp;IP: $(/root/transmission.sh ip)"'
-'echo "&nbsp;&nbsp;Description: $(/root/transmission.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/transmission.sh address)'"'"'>Link</a>"'
-''
-'echo "<b>NZBGet</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/nzbget.sh status)"'
-'echo "&nbsp;&nbsp;IP: $(/root/nzbget.sh ip)"'
-'echo "&nbsp;&nbsp;Description: $(/root/nzbget.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/nzbget.sh address)'"'"'>Link</a>"'
+'echo "&nbsp;&nbsp;Status: $(/home/plex/plex.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/home/plex/plex.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/plex/plex.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>OMBI</b>"'
-'echo "&nbsp;&nbsp;Status: $(/root/ombi.sh status)"'
-'echo "&nbsp;&nbsp;Description: $(/root/ombi.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/ombi.sh address)'"'"'>Link</a>"'
+'echo "&nbsp;&nbsp;Status: $(/home/ombi/ombi.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/home/ombi/ombi.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/ombi/ombi.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Sonarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/sonarr/sonarr.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/home/sonarr/sonarr.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/sonarr/sonarr.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Radarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/radarr/radarr.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/home/radarr/radarr.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/radarr/radarr.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Lidarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/lidarr/lidarr.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/home/lidarr/lidarr.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/lidarr/lidarr.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Bazarr</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/bazarr/bazarr.sh status)"'
+'echo "&nbsp;&nbsp;Description: $(/home/bazarr/bazarr.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/bazarr/bazarr.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Jackett</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/jackett/jackett.sh status)"'
+'echo "&nbsp;&nbsp;IP: $(/home/jackett/jackett.sh ip)"'
+'echo "&nbsp;&nbsp;Description: $(/home/jackett/jackett.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/jackett/jackett.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>Transmission</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/transmission/transmission.sh status)"'
+'echo "&nbsp;&nbsp;IP: $(/home/transmission/transmission.sh ip)"'
+'echo "&nbsp;&nbsp;Description: $(/home/transmission/transmission.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/transmission/transmission.sh address)'"'"'>Link</a>"'
+''
+'echo "<b>NZBGet</b>"'
+'echo "&nbsp;&nbsp;Status: $(/home/nzbget/nzbget.sh status)"'
+'echo "&nbsp;&nbsp;IP: $(/home/nzbget/nzbget.sh ip)"'
+'echo "&nbsp;&nbsp;Description: $(/home/nzbget/nzbget.sh description)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/nzbget/nzbget.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Compression - x264 - Ultra Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(curl localhost/compression/x264/ultrafast/status)"'
+'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x264/ultrafast/status)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/ultrafast/start'"'"'>Start</a> | <a href='"'"'/compression/x264/ultrafast/output'"'"'>Output</a>"'
 ''
 'echo "<b>Compression - x264 - Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(curl localhost/compression/x264/fast/status)"'
+'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x264/fast/status)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/fast/start'"'"'>Start</a> | <a href='"'"'/compression/x264/fast/output'"'"'>Output</a>"'
 ''
-'echo "<b>Compression - x264 - Very Slow</b>"'
-'echo "&nbsp;&nbsp;Status: $(curl localhost/compression/x264/veryslow/status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/veryslow/start'"'"'>Start</a> | <a href='"'"'/compression/x264/veryslow/output'"'"'>Output</a>"')
+'echo "<b>Compression - x264 - Slow</b>"'
+'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x264/slow/status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/slow/start'"'"'>Start</a> | <a href='"'"'/compression/x264/slow/output'"'"'>Output</a>"')
 
 
-runAllCommands() {
+runAllCommandsInParralel() {
 	local pids
 	for i in $(echo ${!stats[@]}); do
 		eval "${stats[$i]}" > "/tmp/status-${i}.result" &
@@ -124,6 +124,12 @@ runAllCommands() {
 	done
 	for pid in ${pids[*]}; do
 		wait $pid
+	done
+}
+
+runAllCommands() {
+	for i in $(echo ${!stats[@]}); do
+		eval "${stats[$i]}" > "/tmp/status-${i}.result"
 	done
 }
 
@@ -138,7 +144,7 @@ getResults() {
 }
 
 while true; do
-	runAllCommands
+	runAllCommands 
 	getResults > "$tmpStatusFile"
 	mv "$tmpStatusFile" "$statusFile"
 	sleep "$sleepTimeInSeconds"

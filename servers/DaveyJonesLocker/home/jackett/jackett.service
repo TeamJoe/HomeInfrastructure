@@ -1,0 +1,17 @@
+#/etc/systemd/system
+[Unit]
+Description=Jackett Indexing Service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=jackett
+Group=docker
+ExecStart=/home/jackett/jackett.sh start
+ExecStop=/home/jackett/jackett.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
