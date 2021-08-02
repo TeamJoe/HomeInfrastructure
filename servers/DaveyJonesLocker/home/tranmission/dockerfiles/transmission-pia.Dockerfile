@@ -67,9 +67,14 @@ ARG MAX_LATENCY=0.05
 ARG PREFERRED_REGION=none
 ARG PIA_DNS=true
 RUN mkdir build && \
+	useradd --system --shell /usr/bin/nologin vpn && \
 	echo '#!/bin/bash'"\n" \
-		'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
 		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
+		'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
+		'if [ -n "${PUID}" ]; then usermod -u "${PUID}" debian-transmission; fi '"\n" \
+		'if [ -n "${PGID}" ]; then groupmod -g "${PGID}" debian-transmission; fi '"\n" \
+		'if [ -n "${VUID}" ]; then usermod -u "${VUID}" vpn; fi '"\n" \
+		'if [ -n "${VGID}" ]; then groupmod -g "${VGID}" vpn; fi '"\n" \
 		'PIA_PF="${PIA_PF:-'"${PIA_PF:-true}"'}" '"\n" \
 		'cd /etc/pia'"\n" \
 		'PIA_USER="${PIA_USER:-'"$( if [ -n "${PIA_USER}" ]; then echo "${PIA_USER}"; else echo '$(cat /home/vpn/credentials | awk "NR==1")'; fi )"'}" ' \
@@ -97,10 +102,10 @@ RUN mkdir build && \
 			"cp '${TRANSMISSION_DIR}/info/settings.json' '${TRANSMISSION_DIR}/info/settings.json.template'\n" \
 		'fi'"\n" \
 		'jq -M ".\"peer-port\"=${PORT}" '"'${TRANSMISSION_DIR}/info/settings.json.template'"' > '"'${TRANSMISSION_DIR}/info/settings.json'\n" \
-		'/usr/bin/transmission-daemon -f --log-error --config-dir '"${TRANSMISSION_DIR}/info"' &'"\n" \
-		'pid=$!'"\n" \
+		'chown debian-transmission:debian-transmission -R '"'${TRANSMISSION_DIR}'\n" \
+		'/etc/init.d/transmission-daemon start'"\n" \
 		'while ip link show dev ${TUNNEL} >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
-		'kill -9 ${pid}'"\n" > /build/start.sh && \
+		'kill "$(ps ax | grep transmission-daemon | awk '{print $1}')"'"\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
 CMD ["/bin/bash", "/build/start.sh"]

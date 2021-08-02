@@ -43,9 +43,12 @@ ARG MAX_LATENCY=0.05
 ARG PREFERRED_REGION=none
 ARG PIA_DNS=true
 RUN mkdir build && \
+	useradd --system --shell /usr/bin/nologin vpn && \
 	echo '#!/bin/bash'"\n" \
-		'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
 		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
+		'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
+		'if [ -n "${VUID}" ]; then usermod -u "${VUID}" vpn; fi '"\n" \
+		'if [ -n "${VGID}" ]; then groupmod -g "${VGID}" vpn; fi '"\n" \
 		'PIA_PF="${PIA_PF:-'"${PIA_PF:-true}"'}" '"\n" \
 		'cd /etc/pia'"\n" \
 		'PIA_USER="${PIA_USER:-'"$( if [ -n "${PIA_USER}" ]; then echo "${PIA_USER}"; else echo '$(cat /home/vpn/credentials | awk "NR==1")'; fi )"'}" ' \
@@ -71,9 +74,8 @@ RUN mkdir build && \
 		'fi'"\n" \
 		'mkdir -p /home/jackett/logs'"\n" \
 		'/init > /home/jackett/logs/init.out &'"\n" \
-		'pid=$!'"\n" \
 		'while ip link show dev ${TUNNEL} >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
-		'kill -9 ${pid}'"\n" > /build/start.sh && \
+		'kill "$(ps ax | grep jackett | awk '{print $1}')"'"\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
 ENTRYPOINT ["/bin/bash", "/build/start.sh"]
