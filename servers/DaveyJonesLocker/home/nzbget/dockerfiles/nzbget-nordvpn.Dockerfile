@@ -1,4 +1,4 @@
-# docker build -f nzbget.Dockerfile -t nzbget --build-arg NZBGET_DIR=/home/nzbget .
+# docker build -f nzbget-nordvpn.Dockerfile -t nzbget .
 
 FROM ubuntu
 

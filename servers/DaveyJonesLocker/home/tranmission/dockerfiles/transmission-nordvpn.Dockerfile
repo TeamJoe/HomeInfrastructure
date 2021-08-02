@@ -1,4 +1,4 @@
-# docker build -f transmission.Dockerfile -t transmission --build-arg TRANSMISSION_DIR=/home/transmission .
+# docker build -f transmission-nordvpn.Dockerfile -t transmission --build-arg TRANSMISSION_DIR=/home/transmission .
 
 FROM ubuntu
 

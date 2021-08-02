@@ -1,4 +1,4 @@
-# docker build -f jackett.Dockerfile -t jackett .
+# docker build -f jackett-nordvpn.Dockerfile -t jackett .
 
 FROM ghcr.io/linuxserver/jackett
 
