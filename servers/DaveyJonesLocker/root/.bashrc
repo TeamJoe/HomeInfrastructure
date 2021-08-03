@@ -137,3 +137,4 @@ sonarr() {
 transmission() {
 	sudo -u transmission --shell /bin/bash /home/transmission/transmission.sh "$@"
 }
+

@@ -22,6 +22,7 @@ videoProfile='main' # For x264 baseline, main, high | For x265 main, high
 videoPixelFormat='yuv420p' 
 videoQuality=18 # 1-50, lower is better quailty
 videoLevel='4.0'
+videoFrameRate='copy' # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode' # animation, fastdecode, film, grain, stillimage, zerolatency
 subtitlesImageCodec='copy' # dvbsub, dvdsub
 subtitlesTextCodec='copy' # srt, ass
@@ -34,6 +35,7 @@ metadataCodecName='ENCODER-CODEC'
 metadataAudioBitRate='ENCODER-BIT-RATE'
 metadataVideoLevel='ENCODER-LEVEL'
 metadataVideoPixelFormat='ENCODER-PIXEL-FORMAT'
+metadataVideoFrameRate='ENCODER-FRAME-RATE'
 metadataVideoPreset='ENCODER-PRESET'
 metadataVideoProfile='ENCODER-PROFILE'
 metadataVideoQuality='ENCODER-QUALITY'
@@ -68,9 +70,50 @@ getTime() {
 	echo "$(date +%FT%TZ)"
 }
 
+divide() {
+	local numerator="${1}"
+	local denominator="${2}"
+	local precision="${3:-0}" # Between 0 and 17, for small denominators, less for larger denominators
+	local rounding="${4:-halfup}" # halfup, halfdown, floor, ceil
+	rounding="${rounding,,}"
+	local quotient="$(( "${numerator}" / "${denominator}" ))"
+	local remainder="$(( "${numerator}" % "${denominator}" ))"
+	local precisionQuotient="$(( (( 10 ** "${precision}" ) * ( "${remainder}" ) ) / "${denominator}" ))"
+	local precisionRemainder="$(( (( 10 ** "${precision}" ) * ( "${remainder}" ) ) % "${denominator}" ))"
+	
+	if [[ "${rounding::4}" = 'half' ]]; then
+		if [[ "${precisionRemainder}" -gt '0' ]]; then
+			local roundingQuotient="$(( "${denominator}" / "${precisionRemainder}" ))"
+			local roundingRemainder="$(( "${denominator}" % "${precisionRemainder}" ))"
+			if [[ "${roundingQuotient}" -lt '2' ]]; then
+				precisionQuotient="$(( "${precisionQuotient}" + 1 ))"
+			elif [[ "${roundingQuotient}" -eq '2' && "${roundingRemainder}" -eq '0' ]]; then
+				if [[ "${rounding}" = 'half' || "${rounding}" = 'halfup' || "${rounding}" = 'half-up' ]]; then
+					precisionQuotient="$(( "${precisionQuotient}" + 1 ))"
+				fi
+			fi
+		fi
+	elif [[ "${rounding}" = 'ceil' || "${rounding}" = 'ceiling' ]]; then
+		if [[ "${precisionRemainder}" -gt '0' ]]; then
+			precisionQuotient="$(( "${precisionQuotient}" + 1 ))"
+		fi
+	fi
+	
+	if [[ "${precisionQuotient}" -ge "$(( 10 ** "${precision}" ))" ]]; then
+		quotient="$(( "${quotient}" + 1 ))"
+		precisionQuotient='0'
+	fi
+	
+	if [[ "${precision}" -eq 0 ]]; then
+		echo "$(printf "%d" "${quotient}")"
+	else
+		echo "$(printf "%d.%0${precision}d" "${quotient}" "${precisionQuotient}")"
+	fi
+}
+
 getCommand() {
 	local command="${1}"
-	echo "'${path}' '${command}' --audio '${audioCodec}' --audio-bitrate '${bitratePerAudioChannel}'$(if [ "${dryRun}" = true ]; then echo ' --dry'; fi) --ext '${outputExtension}'$(if [ "${forceRun}" = true ]; then echo ' --force'; fi) --input '${inputDirectory}' --output '${outputDirectory}' --log '${logFile}'$(if [ "${metadataRun}" = true ]; then echo ' --metadata'; fi) --pid '${pidLocation}'  --sort '${sortBy}' --subtitle-image '${subtitlesImageCodec}' --subtitle-text '${subtitlesTextCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}' --video-level '${videoLevel}' --video-pixel '${videoPixelFormat}' --video-preset '${videoPreset}' --video-profile '${videoProfile}' --video-quality '${videoQuality}' --video-tune '${videoTune}'"
+	echo "'${path}' '${command}' --audio '${audioCodec}' --audio-bitrate '${bitratePerAudioChannel}'$(if [ "${dryRun}" = true ]; then echo ' --dry'; fi) --ext '${outputExtension}'$(if [ "${forceRun}" = true ]; then echo ' --force'; fi) --input '${inputDirectory}' --output '${outputDirectory}' --log '${logFile}'$(if [ "${metadataRun}" = true ]; then echo ' --metadata'; fi) --pid '${pidLocation}'  --sort '${sortBy}' --subtitle-image '${subtitlesImageCodec}' --subtitle-text '${subtitlesTextCodec}' --thread '${threadCount}' --tmp '${tmpDirectory}' --video '${videoCodec}' --video-level '${videoLevel}' --video-pixel '${videoPixelFormat}' --video-preset '${videoPreset}' --video-profile '${videoProfile}' --video-quality '${videoQuality}' --video-rate '${videoFrameRate}' --video-tune '${videoTune}'"
 } 
 
 normalizeAudioCodec() {
@@ -127,6 +170,34 @@ normalizeVideoProfileComplexity() {
 		fi
 	else
 		echo "${videoProfile}"
+	fi
+}
+
+normalizeFrameRate() {
+	local frameRate="${1,,}"
+	if [[ "${frameRate}" = '30000/1001' || "${frameRate}" = '29.9' || "${frameRate}" = '29.97' || "${frameRate}" = '29.970' ]]; then
+		echo "ntsc"
+	elif [[ "${frameRate}" = '25/1' || "${frameRate}" = '25.0' || "${frameRate}" = '25' ]]; then
+		echo "pal"
+	elif [[ "${frameRate}" = '24/1' || "${frameRate}" = '24.0' || "${frameRate}" = '24' ]]; then
+		echo "film"
+	elif [[ "${frameRate}" = '24000/1001' || "${frameRate}" = '2997/125' || "${frameRate}" = '23.9' || "${frameRate}" = '23.97' || "${frameRate}" = '23.976' ]]; then
+		echo "ntsc_film"
+	elif [[ -z "${frameRate}" || "${frameRate}" = 'copy' || "${frameRate}" = 'source' ]]; then
+		echo "source_fps"
+	elif [[ "${frameRate: -2}" = '/1' || "${frameRate: -2}" = '.0' ]]; then
+		echo "${frameRate::-2}"
+	elif [[ "${frameRate}" != "$( echo "${frameRate}" | sed 's/.*\///' )" ]]; then
+		local fraction="$(divide "$( echo "${frameRate}" | sed 's/.*\///' )" "$( echo "${frameRate}" | sed 's/\.*///' )" '2' 'floor')"
+		if [[ "${fraction}" = '29.96' || "${fraction}" = '29.97' || "${fraction}" = '29.98' ]]; then
+			echo "ntsc"
+		elif [[ "${fraction}" = '23.96' || "${fraction}" = '23.97' || "${fraction}" = '23.98' ]]; then
+			echo "ntsc_film"
+		else
+			echo "${frameRate}"
+		fi
+	else
+		echo "${frameRate}"
 	fi
 }
 
@@ -189,6 +260,106 @@ getSubtitleEncodingType() {
 	esac
 }
 
+getValue() {
+	local id="${1}"
+	local stream="${2}"
+	
+	echo "$(echo "${stream}" | grep -o "^${id}=.*$" | grep -o '[^=]*$')"
+}
+
+getMetadata() {
+	local id="${1}"
+	local stream="${2}"
+	
+	echo "$(getValue "TAG:${id}" "${stream}")"
+}
+
+getCodecFromStream() {
+	local stream="${1}"
+	
+	local oldCodec="$(getMetadata "${metadataCodecName}" "${stream}")"
+	if [[ -z "${oldCodec}" ]]; then
+		oldCodec="$(getValue 'codec_name' "${stream}")"
+	fi
+	
+	echo "${oldCodec}"
+}
+
+getAudioBitRateFromStream() {
+	local stream="${1}"
+	
+	local oldBitRate="$(getMetadata "${metadataAudioBitRate}" "${stream}")"
+	if [[ -z "${oldBitRate}" || "${oldBitRate}" = 'N/A' ]]; then
+		oldBitRate="$(getValue 'bit_rate' "${stream}")"
+	fi
+	if [[ -z "${oldBitRate}" || "${oldBitRate}" = 'N/A' ]]; then
+		oldBitRate="$(getMetadata 'BPS' "${stream}")"
+	fi
+	if [[ -z "${oldBitRate}" || "${oldBitRate}" = 'N/A' || "${oldBitRate}" = '0' ]]; then
+		oldBitRate=''
+	fi
+	if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
+		oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
+	elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
+		oldBitRate="$(( "${oldBitRate::-1}" * 1024 * 1024 ))"
+	fi
+	
+	echo "${oldBitRate}"
+}
+
+getVideoLevelFromStream() {
+	local stream="${1}"
+	
+	local oldLevel="$(getMetadata "${metadataVideoLevel}" "${stream}")"
+	if [[ -z "${oldLevel}" ]]; then
+		oldLevel="$(getValue 'level' "${stream}")"
+	fi
+	
+	# Not sure why 3, but wc -c is off by 1
+	if [[ -z "$(echo "${oldLevel}" | grep '\.')" ]]; then
+		if [[ "${oldLevel}" -ge 10 ]]; then
+			oldLevel="${oldLevel::-1}.${oldLevel: -1}"
+		elif [[ "${oldLevel}" -ge 1 ]]; then
+			oldLevel="0.${oldLevel}"
+		fi
+	fi
+	
+	echo "${oldLevel}"
+}
+
+getVideoPixelFormatFromStream() {
+	local stream="${1}"
+	
+	local oldFormat="$(getMetadata "${metadataVideoPixelFormat}" "${stream}")"
+	if [[ -z "${oldFormat}" ]]; then
+		oldFormat="$(getValue 'pix_fmt' "${stream}")"
+	fi
+	
+	echo "${oldFormat}"
+}
+
+getVideoFrameRateFromStream() {
+	local stream="${1}"
+	
+	local oldRate="$(getMetadata "${metadataVideoFrameRate}" "${stream}")"
+	if [[ -z "${oldRate}" ]]; then
+		oldRate="$(getValue 'r_frame_rate' "${stream}")"
+	fi
+	
+	echo "${oldRate}"
+}
+
+getVideoProfileFromStream() {
+	local stream="${1}"
+	
+	local oldProfile="$(getMetadata "${metadataVideoProfile}" "${stream}")"
+	if [[ -z "${oldProfile}" ]]; then
+		oldProfile="$(getValue 'profile' "${stream}")"
+	fi
+	
+	echo "${oldProfile}"
+}
+
 getChapterSettings() {
 	local inputFile="${1}"
 	
@@ -203,7 +374,7 @@ getChapterSettings() {
 		chapterEncoding="${chapterEncoding} -map_chapters 0"
 		for chapter in $(seq 0 1 ${chapterCount}); do
 			probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((${chapter} + 1)){print;}" )"
-			oldTitle="$(echo "${probeResult}" | grep -o "^TAG:${metadataTitle}=.*$" | grep -o '[^=]*$')"
+			oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 			
 			if [[ -n "${oldTitle}" ]]; then
 				chapterEncoding="${chapterEncoding} -metadata:c:${chapter} '${metadataTitle}=${oldTitle}'"
@@ -238,31 +409,14 @@ getAudioEncodingSettings() {
 		newCodec="${audioCodec}"
 		newChannelCount='2'
 		newBitRate="$(( ${newChannelCount} * ${bitratePerAudioChannel} ))"
-		oldCodec="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldCodec}" ]]; then
-			oldCodec="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-		fi
-		oldTitle="$(echo "${probeResult}" | grep -o "^TAG:${metadataTitle}=.*$" | grep -o '[^=]*$')"
-		oldLanguage="$(echo "${probeResult}" | grep -o "^TAG:${metadataLanguage}=.*$" | grep -o '[^=]*$')"
-		oldChannelCount="$(echo "${probeResult}" | grep -o '^channels=.*$' | grep -o '[^=]*$')"
+		oldCodec="$(getCodecFromStream "${probeResult}")"
+		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
+		oldLanguage="$(getMetadata "${metadataLanguage}" "${probeResult}")"
+		oldChannelCount="$(getValue 'channels' "${probeResult}")"
 		if [[ -z "${oldChannelCount}" ]]; then
 			oldChannelCount='2'
 		fi
-		oldBitRate="$(echo "${probeResult}" | grep -o "^TAG:${metadataAudioBitRate}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" ]]; then
-			oldBitRate="$(echo "${probeResult}" | grep -o '^bit_rate=.*$' | grep -o '[^=]*$')"
-		fi
-		if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" ]]; then
-			oldBitRate="$(echo "${probeResult}" | grep -o '^TAG:BPS=.*$' | grep -o '[^=]*$')"
-		fi
-		if [[ -z "${oldBitRate}" || "${oldBitRate}" = "N/A" || "${oldBitRate}" = "0" ]]; then
-			oldBitRate=''
-		fi
-		if [[ "${oldBitRate^^}" =~ .*K$ ]]; then
-			oldBitRate="$(( "${oldBitRate::-1}" * 1024 ))"
-		elif [[ "${oldBitRate^^}" =~ .*M$ ]]; then
-			oldBitRate="$(( "${oldBitRate::-1}" * 1024 * 1024 ))"
-		fi
+		oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
 		
 		if [[ "${newChannelCount}" != "${oldChannelCount}" ]]; then
 			newChannelCount="${oldChannelCount}"
@@ -310,6 +464,7 @@ getVideoEncodingSettings() {
 	local newCodec=''
 	local newLevel=''
 	local newPixelFormat=''
+	local newFrameRate=''
 	local newPreset=''
 	local newProfile=''
 	local newQuality=''
@@ -321,6 +476,7 @@ getVideoEncodingSettings() {
 	local oldCodec=''
 	local oldLevel=''
 	local oldPixelFormat=''
+	local oldFrameRate=''
 	local oldPreset=''
 	local oldProfile=''
 	local oldQuality=''
@@ -329,46 +485,43 @@ getVideoEncodingSettings() {
 	local oldProfileComplexity=''
 	local normalizedOldCodecName=''
 	local normalizedNewCodecName=''
+	local normalizedOldVideoProfile=''
+	local normalizedNewVideoProfile=''
+	local normalizedOldFrameRate=''
+	local normalizedNewFrameRate=''
 
 	for stream in $(seq 0 1 ${streamCount}); do
 		probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}" )"
 		newCodec="${videoCodec}"
 		newLevel="${videoLevel}"
 		newPixelFormat="${videoPixelFormat}"
+		newFrameRate="${videoFrameRate}"
 		newPreset="${videoPreset}"
 		newProfile="${videoProfile}"
 		newQuality="${videoQuality}"
 		newTune="${videoTune}"
 		newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
-		newProfileComplexity="$(getProfileComplexityOrder "$(normalizeVideoProfileComplexity "${newProfile}")")"
-		oldCodec="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldCodec}" ]]; then
-			oldCodec="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-		fi
-		oldTitle="$(echo "${probeResult}" | grep -o "^TAG:${metadataTitle}=.*$" | grep -o '[^=]*$')"
-		oldLanguage="$(echo "${probeResult}" | grep -o "^TAG:${metadataLanguage}=.*$" | grep -o '[^=]*$')"
-		oldLevel="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoLevel}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldLevel}" ]]; then
-			oldLevel="$(echo "${probeResult}" | grep -o "^level=.*$" | grep -o '[^=]*$')"
-			if [[ -n "${oldLevel}" ]]; then
-				oldLevel="${oldLevel::-1}.${oldLevel: -1}"
-			fi
-		fi
-		oldPixelFormat="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPixelFormat}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldPixelFormat}" ]]; then
-			oldPixelFormat="$(echo "${probeResult}" | grep -o '^pix_fmt=.*$' | grep -o '[^=]*$')"
-		fi
-		oldPreset="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoPreset}=.*$" | grep -o '[^=]*$')"
-		oldProfile="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoProfile}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldProfile}" ]]; then
-			oldProfile="$(echo "${probeResult}" | grep -o '^profile=.*$' | grep -o '[^=]*$')"
-		fi
-		oldQuality="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoQuality}=.*$" | grep -o '[^=]*$')"
-		oldTune="$(echo "${probeResult}" | grep -o "^TAG:${metadataVideoTune}=.*$" | grep -o '[^=]*$')"
+		normalizedNewVideoProfile="$(normalizeVideoProfileComplexity "${newProfile}")"
+		normalizedNewFrameRate="$(normalizeFrameRate "${newFrameRate}")"
+		newProfileComplexity="$(getProfileComplexityOrder "${normalizedNewVideoProfile}")"
+		oldCodec="$(getCodecFromStream "${probeResult}")"
+		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
+		oldLanguage="$(getMetadata "${metadataLanguage}" "${probeResult}")"
+		oldLevel="$(getVideoLevelFromStream "${probeResult}")"
+		oldPixelFormat="$(getVideoPixelFormatFromStream "${probeResult}")"
+		oldFrameRate="$(getVideoFrameRateFromStream "${probeResult}")"
+		normalizedOldFrameRate="$(normalizeFrameRate "${oldFrameRate}")"
+		oldPreset="$(getMetadata "${metadataVideoPreset}" "${probeResult}")"
+		oldProfile="$(getVideoProfileFromStream "${probeResult}")"
+		oldQuality="$(getMetadata "${metadataVideoQuality}" "${probeResult}")"
+		oldTune="$(getMetadata "${metadataVideoTune}" "${probeResult}" )"
 		oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
-		oldProfileComplexity="$(getProfileComplexityOrder "$(normalizeVideoProfileComplexity "${oldProfile}")")"
+		normalizedOldVideoProfile="$(normalizeVideoProfileComplexity "${oldProfile}")"
+		oldProfileComplexity="$(getProfileComplexityOrder "${normalizedOldVideoProfile}")"
 		
 		if [[ -z "${newLevel}" || "${newLevel}" == 'copy' ]]; then
+			newLevel="${oldLevel}"
+		elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$( echo "${newLevel}" | sed 's/\.//' )" -gt "$( echo "${oldLevel}" | sed 's/\.//' )" ]]; then
 			newLevel="${oldLevel}"
 		fi
 		if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
@@ -395,6 +548,9 @@ getVideoEncodingSettings() {
 				if [[ -n "${oldPixelFormat}" ]]; then
 					videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataVideoPixelFormat}=${oldPixelFormat}'"
 				fi
+				if [[ -n "${normalizedOldFrameRate}" && "${normalizedOldFrameRate}" != 'source_fps' ]]; then
+					videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataVideoFrameRate}=${normalizedOldFrameRate}'"
+				fi
 				if [[ -n "${oldPreset}" ]]; then
 					videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataVideoPreset}=${oldPreset}'"
 				fi
@@ -415,6 +571,13 @@ getVideoEncodingSettings() {
 				fi
 				if [[ -n "${newPixelFormat}" ]]; then
 					videoEncoding="${videoEncoding} -pix_fmt:v:${stream} ${newPixelFormat} -metadata:s:v:${stream} '${metadataVideoPixelFormat}=${newPixelFormat}'"
+				fi
+				if [[ "${normalizedNewFrameRate}" = 'source_fps' || "${normalizedNewFrameRate}" = "${normalizedOldFrameRate}" ]]; then
+					if [[ -n "${normalizedOldFrameRate}" && "${normalizedOldFrameRate}" != 'source_fps' ]]; then
+						videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataVideoFrameRate}=${normalizedOldFrameRate}'"
+					fi
+				elif [[ -n "${normalizedNewFrameRate}" ]]; then
+					videoEncoding="${videoEncoding} -vf:v:${stream} 'fps=fps=${normalizedNewFrameRate}:round=near' -metadata:s:v:${stream} '${metadataVideoFrameRate}=${normalizedNewFrameRate}'"
 				fi
 				if [[ -n "${newPreset}" ]]; then
 					videoEncoding="${videoEncoding} -preset:v:${stream} ${newPreset} -metadata:s:v:${stream} '${metadataVideoPreset}=${newPreset}'"
@@ -458,12 +621,9 @@ getSubtitleEncodingSettings() {
 
 	for stream in $(seq 0 1 ${streamCount}); do
 		probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}" )"
-		oldCodec="$(echo "${probeResult}" | grep -o "^TAG:${metadataCodecName}=.*$" | grep -o '[^=]*$')"
-		if [[ -z "${oldCodec}" ]]; then
-			oldCodec="$(echo "${probeResult}" | grep -o '^codec_name=.*$' | grep -o '[^=]*$')"
-		fi
-		oldTitle="$(echo "${probeResult}" | grep -o "^TAG:${metadataTitle}=.*$" | grep -o '[^=]*$')"
-		oldLanguage="$(echo "${probeResult}" | grep -o "^TAG:${metadataLanguage}=.*$" | grep -o '[^=]*$')"
+		oldCodec="$(getCodecFromStream "${probeResult}")"
+		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
+		oldLanguage="$(getMetadata "${metadataLanguage}" "${probeResult}")"
 		if [[ -n "${oldCodec}" ]]; then
 			normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
 			oldCodecType="$(getSubtitleEncodingType "${oldCodec}")"
@@ -748,7 +908,7 @@ runCommand() {
 		echo "$(stopProcess)"
 	else
 		echo "$(getCommand "${1}")"
-		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--audio-bitrate bitratePerAudioChannel 96] [--dry] [--ext outputExtension .mp4] [--force] [--input inputDirectory ~/Video] [--output outputDirectory ~/ProcessedVideo] [--log logFile ~/encoding.results] [--metadata] [--pid pidFile ~/plex-encoding.pid] [--sort sortBy date|size|reverse-date|reverse-size] [--subtitle-image subtitlesImageCodec dvbsub] [--subtitle-text subtitlesTextCodec srt] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264] [--video-level videoLevel 4.0] [ --video-pixel videoPixelFormat yuv420p] [--video-preset ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--video-profile videoProfile baseline|main|high ] [--video-quality videoQuality 1-50] [--video-tune animation|fastdecode|film|grain|stillimage|zerolatency]"
+		echo "Usage \"$0 [active|start|start-local|output|stop] [--audio audioCodec aac] [--audio-bitrate bitratePerAudioChannel 96] [--dry] [--ext outputExtension .mp4] [--force] [--input inputDirectory ~/Video] [--output outputDirectory ~/ProcessedVideo] [--log logFile ~/encoding.results] [--metadata] [--pid pidFile ~/plex-encoding.pid] [--sort sortBy date|size|reverse-date|reverse-size] [--subtitle-image subtitlesImageCodec dvbsub] [--subtitle-text subtitlesTextCodec srt] [--thread threadCount 3] [--tmp tmpDirectory /tmp] [--video videoCodec libx264] [--video-level videoLevel 4.0] [ --video-pixel videoPixelFormat yuv420p] [--video-preset ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--video-profile videoProfile baseline|main|high ] [--video-quality videoQuality 1-50] [--video-rate videoFrameRate copy] [--video-tune animation|fastdecode|film|grain|stillimage|zerolatency]"
 		exit 1
 	fi
 }
@@ -776,6 +936,7 @@ while true; do
 		--video-preset ) videoPreset="${2}"; shift 2;;
 		--video-profile ) videoProfile="${2}"; shift 2;;
 		--video-quality ) videoQuality="${2}"; shift 2;;
+		--video-rate ) videoFrameRate="${2}"; shift 2;;
 		--video-tune ) videoTune="${2}"; shift 2;;
 		-- ) shift; break;;
 		* ) break;;
