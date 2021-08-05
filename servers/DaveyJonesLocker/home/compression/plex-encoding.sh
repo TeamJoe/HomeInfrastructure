@@ -24,6 +24,8 @@ videoQuality=18 # 1-50, lower is better quailty
 videoLevel='4.0'
 videoFrameRate='copy' # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode' # animation, fastdecode, film, grain, stillimage, zerolatency
+subtitles=strip
+subtitlesAllowed='srt'
 subtitlesImageCodec='copy' # dvbsub, dvdsub
 subtitlesTextCodec='copy' # srt, ass
 bitratePerAudioChannel=98304 # 65536 is default
@@ -41,6 +43,8 @@ metadataVideoProfile='ENCODER-PROFILE'
 metadataVideoQuality='ENCODER-QUALITY'
 metadataVideoTune='ENCODER-TUNE'
 lockfileExtension='.compression.lock.pid'
+
+inputFileList=''
 
 error() {
 	log "[ERROR] $@"
@@ -199,6 +203,26 @@ normalizeFrameRate() {
 	else
 		echo "${frameRate}"
 	fi
+}
+
+normalizeLanguageFullName() {
+	local language="${1,,}"
+	case "${language}" in
+		en | eng | english ) echo 'English';;
+		jp | jpn | japanese ) echo 'Japanese';; 
+		ru | rus | russian ) echo 'Russian';;
+		* ) echo 'unknown';;
+	esac
+}
+
+normalizeLanguage() {
+	local language="${1,,}"
+	case "${language}" in
+		en | eng | english ) echo 'eng';;
+		jp | jpn | japanese ) echo 'jpn';; 
+		ru | rus | russian ) echo 'rus';;
+		* ) echo 'unknown';;
+	esac
 }
 
 getPresetComplexityOrder() {
@@ -360,6 +384,24 @@ getVideoProfileFromStream() {
 	echo "${oldProfile}"
 }
 
+getInputFiles() {
+	local inputFile="${1}"
+	local inputFilePath="$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')"
+	local inputDirectory="$(dirname "${inputFile}")"
+	local inputFileName="$(echo "$(basename "${inputFile}")" | sed 's/\(.*\)\..*/\1/')"
+	
+	local subtitleExt=''
+	local fileName=''
+	
+	echo "${inputFile}"
+	for subtitleExt in $( echo "${subtitlesAllowed}" | sed 's/,/\n/g' ); do
+		for fileName in $( find "${inputDirectory}" -type f -name "${inputFileName}.*.${subtitleExt}" ); do
+			echo "${fileName}"
+		done
+	done
+
+}
+
 getChapterSettings() {
 	local inputFile="${1}"
 	
@@ -392,6 +434,7 @@ getAudioEncodingSettings() {
 	local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
 	local probeResult=''
 	local stream=0
+	local duration=''
 	local oldTitle=''
 	local oldLanguage=''
 	local oldCodec=''
@@ -404,12 +447,13 @@ getAudioEncodingSettings() {
 	local normalizedOldCodecName=''
 	local normalizedNewCodecName=''
 
-	for stream in $(seq 0 1 ${streamCount}); do
+	for stream in $( seq 0 1 $(( ${streamCount} - 1 )) ); do
 		probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}" )"
 		newCodec="${audioCodec}"
 		newChannelCount='2'
 		newBitRate="$(( ${newChannelCount} * ${bitratePerAudioChannel} ))"
 		oldCodec="$(getCodecFromStream "${probeResult}")"
+		duration="$(getMetadata 'DURATION' "${probeResult}")"
 		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 		oldLanguage="$(getMetadata "${metadataLanguage}" "${probeResult}")"
 		oldChannelCount="$(getValue 'channels' "${probeResult}")"
@@ -426,7 +470,7 @@ getAudioEncodingSettings() {
 		if [[ -n "${oldBitRate}" && "${newBitRate}" -gt "${oldBitRate}" ]]; then
 			newBitRate="${oldBitRate}"
 		fi
-		if [[ -n "${oldCodec}" ]]; then
+		if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
 			normalizedOldCodecName="$(normalizeAudioCodec "${oldCodec}")"
 			normalizedNewCodecName="$(normalizeAudioCodec "${newCodec}")"
 			if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]] || ([[ "${forceRun}" = 'false' && "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]] && [[ -z "${oldBitRate}" || "${oldBitRate}" -le "${newBitRate}" ]]); then
@@ -471,6 +515,7 @@ getVideoEncodingSettings() {
 	local newTune=''
 	local newPresetComplexity=''
 	local newProfileComplexity=''
+	local duration=''
 	local oldTitle=''
 	local oldLanguage=''
 	local oldCodec=''
@@ -490,7 +535,7 @@ getVideoEncodingSettings() {
 	local normalizedOldFrameRate=''
 	local normalizedNewFrameRate=''
 
-	for stream in $(seq 0 1 ${streamCount}); do
+	for stream in $( seq 0 1 $(( ${streamCount} - 1 )) ); do
 		probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}" )"
 		newCodec="${videoCodec}"
 		newLevel="${videoLevel}"
@@ -505,6 +550,7 @@ getVideoEncodingSettings() {
 		normalizedNewFrameRate="$(normalizeFrameRate "${newFrameRate}")"
 		newProfileComplexity="$(getProfileComplexityOrder "${normalizedNewVideoProfile}")"
 		oldCodec="$(getCodecFromStream "${probeResult}")"
+		duration="$(getMetadata 'DURATION' "${probeResult}")"
 		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 		oldLanguage="$(getMetadata "${metadataLanguage}" "${probeResult}")"
 		oldLevel="$(getVideoLevelFromStream "${probeResult}")"
@@ -521,7 +567,7 @@ getVideoEncodingSettings() {
 		
 		if [[ -z "${newLevel}" || "${newLevel}" == 'copy' ]]; then
 			newLevel="${oldLevel}"
-		elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$( echo "${newLevel}" | sed 's/\.//' )" -gt "$( echo "${oldLevel}" | sed 's/\.//' )" ]]; then
+		elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$( echo "${oldLevel}" | sed 's/\.//' )" -gt '0' && "$( echo "${newLevel}" | sed 's/\.//' )" -gt "$( echo "${oldLevel}" | sed 's/\.//' )" ]]; then
 			newLevel="${oldLevel}"
 		fi
 		if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
@@ -536,7 +582,7 @@ getVideoEncodingSettings() {
 		if  [[ -z "${newTune}" ]]; then
 			newTune="${oldTune}"
 		fi 
-		if [[ -n "${oldCodec}" ]]; then
+		if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
 			normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
 			normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
 			if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]] || [[ "${forceRun}" = 'false' && "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" ]] || ([ "${forceRun}" = 'false' ] && [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${newPreset}" = 'ultrafast' ]); then
@@ -605,12 +651,14 @@ getVideoEncodingSettings() {
 
 getSubtitleEncodingSettings() {
 	local inputFile="${1}"
+	local inputFilePath="$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')"
 
 	local subtitleEncoding=""
 	local streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams s)"
 	local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
 	local probeResult=''
 	local stream=0
+	local duration=''
 	local oldTitle=''
 	local oldLanguage=''
 	local oldCodec=''
@@ -618,13 +666,29 @@ getSubtitleEncodingSettings() {
 	local newCodec=''
 	local normalizedOldCodecName=''
 	local normalizedNewCodecName=''
+	local index='0'
 
-	for stream in $(seq 0 1 ${streamCount}); do
+	for stream in $( seq 0 1 $(( ${streamCount} - 1 )) ); do
 		probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}" )"
 		oldCodec="$(getCodecFromStream "${probeResult}")"
+		duration="$(getMetadata 'DURATION' "${probeResult}")"
 		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 		oldLanguage="$(getMetadata "${metadataLanguage}" "${probeResult}")"
-		if [[ -n "${oldCodec}" ]]; then
+		if [[ "${subtitles}" = 'strip' ]]; then
+			normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
+			IFS=$'\n'
+			for newCodec in $( echo "${subtitlesAllowed}" | sed 's/,/\n/g' ); do
+				normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
+				if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]]; then
+					break
+				fi
+			done
+			
+			if [[ "${normalizedOldCodecName}" != "${normalizedNewCodecName}" ]]; then
+				oldCodec=''
+			fi
+		fi
+		if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
 			normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
 			oldCodecType="$(getSubtitleEncodingType "${oldCodec}")"
 			if [[ "${oldCodecType}" = "image" ]]; then
@@ -636,32 +700,76 @@ getSubtitleEncodingSettings() {
 				
 			if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]] || [[ "${forceRun}" = 'false' && "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]]; then
 				subtitleEncoding="${subtitleEncoding} -map 0:s:${stream}"
-				subtitleEncoding="${subtitleEncoding} -codec:s:${stream} copy -metadata:s:s:${stream} '${metadataCodecName}=${oldCodec}'"
+				subtitleEncoding="${subtitleEncoding} -codec:s:${index} copy -metadata:s:s:${index} '${metadataCodecName}=${oldCodec}'"
 			else
 				subtitleEncoding="${subtitleEncoding} -map 0:s:${stream}"
-				subtitleEncoding="${subtitleEncoding} -codec:s:${stream} ${newCodec} -metadata:s:s:${stream} '${metadataCodecName}=${newCodec}'"
+				subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
 			fi
 			if [[ -n "${oldTitle}" ]]; then
-				subtitleEncoding="${subtitleEncoding} -metadata:s:s:${stream} '${metadataTitle}=${oldTitle}'"
+				subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
 			fi
 			if [[ -n "${oldLanguage}" ]]; then
-				subtitleEncoding="${subtitleEncoding} -metadata:s:s:${stream} '${metadataLanguage}=${oldLanguage}'"
+				subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
 			fi
+			index="$(( "${index}" + 1 ))"
 		fi
 	done
+	
+	local fileCount='0'
+	local language=''
+	local fileName=''
+	local fileExt=''
+	local fileFromList=''
+	
+	IFS=$'\n'
+	for fileFromList in $(getInputFiles "${inputFile}"); do
+		fileName="$(basename -- "${fileFromList}")"
+		fileExt="${fileName##*.}"
+		normalizedOldCodecName="$(normalizeSubtitleCodec "${fileExt}")"
+		for newCodec in $( echo "${subtitlesAllowed}" | sed 's/,/\n/g' ); do
+			normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
+			if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]]; then
+				break
+			fi
+		done
+		
+		if [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" ]]; then
+			language="${fileFromList:$(echo "${inputFilePath}" | wc -c)}"
+			language="${language::-$(echo "${fileExt}" | wc -c)}"
+			language="$(normalizeLanguage "${language}")"
+			
+			subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:0 -codec:s:${index} ${newCodec}  -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
+			if [[ "${language}" != 'unknown' ]]; then
+				subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${language}")' -metadata:s:s:${index} '${metadataLanguage}=${language}'"
+			fi
+			index="$(( "${index}" + 1 ))"
+		fi
+		fileCount="$(( "${fileCount}" + 1 ))"
+	done
+	
 	echo "${subtitleEncoding}"
 }
 
 assembleArguments() {
 	local inputFile="${1}"
 	local outputFile="${2}"
+	local arguments=''
 
 	local chapterArguments="$(getChapterSettings "${inputFile}")"
 	local videoArguments="$(getVideoEncodingSettings "${inputFile}")"
 	local audioArguments="$(getAudioEncodingSettings "${inputFile}")"
 	local subtitleArguments="$(getSubtitleEncodingSettings "${inputFile}")"
 	
-	echo "-i '$(echo "${inputFile}" | sed -e "s/'/'\"'\"'/g")' -map_metadata -1 ${chapterArguments} ${videoArguments} ${audioArguments} ${subtitleArguments} -threads ${threadCount} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+	local fileFromList=''
+	
+	IFS=$'\n'
+	for fileFromList in $(getInputFiles "${inputFile}"); do
+		arguments="${arguments} -i '$(echo "${fileFromList}" | sed -e "s/'/'\"'\"'/g")'"
+	done
+	
+	arguments="${arguments} -map_metadata -1 ${chapterArguments} ${videoArguments} ${audioArguments} ${subtitleArguments} -threads ${threadCount} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+	
+	echo "${arguments}"
 }
 
 lockFile() {
@@ -756,7 +864,11 @@ convertFile() {
 			info "Cannot achieve lock on file '${inputFile}', Skipping."
 		elif [[ -f "${tmpFile}" && "${convertErrorCode}" = "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((${originalSize}/${finalSize}))" -lt 1000 ]]; then
 			if [[ "$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')" = "$(echo "${outputFile}" | sed 's/\(.*\)\..*/\1/')" ]]; then
-				rm "${inputFile}"
+				local fileFromList=''
+				IFS=$'\n'
+				for fileFromList in $(getInputFiles "${inputFile}"); do
+					rm "${fileFromList}"
+				done
 			fi
 			mv "${tmpFile}" "${outputFile}"
 			chown "${owner}:${group}" "${outputFile}"
