@@ -17,33 +17,42 @@ target='/home/compression/plex-encoding.sh'
 indexFolder='/home/public/Videos'
 compressionFolder='/home/compression'
 
-start="${target} start --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
-active="${target} active --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
-output="${target} output --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
-stop="${target} stop --input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}' --video ${video}"
+parameters="--input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}'"
+
+if [[ "${speed,,}" == 'ultrafast' ]]; then
+  parameters="${parameters} --video-quality 18 --video '${video},libx264,libx265'"
+else
+  parameters="${parameters} --video-quality 20 --video '${video}'"
+fi
+
+start="${target} start ${parameters}"
+active="${target} active ${parameters}"
+output="${target} output ${parameters}"
+stop="${target} stop ${parameters}"
 
 isActive() {
-	local getValue="$(eval "$active")"
-	if [ "$getValue" = "true" ]; then
+	local getValue="$(eval "${active}")"
+	if [ "${getValue}" = "true" ]; then
 		echo "Running"
+	elif [ "${getValue}" = "unknown" ]; then
+		echo "Unknown"
 	else
-		echo "Stopped"
+	  echo "Stopped"
 	fi
 }
-
 
 runCommand() {
 	local runPath="$1"; shift
 	local command="$1"; shift
 	
-	if [ "$command" == "start" ]; then
-		eval "$start"
-	elif [ "$command" == "status" ]; then
+	if [ "${command}" == "start" ]; then
+		eval "${start}"
+	elif [ "${command}" == "status" ]; then
 		echo "$(isActive)"
-	elif [ "$command" == "output" ]; then
-		eval "$output"
-	elif [ "$command" == "stop" ]; then
-		eval "$stop"
+	elif [ "${command}" == "output" ]; then
+		eval "${output}"
+	elif [ "${command}" == "stop" ]; then
+		eval "${stop}"
 	else
 		echo "Usage: $runPath [start|status|output|stop] [speed ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [threadCount] [sort date|size] [videoCodec libx264|libx265]"
 		exit 1
