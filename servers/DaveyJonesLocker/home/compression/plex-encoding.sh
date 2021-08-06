@@ -3,7 +3,7 @@
 ## Input Values
 path="${0}"
 command="${1}"; shift
-options="$@"
+options="${@}"
 
 #-----------------
 # Configurable Default Options
@@ -52,27 +52,27 @@ lockfileExtension='.compression.lock.pid'
 allPixelFormats="$(ffmpeg -pix_fmts -loglevel error)"
 
 error() {
-  log "[ERROR] $@"
+  log "[ERROR] ${@}"
 }
 
 warn() {
-  log "[WARN] $@"
+  log "[WARN] ${@}"
 }
 
 info() {
-  log "[INFO] $@"
+  log "[INFO] ${@}"
 }
 
 debug() {
-  log "[DEBUG] $@"
+  log "[DEBUG] ${@}"
 }
 
 trace() {
-  log "[TRACE] $@"
+  log "[TRACE] ${@}"
 }
 
 log() {
-  echo "[$(getTime)] $@"
+  echo "[$(getTime)] ${@}"
 }
 
 getTime() {
@@ -195,8 +195,8 @@ setVariables() {
       --subtitle-update) subtitlesUpdateMethod="${2}"; shift 2;;
       --thread) threadCount="${2}"; shift 2;;
       --tmp) tmpDirectory="${2}"; shift 2;;
-      --video) videoCodec="${2}"; shift 2 ;;
-      --video-level) videoLevel="${2}"; shift 2 ;;
+      --video) videoCodec="${2}"; shift 2;;
+      --video-level) videoLevel="${2}"; shift 2;;
       --video-pixel) videoPixelFormat="${2}"; shift 2;;
       --video-pixel-exclusion) videoPixelFormatExclusionOrder="${2}"; shift 2;;
       --video-pixel-preference) videoPixelFormatExclusionOrder="${2}"; shift 2;;
