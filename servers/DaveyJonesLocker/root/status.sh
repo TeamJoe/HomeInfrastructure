@@ -107,13 +107,13 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x264/ultrafast/status)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/ultrafast/start'"'"'>Start</a> | <a href='"'"'/compression/x264/ultrafast/output'"'"'>Output</a>"'
 ''
-'echo "<b>Compression - x264 - Fast</b>"'
-'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x264/fast/status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/fast/start'"'"'>Start</a> | <a href='"'"'/compression/x264/fast/output'"'"'>Output</a>"'
+'echo "<b>Compression - x265 - Fast</b>"'
+'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x265/fast/status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x265/fast/start'"'"'>Start</a> | <a href='"'"'/compression/x265/fast/output'"'"'>Output</a>"'
 ''
-'echo "<b>Compression - x264 - Slow</b>"'
-'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x264/slow/status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x264/slow/start'"'"'>Start</a> | <a href='"'"'/compression/x264/slow/output'"'"'>Output</a>"')
+'echo "<b>Compression - x265 - Slow</b>"'
+'echo "&nbsp;&nbsp;Status: $(curl --location --silent localhost/compression/x265/slow/status)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/compression/x265/slow/start'"'"'>Start</a> | <a href='"'"'/compression/x265/slow/output'"'"'>Output</a>"')
 
 
 runAllCommandsInParralel() {

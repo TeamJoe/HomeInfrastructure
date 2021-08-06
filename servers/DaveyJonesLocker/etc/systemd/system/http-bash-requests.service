@@ -15,12 +15,12 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5
 	/compression/x264/ultrafast/start "sudo su compression -s /home/compression/compression.sh start ultrafast 1 date libx264" \
 	/compression/x264/ultrafast/status "sudo su compression -s /home/compression/compression.sh status ultrafast 1 date libx264" \
 	/compression/x264/ultrafast/output "sudo su compression -s /home/compression/compression.sh output ultrafast 1 date libx264" \
-	/compression/x264/fast/start "sudo su compression -s /home/compression/compression.sh start fast 1 size libx264" \
-	/compression/x264/fast/status "sudo su compression -s /home/compression/compression.sh status fast 1 size libx264" \
-	/compression/x264/fast/output "sudo su compression -s /home/compression/compression.sh output fast 1 size libx264" \
-	/compression/x264/slow/start "sudo su compression -s /home/compression/compression.sh start slow 1 size libx264" \
-	/compression/x264/slow/status "sudo su compression -s /home/compression/compression.sh status slow 1 size libx264" \
-	/compression/x264/slow/output "sudo su compression -s /home/compression/compression.sh output slow 1 size libx264"
+	/compression/x265/fast/start "sudo su compression -s /home/compression/compression.sh start fast 1 reverse-size libx265" \
+	/compression/x265/fast/status "sudo su compression -s /home/compression/compression.sh status fast 1 reverse-size libx265" \
+	/compression/x265/fast/output "sudo su compression -s /home/compression/compression.sh output fast 1 reverse-size libx265" \
+	/compression/x265/slow/start "sudo su compression -s /home/compression/compression.sh start slow 1 reverse-date libx265" \
+	/compression/x265/slow/status "sudo su compression -s /home/compression/compression.sh status slow 1 reverse-date libx265" \
+	/compression/x265/slow/output "sudo su compression -s /home/compression/compression.sh output slow 1 reverse-date libx265"
 
 [Install]
 WantedBy=multi-user.target

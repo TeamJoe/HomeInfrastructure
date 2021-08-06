@@ -2,9 +2,9 @@
 # /home/compression/compression.sh
 
 # sudo crontab -u compression -e
-# 0 4 * * * /home/compression/compression.sh start ultrafast 1 date libx264
-# 0 4 * * 1,5 /home/compression/compression.sh start fast 1 reverse-size libx264
-# 0 4 1,15 * * /home/compression/compression.sh start slow 1 size libx264
+# 0 2 * * * /home/compression/compression.sh start ultrafast 1 date libx264
+# 0 2 * * 1,5 /home/compression/compression.sh start fast 1 reverse-size libx265
+# 0 2 1,15 * * /home/compression/compression.sh start slow 1 reverse-date libx265
 
 path="${0}"
 command="${1}"
