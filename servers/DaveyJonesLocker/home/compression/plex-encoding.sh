@@ -113,7 +113,7 @@ if [[ "${outputDirectory}" == "${inputDirectory}" ]]; then
 fi
 
 getCommand() {
-  local command="${1}"
+  local command="${1^^}"
   echo "'${path}' '${command}'" \
     "--audio '${audioCodec}'" \
     "--audio-bitrate '${bitratePerAudioChannel}'" \
@@ -147,7 +147,7 @@ getCommand() {
 }
 
 getUsage() {
-  echo "Usage \"$0 [active|start|start-local|output|stop]" \
+  echo "Usage \"$0 [active|start|start-local|output-[error|warn|info|debug|trace|all]|stop]" \
     "[--audio Codec to use when processing audio aac]" \
     "[--audio-bitrate Bit rate per an audio channel {98304}]" \
     "[--audio-extension List of audio extensions to read {.mp3,.acc,.ac3}]"\
@@ -1450,7 +1450,7 @@ getVideoEncodingSettings() {
       fi
       if [[ -z "${newLevel}" || "${newLevel}" == 'copy' ]]; then
         newLevel="${oldLevel}"
-      elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$(echo "${oldLevel}" | sed 's/\.//')" -gt '0' && "$(echo "${newLevel}" | sed 's/\.//')" -gt "$(echo "${oldLevel}" | sed 's/\.//')" ]]; then
+      elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$(echo "${oldLevel}" | sed 's/\.//')" -gt '10' && "$(echo "${newLevel}" | sed 's/\.//')" -gt "$(echo "${oldLevel}" | sed 's/\.//')" ]]; then
         newLevel="${oldLevel}"
       fi
       if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
@@ -1659,17 +1659,17 @@ assembleArguments() {
 }
 
 hasChanges() {
-  local arguments="${1}"
+  local runnable="${1}"
   local inputFile="${2}"
 
-  if [[ -n "$(echo "${arguments}" | gawk 'match($0, /^.*(-codec:[vas]:[0-9]+[[:space:]]+([^c]|c[^o]|co[^p]|cop[^y]|copy[^[:space:]])).*$/, m) { print m[1]; }')" ]]; then
+  if [[ -n "$(echo "${runnable}" | gawk 'match($0, /^.*(-codec:[vas]:[0-9]+[[:space:]]+([^c]|c[^o]|co[^p]|cop[^y]|copy[^[:space:]])).*$/, m) { print m[1]; }')" ]]; then
     echo 'true'
-  elif [[ "$(echo "${arguments}" | grep -o "[[:blank:]]-i[[:blank:]]'[^']*'" | wc -l)" -gt 1 ]]; then
+  elif [[ "$(echo "${runnable}" | grep -o "[[:blank:]]-i[[:blank:]]'[^']*'" | wc -l)" -gt 1 ]]; then
     echo 'true'
   else
     local streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams)"
     local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
-    if [[ "$(echo "${arguments}" | grep -o ' -codec:[vas]:[0-9]* ' | wc -l)" -ne "${streamCount}" ]]; then
+    if [[ "$(echo "${runnable}" | grep -o ' -codec:[vas]:[0-9]* ' | wc -l)" -ne "${streamCount}" ]]; then
       echo 'true'
     else
       echo 'false'
@@ -1686,17 +1686,17 @@ convert() {
   local outputFile="${2}"
   local pid="${3}"
 
-  local arguments="$(assembleArguments "${inputFile}" "${outputFile}")"
+  local runnable="ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
 
-  debug "ffmpeg ${arguments}"
-  if [[ "${arguments}" =~ .*-codec:v:0.* ]]; then
-    if [[ "${metadataRun}" == 'true' || "$(hasChanges "${arguments}" "${inputFile}")" == 'true' ]]; then
+  debug "${runnable}"
+  if [[ "${runnable}" =~ .*-codec:v:0.* ]]; then
+    if [[ "${metadataRun}" == 'true' || "$(hasChanges "${runnable}" "${inputFile}")" == 'true' ]]; then
       if [ "$(lockFile "${inputFile}" "${pid}")" = 'false' ]; then
         hasCodecChanges='conflict'
         convertErrorCode=0
       else
         hasCodecChanges='true'
-        eval "ffmpeg ${arguments}"
+        eval "${runnable}"
         convertErrorCode=$?
       fi
       unlockFile "${inputFile}" "${pid}"
@@ -1761,6 +1761,7 @@ convertFile() {
       chown "${owner}:${group}" "${outputFile}"
       chmod "${mod}" "${outputFile}"
       trace "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
+      info "Completed '${inputFile}'"
     else
       warn "Failed to compress '${inputFile}'. Exit Code '${convertErrorCode}' Final Size '${finalSize}' Original Size '${originalSize}'"
       rm "${tmpFile}"
@@ -1896,17 +1897,15 @@ isRunning() {
 stopProcess() {
   if [[ "$(isRunning)" == "true" ]]; then
     echo "-1" >> "${pidLocation}"
+    echo "Stop signal has been sent to the process"
   else
     echo "Daemon is not running"
   fi
 }
 
 runCommand() {
-  local command="${1}"
+  local command="${1,,}"
 
-  if [[ -n "${additionalParameters}" ]]; then
-    warn "Unused Values: ${additionalParameters}"
-  fi
   if [[ "$(getPresetComplexityOrder "${videoPreset}")" -lt 1 ]]; then
     error "--video-preset is an invalid value"
     command="badVariable"
@@ -1920,8 +1919,16 @@ runCommand() {
   elif [[ "${command}" == "start" ]]; then
     info "$(getCommand "${command}")"
     startDaemon
-  elif [[ "${command}" == "output" ]]; then
-    echo "$(tail -n 1000 "${logFile}")"
+  elif [[ "${command::6}" == "output" ]]; then
+    local level="${command:6}"
+    case "${level}" in
+      -error) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR)\].*' | tail -n 1000)" ;;
+      -warn) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN)\].*' | tail -n 1000)" ;;
+      -info) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN|INFO)\].*' | tail -n 1000)" ;;
+      -debug) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN|INFO|DEBUG)\].*' | tail -n 1000)" ;;
+      -trace) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' | tail -n 1000)" ;;
+      -all) echo "$(cat "${logFile}" | tail -n 1000)" ;;
+    esac
   elif [[ "${command}" == "stop" ]]; then
     info "$(getCommand "${command}")"
     info "$(stopProcess)"
@@ -1929,6 +1936,10 @@ runCommand() {
     info "$(getCommand "${1}")"
     info "$(getUsage)"
     exit 1
+  fi
+
+  if [[ -n "${additionalParameters}" ]]; then
+    warn "Unused Values: ${additionalParameters}"
   fi
 }
 

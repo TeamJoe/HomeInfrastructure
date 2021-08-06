@@ -2,32 +2,53 @@
 # /home/compression/compression.sh
 
 # sudo crontab -u compression -e
-# 0 2 * * * /home/compression/compression.sh start ultrafast 1 date libx264
-# 0 2 * * 1,5 /home/compression/compression.sh start fast 1 reverse-size libx265
-# 0 2 1,15 * * /home/compression/compression.sh start slow 1 reverse-date libx265
+# 0 2 * * * /home/compression/compression.sh start --speed ultrafast --video libx264 -- --thread 1 --sort date
+# 0 2 * * 1,5 /home/compression/compression.sh start --speed fast --video libx265 -- --thread 1 --sort reverse-size
+# 0 2 1,15 * * /home/compression/compression.sh start --speed slow --video libx265 -- --thread 1 --sort reverse-date
 
 path="${0}"
-command="${1}"
-speed="${2}"
-threads="${3}"
-sort="${4}"
-video="${5}"
+command="${1}"; shift
+options="${@}"
+
+speed='ultrafast'
+video='libx265'
+outputLevel='all'
+
+additionalParameters=''
+while true; do
+  case "${1}" in
+    --output-level) outputLevel="${2}"; shift 2 ;;
+    --sort) sort="${2}"; shift 2 ;;
+    --speed) speed="${2}"; shift 2 ;;
+    --threads) threads="${2}"; shift 2 ;;
+    --video) video="${2}"; shift 2 ;;
+    --) shift; additionalParameters="${additionalParameters} ${@}"; break ;;
+    *)
+      if [[ $(echo "${@}" | wc -c) -le 1 ]]; then
+        break;
+      else
+        additionalParameters="${additionalParameters} ${1}"; shift
+      fi
+    ;;
+  esac
+done
+
 
 target='/home/compression/plex-encoding.sh'
 indexFolder='/home/public/Videos'
 compressionFolder='/home/compression'
 
-parameters="--input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}' --thread '${threads}' --sort '${sort}'"
-
+parameters="--input '${indexFolder}' --tmp '${compressionFolder}/${video}/${speed}' --log '${compressionFolder}/compression.${video}.${speed}.out' --pid '${compressionFolder}/compression.${video}.${speed}.pid' --video-preset '${speed}'"
 if [[ "${speed,,}" == 'ultrafast' ]]; then
   parameters="${parameters} --video-quality 18 --video '${video},libx264,libx265'"
 else
   parameters="${parameters} --video-quality 20 --video '${video}'"
 fi
+parameters="${parameters} ${additionalParameters}"
 
 start="${target} start ${parameters}"
 active="${target} active ${parameters}"
-output="${target} output ${parameters}"
+output="${target} output-${outputLevel} ${parameters}"
 stop="${target} stop ${parameters}"
 
 isActive() {
@@ -54,7 +75,7 @@ runCommand() {
 	elif [ "${command}" == "stop" ]; then
 		eval "${stop}"
 	else
-		echo "Usage: $runPath [start|status|output|stop] [speed ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [threadCount] [sort date|size] [videoCodec libx264|libx265]"
+		echo "Usage: $runPath [start|status|output|stop] [--output-level error|warn|info|debug|trace|all] [--speed ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo] [--video libx264|libx265] [-- All values afterwards will be passed straight to ./plex-encoding.sh]"
 		exit 1
 	fi
 }
