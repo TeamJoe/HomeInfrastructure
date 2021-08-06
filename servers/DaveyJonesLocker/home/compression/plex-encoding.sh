@@ -68,36 +68,36 @@ allPixelFormats="$(ffmpeg -pix_fmts -loglevel error)"
 additionalParameters=''
 while true; do
   case "${1}" in
-    --audio) audioCodec="${2}"; shift 2;;
-    --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2;;
-    --audio-extension) audioExtension="${2}"; shift 2;;
-    --audio-update) audioUpdateMethod="${2}"; shift 2;;
-    --dry) dryRun="true"; shift;;
-    --ext) outputExtension="${2}"; shift 2;;
-    --force) forceRun="true"; shift;;
-    --input) inputDirectory="${2}"; shift 2;;
-    --log) logFile="${2}"; shift 2;;
-    --metadata) metadataRun="true"; shift;;
-    --output) outputDirectory="${2}"; shift 2;;
-    --pid) pidLocation="${2}"; shift 2;;
-    --sort) sortBy="${2}"; shift 2;;
-    --subtitle) subtitleCodec="${2}"; shift 2;;
-    --subtitle-extension) subtitleExtension="${2}"; shift 2;;
-    --subtitle-update) subtitlesUpdateMethod="${2}"; shift 2;;
-    --thread) threadCount="${2}"; shift 2;;
-    --tmp) tmpDirectory="${2}"; shift 2;;
-    --video) videoCodec="${2}"; shift 2;;
-    --video-level) videoLevel="${2}"; shift 2;;
-    --video-pixel) videoPixelFormat="${2}"; shift 2;;
-    --video-pixel-exclusion) videoPixelFormatExclusionOrder="${2}"; shift 2;;
-    --video-pixel-preference) videoPixelFormatPreferenceOrder="${2}"; shift 2;;
-    --video-preset) videoPreset="${2}"; shift 2;;
-    --video-profile) videoProfile="${2}"; shift 2;;
-    --video-quality) videoQuality="${2}"; shift 2;;
-    --video-rate) videoFrameRate="${2}"; shift 2;;
-    --video-tune) videoTune="${2}"; shift 2;;
-    --video-update) videoUpdateMethod="${2}"; shift 2;;
-    --) shift; additionalParameters="${additionalParameters} ${@}"; break;;
+    --audio) audioCodec="${2}"; shift 2 ;;
+    --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2 ;;
+    --audio-extension) audioExtension="${2}"; shift 2 ;;
+    --audio-update) audioUpdateMethod="${2}"; shift 2 ;;
+    --dry) dryRun="true"; shift ;;
+    --ext) outputExtension="${2}"; shift 2 ;;
+    --force) forceRun="true"; shift ;;
+    --input) inputDirectory="${2}"; shift 2 ;;
+    --log) logFile="${2}"; shift 2 ;;
+    --metadata) metadataRun="true"; shift ;;
+    --output) outputDirectory="${2}"; shift 2 ;;
+    --pid) pidLocation="${2}"; shift 2 ;;
+    --sort) sortBy="${2}"; shift 2 ;;
+    --subtitle) subtitleCodec="${2}"; shift 2 ;;
+    --subtitle-extension) subtitleExtension="${2}"; shift 2 ;;
+    --subtitle-update) subtitlesUpdateMethod="${2}"; shift 2 ;;
+    --thread) threadCount="${2}"; shift 2 ;;
+    --tmp) tmpDirectory="${2}"; shift 2 ;;
+    --video) videoCodec="${2}"; shift 2 ;;
+    --video-level) videoLevel="${2}"; shift 2 ;;
+    --video-pixel) videoPixelFormat="${2}"; shift 2 ;;
+    --video-pixel-exclusion) videoPixelFormatExclusionOrder="${2}"; shift 2 ;;
+    --video-pixel-preference) videoPixelFormatPreferenceOrder="${2}"; shift 2 ;;
+    --video-preset) videoPreset="${2}"; shift 2 ;;
+    --video-profile) videoProfile="${2}"; shift 2 ;;
+    --video-quality) videoQuality="${2}"; shift 2 ;;
+    --video-rate) videoFrameRate="${2}"; shift 2 ;;
+    --video-tune) videoTune="${2}"; shift 2 ;;
+    --video-update) videoUpdateMethod="${2}"; shift 2 ;;
+    --) shift; additionalParameters="${additionalParameters} ${@}"; break ;;
     *)
       if [[ $(echo "${@}" | wc -c) -le 1 ]]; then
         break;
@@ -467,32 +467,32 @@ doComparison() {
 normalizeAudioCodec() {
   local codecName="${1,,}"
   case "${codecName}" in
-  libfdk_aac | aac | aac_fixed) echo 'aac' ;;
-  libfdk_ac3 | ac3 | ac3_fixed) echo 'ac3' ;;
-  *) echo "${codecName}" ;;
+    libfdk_aac | aac | aac_fixed) echo 'aac' ;;
+    libfdk_ac3 | ac3 | ac3_fixed) echo 'ac3' ;;
+    *) echo "${codecName}" ;;
   esac
 }
 
 normalizeVideoCodec() {
   local codecName="${1,,}"
   case "${codecName}" in
-  libx265 | h265 | x265 | hevc | hevc_v4l2m2m | hevc_vaapi) echo 'hevc' ;;
-  libx264 | h264 | x264 | libx264rgb | h264_v4l2m2m | h264_vaapi | h264_omx) echo 'h264' ;;
-  *) echo "${codecName}" ;;
+    libx265 | h265 | x265 | hevc | hevc_v4l2m2m | hevc_vaapi) echo 'hevc' ;;
+    libx264 | h264 | x264 | libx264rgb | h264_v4l2m2m | h264_vaapi | h264_omx) echo 'h264' ;;
+    *) echo "${codecName}" ;;
   esac
 }
 
 normalizeSubtitleCodec() {
   local codecName="${1,,}"
   case "${codecName}" in
-  subrip | srt) echo 'subrip' ;;
-  dvbsub | dvb_subtitle) echo 'dvbsub' ;;
-  dvdsub | dvd_subtitle) echo 'dvdsub' ;;
-  pgssub | hdmv_pgs_subtitle) echo 'pgssub' ;;
-  cc_dec | eia_608) echo 'cc_dec' ;;
-  libzvbi_teletextdec | dvb_teletext) echo 'libzvbi_teletextdec' ;;
-  ssa | ass) echo 'ass' ;;
-  *) echo "${codecName}" ;;
+    subrip | srt) echo 'subrip' ;;
+    dvbsub | dvb_subtitle) echo 'dvbsub' ;;
+    dvdsub | dvd_subtitle) echo 'dvdsub' ;;
+    pgssub | hdmv_pgs_subtitle) echo 'pgssub' ;;
+    cc_dec | eia_608) echo 'cc_dec' ;;
+    libzvbi_teletextdec | dvb_teletext) echo 'libzvbi_teletextdec' ;;
+    ssa | ass) echo 'ass' ;;
+    *) echo "${codecName}" ;;
   esac
 }
 
@@ -540,20 +540,20 @@ normalizeFrameRate() {
 normalizeLanguageFullName() {
   local language="${1,,}"
   case "${language}" in
-  en | eng | english) echo 'English' ;;
-  jp | jpn | japanese) echo 'Japanese' ;;
-  ru | rus | russian) echo 'Russian' ;;
-  *) echo 'unknown' ;;
+    en | eng | english) echo 'English' ;;
+    jp | jpn | japanese) echo 'Japanese' ;;
+    ru | rus | russian) echo 'Russian' ;;
+    *) echo 'unknown' ;;
   esac
 }
 
 normalizeLanguage() {
   local language="${1,,}"
   case "${language}" in
-  en | eng | english) echo 'eng' ;;
-  jp | jpn | japanese) echo 'jpn' ;;
-  ru | rus | russian) echo 'rus' ;;
-  *) echo 'unknown' ;;
+    en | eng | english) echo 'eng' ;;
+    jp | jpn | japanese) echo 'jpn' ;;
+    ru | rus | russian) echo 'rus' ;;
+    *) echo 'unknown' ;;
   esac
 }
 
@@ -989,7 +989,7 @@ getPresetComplexityOrder() {
     slower) echo '7' ;;
     veryslow) echo '8' ;;
     placebo) echo '9' ;;
-    *) echo '1' ;; # Assume Ultrafast
+    *) echo '-1' ;;
   esac
 }
 
@@ -1459,7 +1459,7 @@ getVideoEncodingSettings() {
         newPixelFormat="$(findPixelFormat "${oldPixelFormat}" "${newPixelFormat}")"
       fi
       if [[ -z "${oldQuality}" ]]; then
-        oldQuality=0
+        oldQuality='0'
       fi
       if [[ -z "${newQuality}" || "${newQuality}" == 'copy' ]]; then
         newQuality="${oldQuality}"
@@ -1478,7 +1478,8 @@ getVideoEncodingSettings() {
       fi
 
       if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] ||
-        [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" && "${newPixelFormat}" == "${oldPixelFormat}" ]]; then
+        [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" && "${newPixelFormat}" == "${oldPixelFormat}" ]] ||
+        [[ "${forceRun}" == 'false' && "${newPreset}" == 'ultrafast' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
         videoEncoding="${videoEncoding} -map ${fileCount}:v:${stream}"
         videoEncoding="${videoEncoding} -codec:v:${index} copy -metadata:s:v:${index} '${metadataCodecName}=${oldCodec}'"
         if [[ -n "${oldLevel}" ]]; then
