@@ -1,4 +1,5 @@
-# docker build -f transmission-nordvpn.Dockerfile -t transmission --build-arg TRANSMISSION_DIR=/home/transmission .
+# /home/transmission/dockerfiles/transmission-nordvpn.Dockerfile
+# (cd /home/transmission/dockerfiles; docker build -f transmission-nordvpn.Dockerfile -t transmission .)
 
 FROM ubuntu
 
@@ -65,17 +66,37 @@ RUN mv "${TRANSMISSION_DIR}/info/settings.json" "${TRANSMISSION_DIR}/info/settin
 	jq -M ".\"rpc-username\"=\"${TRANSMISSION_USER}\" | .\"rpc-password\"=\"${TRANSMISSION_PASSWORD}\" | .\"rpc-port\"=${TRANSMISSION_PORT} | .\"rpc-whitelist\"=\"${TRANSMISSION_WHITELIST}\" | .\"rpc-whitelist-enabled\"=${TRANSMISSION_WHITELIST_ENABLED} | .\"download-dir\"=\"${TRANSMISSION_DIR}/downloads\" | .\"incomplete-dir\"=\"${TRANSMISSION_DIR}/incomplete\" | .\"incomplete-dir-enabled\"=true" "${TRANSMISSION_DIR}/info/settings.json.bak" > "${TRANSMISSION_DIR}/info/settings.json"
 
 RUN mkdir build && \
+    useradd --system --shell /usr/sbin/nologin vpn && \
 	echo '#!/bin/bash'"\n" \
+	    'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
+        'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
+        'if [ -n "${PUID}" ]; then usermod -u "${PUID}" debian-transmission; fi '"\n" \
+        'if [ -n "${PGID}" ]; then groupmod -g "${PGID}" debian-transmission; fi '"\n" \
+        'if [ -n "${VUID}" ]; then usermod -u "${VUID}" vpn; fi '"\n" \
+        'if [ -n "${VGID}" ]; then groupmod -g "${VGID}" vpn; fi '"\n" \
 		'openpyn --update'"\n" \
 		'systemctl start openpyn'"\n" \
-		'while ! $NS_EXEC ip link show dev tun0 >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
-		'IP="$(hostname -I | awk '"'"'{print $2}'"'"')"'"\n" \
-		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
+		'while ! ip link show dev $(ip link | grep -o tun[0-9]*) >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
+		'TUNNEL="$(ip link | grep -o tun[0-9]*)"'"\n" \
 		'ip rule add from ${IP} table 128'"\n" \
 		'ip route add table 128 to ${GATEWAY}/8 dev eth0'"\n" \
 		'ip route add table 128 default via ${GATEWAY}'"\n" \
-		"/usr/bin/transmission-daemon -f --log-error --config-dir \"${TRANSMISSION_DIR}/info\"\n" \
-		'sleep infinity'"\n" > /build/start.sh && \
+		'if [ -f '"'${TRANSMISSION_DIR}/info/settings.json.template'"' ]; then'"\n" \
+            "cp '${TRANSMISSION_DIR}/info/settings.json' '${TRANSMISSION_DIR}/info/settings.json.template'\n" \
+        'fi'"\n" \
+        'cat '"'${TRANSMISSION_DIR}/info/settings.json.template'"' > '"'${TRANSMISSION_DIR}/info/settings.json'\n" \
+        'chown debian-transmission:debian-transmission -R '"'${TRANSMISSION_DIR}'\n" \
+        'sudo su debian-transmission -s /etc/init.d/transmission-daemon -- start'"\n" \
+        'for i in {1..1000}; do'"\n" \
+            "if [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u debian-transmission | awk 'NR!=1{print \$1}')\" ]; then break; fi\n" \
+            'sleep 1'"\n" \
+        'done'"\n" \
+        "trap '{ echo \"Quit Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGQUIT\n" \
+        "trap '{ echo \"Abort Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGABRT\n" \
+        "trap '{ echo \"Interrupt Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGINT\n" \
+        "trap '{ echo \"Terminate Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGTERM\n" \
+        "while [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u debian-transmission | awk 'NR!=1{print \$1}')\" ]; do sleep .5 ; done\n" \
+        "kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') \$(ps ax | grep debian-transmission | awk '{print \$1}')\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
 CMD ["/bin/bash", "/build/start.sh"]

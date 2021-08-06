@@ -1,4 +1,5 @@
-# docker build -f nzbget-nordvpn.Dockerfile -t nzbget .
+# /home/nzbget/dockerfiles/nzbget-nordvpn.Dockerfile
+# (cd /home/nzbget/dockerfiles; docker build -f nzbget-nordvpn.Dockerfile -t nzbget .)
 
 FROM ubuntu
 
@@ -44,18 +45,33 @@ RUN mkdir -p /lib/nzbget && \
 	ln "${NZBGET_DIR}/nzbget.conf" /lib/nzbget/nzbget.conf 
 
 RUN mkdir build && \
+    useradd --system --shell /usr/sbin/nologin vpn && \
 	echo '#!/bin/bash'"\n" \
-		'openpyn --update'"\n" \
-		'systemctl start openpyn'"\n" \
-		'while ! $NS_EXEC ip link show dev tun0 >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
-		'IP="$(hostname -I | awk '"'"'{print $2}'"'"')"'"\n" \
 		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
-		'ip rule add from ${IP} table 128'"\n" \
-		'ip route add table 128 to ${GATEWAY}/8 dev eth0'"\n" \
-		'ip route add table 128 default via ${GATEWAY}'"\n" \
+        'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
+        'if [ -n "${PUID}" ]; then usermod -u "${PUID}" nzbget; fi '"\n" \
+        'if [ -n "${PGID}" ]; then groupmod -g "${PGID}" nzbget; fi '"\n" \
+        'if [ -n "${VUID}" ]; then usermod -u "${VUID}" vpn; fi '"\n" \
+        'if [ -n "${VGID}" ]; then groupmod -g "${VGID}" vpn; fi '"\n" \
+        'openpyn --update'"\n" \
+        'systemctl start openpyn'"\n" \
+        'while ! ip link show dev $(ip link | grep -o tun[0-9]*) >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
+        'TUNNEL="$(ip link | grep -o tun[0-9]*)"'"\n" \
+        'ip rule add from ${IP} table 128'"\n" \
+        'ip route add table 128 to ${GATEWAY}/8 dev eth0'"\n" \
+        'ip route add table 128 default via ${GATEWAY}'"\n" \
 		'cd /lib/nzbget'"\n" \
-		"./nzbget --daemon --configfile '${NZBGET_DIR}/nzbget.conf'\n" \
-		'sleep infinity'"\n" > /build/start.sh && \
+		"sudo su nzbget -s /lib/nzbget/nzbget -- --daemon --configfile '${NZBGET_DIR}/nzbget.conf &'\n" \
+        'for i in {1..1000}; do'"\n" \
+            "if [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u nzbget | awk 'NR!=1{print \$1}')\" ]; then break; fi\n" \
+            'sleep 1'"\n" \
+        'done'"\n" \
+        "trap '{ echo \"Quit Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGQUIT\n" \
+        "trap '{ echo \"Abort Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGABRT\n" \
+        "trap '{ echo \"Interrupt Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGINT\n" \
+        "trap '{ echo \"Terminate Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGTERM\n" \
+        "while [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u nzbget | awk 'NR!=1{print \$1}')\" ]; do sleep .5 ; done\n" \
+        "kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') \$(ps ax | grep nzbget| awk '{print \$1}')\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
 CMD ["/bin/bash", "/build/start.sh"]

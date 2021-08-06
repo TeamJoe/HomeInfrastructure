@@ -14,7 +14,7 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5
 	/status "cat /root/status.out" \
 	/compression/x264/ultrafast/start "sudo su compression -s /home/compression/compression.sh -- start --speed ultrafast --video libx264 -- --thread 1 --sort date" \
 	/compression/x264/ultrafast/status "sudo su compression -s /home/compression/compression.sh -- status --speed ultrafast --video libx264" \
-	/compression/x264/ultrafast/stop "sudo su compression -s /home/compression/compression.sh -- status --speed ultrafast --video libx264" \
+	/compression/x264/ultrafast/stop "sudo su compression -s /home/compression/compression.sh -- stop --speed ultrafast --video libx264" \
 	/compression/x264/ultrafast/output/error "sudo su compression -s /home/compression/compression.sh -- output --speed ultrafast --video libx264 --output-level error" \
 	/compression/x264/ultrafast/output/warn "sudo su compression -s /home/compression/compression.sh -- output --speed ultrafast --video libx264 --output-level warn" \
 	/compression/x264/ultrafast/output/info "sudo su compression -s /home/compression/compression.sh -- output --speed ultrafast --video libx264 --output-level info" \

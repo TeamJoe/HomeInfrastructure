@@ -538,7 +538,7 @@ normalizeFrameRate() {
 }
 
 normalizeLanguageFullName() {
-  local language="${1,,}"
+  local language="$(echo "${1,,}" | awk '{print $1}')"
   case "${language}" in
     en | eng | english) echo 'English' ;;
     jp | jpn | japanese) echo 'Japanese' ;;
@@ -548,7 +548,7 @@ normalizeLanguageFullName() {
 }
 
 normalizeLanguage() {
-  local language="${1,,}"
+  local language="$(echo "${1,,}" | awk '{print $1}')"
   case "${language}" in
     en | eng | english) echo 'eng' ;;
     jp | jpn | japanese) echo 'jpn' ;;
@@ -1334,13 +1334,16 @@ getAudioEncodingSettings() {
             audioEncoding="${audioEncoding} -b:a:${index} ${newBitRate} -metadata:s:a:${index} '${metadataAudioBitRate}=${newBitRate}'"
           fi
         fi
-        if [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
-        elif [[ -n "${oldTitle}" ]]; then
+
+        if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
           audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=${oldTitle}'"
+        elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
           audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataLanguage}=${oldLanguage}'"
+        elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
         index="$(("${index}" + 1))"
       fi
@@ -1533,14 +1536,15 @@ getVideoEncodingSettings() {
         fi
       fi
       if [[ "${streamCount}" -gt 1 ]]; then
-        if [[ -n "${oldTitle}" ]]; then
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=${oldTitle}'"
+        if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataTitle}=${oldTitle}'"
+        elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
-          if [[ -z "${oldTitle}" && "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-            videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
-          fi
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataLanguage}=${oldLanguage}'"
+          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataLanguage}=${oldLanguage}'"
+        elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
       fi
       index="$(("${index}" + 1))"
@@ -1618,14 +1622,15 @@ getSubtitleEncodingSettings() {
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
         fi
-        if [[ -n "${oldTitle}" ]]; then
-          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
+        if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
+        elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
-          if [[ -z "${oldTitle}" && "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-            subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
-          fi
-          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
+          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
+        elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
         index="$(("${index}" + 1))"
       fi

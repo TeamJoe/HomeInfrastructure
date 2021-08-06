@@ -3,6 +3,65 @@
 # sudo crontab -u root -e
 # 0 * * * * /root/permissions.sh
 
+chown bazarr:media -R /home/bazarr
+chmod 700 -R /home/bazarr
+chmod 000 /home/bazarr/cred*
+
+chown compression:compression -R /home/compression
+chmod 700 -R /home/compression
+chmod 000 /home/compression/cred*
+
+chown docker:docker -R /home/docker
+chmod 700 -R /home/docker
+chmod 000 /home/docker/cred*
+
+chown jackett:media -R /home/jackett
+chmod 700 -R /home/jackett
+chmod 000 /home/jackett/cred*
+
+chown lidarr:media -R /home/lidarr
+chmod 700 -R /home/lidarr
+chmod 000 /home/lidarr/cred*
+
+chown nzbget:media -R /home/nzbget
+chmod 775 -R /home/nzbget
+chmod 000 /home/nzbget/cred*
+
+chown ombi:media -R /home/ombi
+chmod 700 -R /home/ombi
+chmod 000 /home/ombi/cred*
+
+chown plex:media -R /home/plex
+chmod 775 -R /home/plex
+chmod 000 /home/plex/cred*
+
+chown radarr:media -R /home/radarr
+chmod 700 -R /home/radarr
+chmod 000 /home/radarr/cred*
+
+chown root:root -R /home/samba
+chmod 700 -R /home/samba
+chmod 000 /home/samba/cred*
+
+chown sonarr:media -R /home/sonarr
+chmod 700 -R /home/sonarr
+chmod 000 /home/sonarr/cred*
+
+chown transmission:media -R /home/transmission
+chmod 775 -R /home/transmission
+chmod 000 /home/transmission/cred*
+
+chown vpn:vpn -R /home/vpn
+chmod 755 -R /home/vpn
+chmod 000 /home/vpn/cred*
+
+chown ftp:ftp -R /home/vsftpd
+chmod 700 -R /home/vsftpd
+chmod 000 /home/vsftpd/cred*
+
+chown ftp:ftp /home/public
+chmod 555 /home/public
+
 find /home/public/Videos -type f -exec chmod 664 {} +
 find /home/public/Videos -type d -exec chmod 775 {} +
 chown ftp:ftp /home/public/Videos

@@ -1,5 +1,6 @@
 #/server/properties
 architecture arm64v8
+timezone America/Vancouver
 plex.protocol http
 plex.address lobythepirate.mooo.com
 plex.port 50400

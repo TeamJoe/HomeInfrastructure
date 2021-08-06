@@ -1,14 +1,17 @@
-#/etc/systemd/system
+#/home/lidarr/lidarr.service
 [Unit]
 Description=Lidarr Music Manager
 After=docker.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
 User=lidarr
 Group=docker
-ExecStart=/home/lidarr/lidarr.sh start
+ExecStart=/home/lidarr/lidarr.sh start-monitor
 ExecStop=/home/lidarr/lidarr.sh stop
 StandardOutput=syslog
 StandardError=syslog

@@ -1,4 +1,5 @@
-# docker build -f nzbget-pia.Dockerfile -t nzbget .
+# /home/nzbget/dockerfiles/nzbget-pia.Dockerfile
+# (cd /home/nzbget/dockerfiles; docker build -f nzbget-pia.Dockerfile -t nzbget .)
 
 FROM ubuntu
 
@@ -46,21 +47,26 @@ ARG MAX_LATENCY=0.05
 ARG PREFERRED_REGION=none
 ARG PIA_DNS=true
 RUN mkdir build && \
+    useradd --system --shell /usr/sbin/nologin vpn && \
 	echo '#!/bin/bash'"\n" \
-		'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
 		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
-		'PIA_PF="${PIA_PF:-'"${PIA_PF:-true}"'}" '"\n" \
+        'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
+        'if [ -n "${PUID}" ]; then usermod -u "${PUID}" nzbget; fi '"\n" \
+        'if [ -n "${PGID}" ]; then groupmod -g "${PGID}" nzbget; fi '"\n" \
+        'if [ -n "${VUID}" ]; then usermod -u "${VUID}" vpn; fi '"\n" \
+        'if [ -n "${VGID}" ]; then groupmod -g "${VGID}" vpn; fi '"\n" \
+        'PIA_PF="${PIA_PF:-'"${PIA_PF:-true}"'}" '"\n" \
 		'cd /etc/pia'"\n" \
-		'PIA_USER="${PIA_USER:-'"$( if [ -n "${PIA_USER}" ]; then echo "${PIA_USER}"; else echo '$(cat /home/vpn/credentials | awk "NR==1")'; fi )"'}" ' \
-		'PIA_PASS="${PIA_PASS:-'"$( if [ -n "${PIA_PASS}" ]; then echo "${PIA_PASS}"; else echo '$(cat /home/vpn/credentials | awk "NR==2")'; fi )"'}" ' \
-		'PIA_PF="${PIA_PF}" ' \
-		'DISABLE_IPV6="${DISABLE_IPV6:-'"${DISABLE_IPV6:-true}"'}" ' \
-		'AUTOCONNECT="${AUTOCONNECT:-'"${AUTOCONNECT:-true}"'}" ' \
-		'VPN_PROTOCOL="${VPN_PROTOCOL:-'"${VPN_PROTOCOL:-openvpn_udp_standard}"'}" ' \
-		'MAX_LATENCY="${MAX_LATENCY:-'"${MAX_LATENCY:-0.05}"'}" ' \
-		'PREFERRED_REGION="${PREFERRED_REGION:-'"${PREFERRED_REGION:-none}"'}" ' \
-		'PIA_DNS="${PIA_DNS:-'"${PIA_DNS:-true}"'}" ' \
-		'/etc/pia/run_setup.sh > /build/setup.out &'"\n" \
+            'PIA_USER="${PIA_USER:-'$( if [ -n "${PIA_USER}" ]; then echo "${PIA_USER}"; else echo '$(cat /home/vpn/credentials | awk '"'NR==1'"')'; fi )'}" ' \
+            'PIA_PASS="${PIA_PASS:-'$( if [ -n "${PIA_PASS}" ]; then echo "${PIA_PASS}"; else echo '$(cat /home/vpn/credentials | awk '"'NR==2'"')'; fi )'}" ' \
+            'PIA_PF="${PIA_PF}" ' \
+            'DISABLE_IPV6="${DISABLE_IPV6:-'"${DISABLE_IPV6:-true}"'}" ' \
+            'AUTOCONNECT="${AUTOCONNECT:-'"${AUTOCONNECT:-true}"'}" ' \
+            'VPN_PROTOCOL="${VPN_PROTOCOL:-'"${VPN_PROTOCOL:-openvpn_udp_standard}"'}" ' \
+            'MAX_LATENCY="${MAX_LATENCY:-'"${MAX_LATENCY:-0.05}"'}" ' \
+            'PREFERRED_REGION="${PREFERRED_REGION:-'"${PREFERRED_REGION:-none}"'}" ' \
+            'PIA_DNS="${PIA_DNS:-'"${PIA_DNS:-true}"'}" ' \
+		    '/etc/pia/run_setup.sh > /build/setup.out &'"\n" \
 		'while ! ip link show dev $(ip link | grep -o tun[0-9]*) >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
 		'TUNNEL="$(ip link | grep -o tun[0-9]*)"'"\n" \
 		'ip rule add from ${IP} table 128'"\n" \
@@ -73,10 +79,17 @@ RUN mkdir build && \
 			'PORT=0'"\n" \
 		'fi'"\n" \
 		'cd /lib/nzbget'"\n" \
-		"./nzbget --daemon --configfile '${NZBGET_DIR}/nzbget.conf &'\n" \
-		'pid=$!'"\n" \
-		'while ip link show dev ${TUNNEL} >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
-		'kill -9 ${pid}'"\n" > /build/start.sh && \
+		"sudo su nzbget -s /lib/nzbget/nzbget -- --daemon --configfile '${NZBGET_DIR}/nzbget.conf &'\n" \
+        'for i in {1..1000}; do'"\n" \
+            "if [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u nzbget | awk 'NR!=1{print \$1}')\" ]; then break; fi\n" \
+            'sleep 1'"\n" \
+        'done'"\n" \
+        "trap '{ echo \"Quit Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGQUIT\n" \
+        "trap '{ echo \"Abort Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGABRT\n" \
+        "trap '{ echo \"Interrupt Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGINT\n" \
+        "trap '{ echo \"Terminate Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGTERM\n" \
+        "while [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u nzbget | awk 'NR!=1{print \$1}')\" ]; do sleep .5 ; done\n" \
+        "kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') \$(ps ax | grep nzbget| awk '{print \$1}')\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
 CMD ["/bin/bash", "/build/start.sh"]

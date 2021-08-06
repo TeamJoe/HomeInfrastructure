@@ -1,14 +1,17 @@
-#/etc/systemd/system
+#/home/jackett/jackett.service
 [Unit]
 Description=Jackett Indexing Service
 After=docker.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
 User=jackett
 Group=docker
-ExecStart=/home/jackett/jackett.sh start
+ExecStart=/home/jackett/jackett.sh start-monitor
 ExecStop=/home/jackett/jackett.sh stop
 StandardOutput=syslog
 StandardError=syslog

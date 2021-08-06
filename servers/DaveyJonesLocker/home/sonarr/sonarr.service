@@ -1,14 +1,17 @@
-#/etc/systemd/system
+#/home/sonarr/sonarr.service
 [Unit]
 Description=Sonarr TV Series Manager
 After=docker.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
 User=sonarr
 Group=docker
-ExecStart=/home/sonarr/sonarr.sh start
+ExecStart=/home/sonarr/sonarr.sh start-monitor
 ExecStop=/home/sonarr/sonarr.sh stop
 StandardOutput=syslog
 StandardError=syslog

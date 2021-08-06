@@ -117,7 +117,7 @@ usermod -aG docker transmission
 usermod -aG vpn transmission
 chown transmission:media -R /home/transmission
 chmod 775 -R /home/transmission
-(cd /home/transmission/dockerfiles; docker build -f transmission-pia.Dockerfile -t transmission --build-arg TRANSMISSION_DIR=/home/transmission .)
+(cd /home/transmission/dockerfiles; docker build -f transmission-pia.Dockerfile -t transmission .)
 systemctl enable /home/transmission/transmission.service
 (cd /etc/systemd/system; systemctl enable transmission)
 
@@ -131,7 +131,7 @@ usermod -aG docker nzbget
 usermod -aG vpn nzbget
 chown nzbget:media -R /home/nzbget
 chmod 775 -R /home/nzbget
-(cd /home/nzbget/dockerfiles; docker build -f nzbget-pia.Dockerfile -t nzbget --build-arg NZBGET_DIR=/home/nzbget .)
+(cd /home/nzbget/dockerfiles; docker build -f nzbget-pia.Dockerfile -t nzbget .)
 systemctl enable /home/nzbget/nzbget.service
 (cd /etc/systemd/system; systemctl enable nzbget)
 
