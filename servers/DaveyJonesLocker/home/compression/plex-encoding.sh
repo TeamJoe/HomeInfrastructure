@@ -16,15 +16,17 @@ metadataRun='false'
 pidLocation='~/plex-encoding.pid'
 threadCount=4 # 0 is unlimited
 audioCodec='aac'
-videoCodec='libx264'
+videoCodec='libx265'
 videoPreset='fast' # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 videoProfile='main' # For x264 baseline, main, high | For x265 main, high
-videoPixelFormat='yuv420p' 
-videoQuality=18 # 1-50, lower is better quailty
-videoLevel='4.0'
+videoPixelFormat='yuv420p,yuv420p10le' 
+videoPixelFormatExclusionOrder='depth,channel,compression,bit,format'
+videoPixelFormatPerferenceOrder='depth,channel,compression,bit,format'
+videoQuality=20 # 1-50, lower is better quailty
+videoLevel='4.1'
 videoFrameRate='copy' # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode' # animation, fastdecode, film, grain, stillimage, zerolatency
-subtitles=strip
+subtitles='strip'
 subtitlesAllowed='srt'
 subtitlesImageCodec='copy' # dvbsub, dvdsub
 subtitlesTextCodec='copy' # srt, ass
@@ -45,6 +47,7 @@ metadataVideoTune='ENCODER-TUNE'
 lockfileExtension='.compression.lock.pid'
 
 inputFileList=''
+allPixelFormats="$(ffmpeg -pix_fmts -loglevel error)"
 
 error() {
 	log "[ERROR] $@"
@@ -157,21 +160,9 @@ normalizeVideoProfileComplexity() {
 	if [[ "${videoProfile}" =~ .*baseline.* ]]; then
 		echo "baseline"
 	elif [[ "${videoProfile}" =~ .*main.* ]]; then
-		if [[ "${videoProfile}" =~ .*10.* ]]; then
-			echo "main10"
-		elif [[ "${videoProfile}" =~ .*12.* ]]; then
-			echo "main12"
-		else
-			echo "main"
-		fi
+		echo "main"
 	elif [[ "${videoProfile}" =~ .*high.* ]]; then
-		if [[ "${videoProfile}" =~ .*10.* ]]; then
-			echo "high10"
-		elif [[ "${videoProfile}" =~ .*12.* ]]; then
-			echo "high12"
-		else
-			echo "high"
-		fi
+		echo "high"
 	else
 		echo "${videoProfile}"
 	fi
@@ -225,6 +216,489 @@ normalizeLanguage() {
 	esac
 }
 
+getColorFormat() {
+	local pixelFormat="${1,,}"
+	case "${pixelFormat}" in
+		monow | monob ) echo 'gray';;
+		rgb4 | rgb4_byte | bgr4 | bgr4_byte ) echo 'rgb';;
+		rgb8 | bgr8 ) echo 'rgb';;
+		bayer_bggr8 | bayer_rggb8 | bayer_gbrg8 | bayer_grbg8 ) echo 'bayer';;
+		gray ) echo 'gray';;
+		ya8 ) echo 'ya';;
+		pal8 ) echo 'pal';;
+		rgb24 | bgr24 | rgb0 | bgr0 | '0rgb' | '0bgr' | gbrp ) echo 'rgb';;
+		argb | abgr | rgba | bgra | gbrap ) echo 'rgb';;
+		rgb555be | rgb555le | bgr555be | bgr555le ) echo 'rgb';;
+		rgb565be | rgb565le | bgr565be | bgr565le ) echo 'rgb';;
+		rgb444be | rgb444le | bgr444be | bgr444le ) echo 'rgb';;
+		nv12 | nv21 ) echo 'nv';;
+		nv16 ) echo 'nv';;
+		nv20le | nv20be ) echo 'nv';;
+		nv24 | nv42 ) echo 'nv';;
+		p010le | p010be ) echo 'p01';;
+		p016le | p016be ) echo 'p01';;
+		yuv410p ) echo 'yuv';;
+		yuv411p | yuvj411p | uyyvyy411 ) echo 'yuv';; 
+		yuv420p | yuvj420p ) echo 'yuv';;
+		yuv422p | yuyv422 | yuvj422p | uyvy422 | yvyu422 ) echo 'yuv';;
+		yuv440p | yuvj440p ) echo 'yuv';;
+		yuv444p | yuvj444p ) echo 'yuv';;
+		yuva420p ) echo 'yuv';;
+		yuva422p ) echo 'yuv';;
+		yuva440p ) echo 'yuv';;
+		yuva444p ) echo 'yuv';;
+		gray9be | gray9le ) echo 'gray';;
+		gbrp9be | gbrp9le ) echo 'rgb';;
+		yuv420p9be | yuv420p9le ) echo 'yuv';;
+		yuv422p9be | yuv422p9le ) echo 'yuv';;
+		yuv440p9be | yuv440p9le ) echo 'yuv';;
+		yuv444p9be | yuv444p9le ) echo 'yuv';;
+		yuva420p9be | yuva420p9le ) echo 'yuv';;
+		yuva422p9be | yuva422p9be) echo 'yuv';;
+		yuva440p9be | yuva440p9le ) echo 'yuv';;
+		yuva444p9be | yuva444p9be) echo 'yuv';;
+		gray10be | gray10le ) echo 'rgb';;
+		gbrp10be | gbrp10le ) echo 'rgb';;
+		gbrap10be | gbrap10le ) echo 'rgb';;
+		yuv420p10be | yuv420p10le ) echo 'yuv';;
+		yuv422p10be | yuv422p10le ) echo 'yuv';;
+		yuv440p10le | yuv440p10be ) echo 'yuv';;
+		yuv444p10be | yuv444p10le ) echo 'yuv';;
+		yuva420p10be | yuva420p10le ) echo 'yuv';;
+		yuva422p10be | yuva422p10be ) echo 'yuv';;
+		yuva440p10be | yuva440p10be ) echo 'yuv';;
+		yuva444p10be | yuva444p10be) echo 'yuv';;
+		gray12be | gray12le ) echo 'gray';;
+		xyz12le | xyz12be | gbrp12be | gbrp12le ) echo 'rgb';;
+		gbrap12be | gbrap12le ) echo 'rgb';;
+		yuv420p12be | yuv420p12le ) echo 'yuv';;
+		yuv422p12be | yuv422p12le ) echo 'yuv';;
+		yuv440p12le | yuv440p12be ) echo 'yuv';;
+		yuv444p12be | yuv444p12le ) echo 'yuv';;
+		yuva420p12be | yuva420p12le ) echo 'yuv';;
+		yuva422p12be | yuva422p12le ) echo 'yuv';;
+		yuva440p12be | yuva440p12le ) echo 'yuv';;
+		yuva444p12be | yuva444p12le ) echo 'yuv';;
+		gray14be | gray14le ) echo 'gray';;
+		gbrp14be | gbrp14le ) echo 'rgb';;
+		yuv420p14be | yuv420p14le ) echo 'yuv';;
+		yuv422p14be | yuv422p14le ) echo 'yuv';;
+		yuv440p14be | yuv440p14le ) echo 'yuv';;
+		yuv444p14be | yuv444p14le ) echo 'yuv';;
+		ya16be | ya16le ) echo 'ya';;
+		rgb48be | rgb48le | bgr48be | bgr48le ) echo 'rgb';;
+		rgba64be | rgba64le | bgra64be | bgra64le ) echo 'rgb';;
+		gbrp16be | gbrp16le ) echo 'rgb';;
+		bayer_bggr16le | bayer_bggr16be | bayer_rggb16le | bayer_rggb16be | bayer_gbrg16le | bayer_gbrg16be | bayer_grbg16le | bayer_grbg16be ) echo 'bayer';;
+		yuv420p16le | yuv420p16be ) echo 'yuv';;
+		yuv422p16le | yuv422p16le ) echo 'yuv';;
+		yuv440p16le | yuv440p16be ) echo 'yuv';;
+		yuv444p16le | yuv444p16le ) echo 'yuv';;
+		yuva420p16be | yuva420p16le ) echo 'yuv';;
+		yuva422p16be | yuva422p16be) echo 'yuv';;
+		ayuv64le | ayuv64be | yuva444p16be | yuva444p16be) echo 'yuv';;
+		grayf32be | grayf32le ) echo 'gray';;
+		gbrpf32be | gbrpf32le ) echo 'rgb';;
+		gbrapf32be | gbrapf32le ) echo 'rgb';;
+		* ) echo '-1';; 
+	esac
+}
+
+getColorDepth() {
+	local pixelFormat="${1,,}"
+	local pixelFormat="${1,,}"
+	case "${pixelFormat}" in
+		monow | monob ) echo '1';;
+		rgb4 | rgb4_byte | bgr4 | bgr4_byte ) echo '2';;
+		rgb8 | bgr8 ) echo '3';;
+		bayer_bggr8 | bayer_rggb8 | bayer_gbrg8 | bayer_grbg8 ) echo '3';;
+		gray ) echo '8';;
+		ya8 ) echo '8';;
+		pal8 ) echo '8';;
+		rgb24 | bgr24 | rgb0 | bgr0 | '0rgb' | '0bgr' | gbrp ) echo '8';;
+		argb | abgr | rgba | bgra | gbrap ) echo '8';;
+		rgb555be | rgb555le | bgr555be | bgr555le ) echo '8';;
+		rgb565be | rgb565le | bgr565be | bgr565le ) echo '8';;
+		rgb444be | rgb444le | bgr444be | bgr444le ) echo '8';;
+		nv12 | nv21 ) echo '8';;
+		nv16 ) echo '8';;
+		nv20le | nv20be ) echo '8';;
+		nv24 | nv42 ) echo '8';;
+		p010le | p010be ) echo '8';;
+		p016le | p016be ) echo '8';;
+		yuv410p ) echo '8';;
+		yuv411p | yuvj411p | uyyvyy411 ) echo '8';; 
+		yuv420p | yuvj420p ) echo '8';;
+		yuv422p | yuyv422 | yuvj422p | uyvy422 | yvyu422 ) echo '8';;
+		yuv440p | yuvj440p ) echo '8';;
+		yuv444p | yuvj444p ) echo '8';;
+		yuva420p ) echo '8';;
+		yuva422p ) echo '8';;
+		yuva440p ) echo '8';;
+		yuva444p ) echo '8';;
+		gray9be | gray9le ) echo '9';;
+		gbrp9be | gbrp9le ) echo '9';;
+		yuv420p9be | yuv420p9le ) echo '9';;
+		yuv422p9be | yuv422p9le ) echo '9';;
+		yuv440p9be | yuv440p9le ) echo '9';;
+		yuv444p9be | yuv444p9le ) echo '9';;
+		yuva420p9be | yuva420p9le ) echo '9';;
+		yuva422p9be | yuva422p9be) echo '9';;
+		yuva440p9be | yuva440p9le ) echo '9';;
+		yuva444p9be | yuva444p9be) echo '9';;
+		gray10be | gray10le ) echo '10';;
+		gbrp10be | gbrp10le ) echo '10';;
+		gbrap10be | gbrap10le ) echo '10';;
+		yuv420p10be | yuv420p10le ) echo '10';;
+		yuv422p10be | yuv422p10le ) echo '10';;
+		yuv440p10le | yuv440p10be ) echo '10';;
+		yuv444p10be | yuv444p10le ) echo '10';;
+		yuva420p10be | yuva420p10le ) echo '10';;
+		yuva422p10be | yuva422p10be ) echo '10';;
+		yuva440p10be | yuva440p10be ) echo '10';;
+		yuva444p10be | yuva444p10be) echo '10';;
+		gray12be | gray12le ) echo '12';;
+		xyz12le | xyz12be | gbrp12be | gbrp12le ) echo '12';;
+		gbrap12be | gbrap12le ) echo '12';;
+		yuv420p12be | yuv420p12le ) echo '12';;
+		yuv422p12be | yuv422p12le ) echo '12';;
+		yuv440p12le | yuv440p12be ) echo '12';;
+		yuv444p12be | yuv444p12le ) echo '12';;
+		yuva420p12be | yuva420p12le ) echo '12';;
+		yuva422p12be | yuva422p12le ) echo '12';;
+		yuva440p12be | yuva440p12le ) echo '12';;
+		yuva444p12be | yuva444p12le ) echo '12';;
+		gray14be | gray14le ) echo '14';;
+		gbrp14be | gbrp14le ) echo '14';;
+		yuv420p14be | yuv420p14le ) echo '14';;
+		yuv422p14be | yuv422p14le ) echo '14';;
+		yuv440p14be | yuv440p14le ) echo '14';;
+		yuv444p14be | yuv444p14le ) echo '14';;
+		ya16be | ya16le ) echo '16';;
+		rgb48be | rgb48le | bgr48be | bgr48le ) echo '16';;
+		rgba64be | rgba64le | bgra64be | bgra64le ) echo '16';;
+		gbrp16be | gbrp16le ) echo '16';;
+		bayer_bggr16le | bayer_bggr16be | bayer_rggb16le | bayer_rggb16be | bayer_gbrg16le | bayer_gbrg16be | bayer_grbg16le | bayer_grbg16be ) echo '16';;
+		yuv420p16le | yuv420p16be ) echo '16';;
+		yuv422p16le | yuv422p16le ) echo '16';;
+		yuv440p16le | yuv440p16be ) echo '16';;
+		yuv444p16le | yuv444p16le ) echo '16';;
+		yuva420p16be | yuva420p16le ) echo '16';;
+		yuva422p16be | yuva422p16be) echo '16';;
+		ayuv64le | ayuv64be | yuva444p16be | yuva444p16be) echo '16';;
+		grayf32be | grayf32le ) echo '32';;
+		gbrpf32be | gbrpf32le ) echo '32';;
+		gbrapf32be | gbrapf32le ) echo '32';;
+		* ) echo '-1';; 
+	esac
+}
+
+getColorCompression() {
+	local pixelFormat="${1,,}"
+	case "${pixelFormat}" in
+		monow | monob ) echo '444';;
+		rgb4 | rgb4_byte | bgr4 | bgr4_byte ) echo '444';;
+		rgb8 | bgr8 ) echo '444';;
+		bayer_bggr8 | bayer_rggb8 | bayer_gbrg8 | bayer_grbg8 ) echo '444';;
+		gray ) echo '444';;
+		ya8 ) echo '444';;
+		pal8 ) echo '444';;
+		rgb24 | bgr24 | rgb0 | bgr0 | '0rgb' | '0bgr' | gbrp ) echo '444';;
+		argb | abgr | rgba | bgra | gbrap ) echo '444';;
+		rgb555be | rgb555le | bgr555be | bgr555le ) echo '420';;
+		rgb565be | rgb565le | bgr565be | bgr565le ) echo '422';;
+		rgb444be | rgb444le | bgr444be | bgr444le ) echo '444';;
+		nv12 | nv21 ) echo '420';;
+		nv16 ) echo '422';;
+		nv20le | nv20be ) echo '442';;
+		nv24 | nv42 ) echo '444';;
+		p010le | p010be ) echo '420';;
+		p016le | p016be ) echo '444';;
+		yuv410p ) echo '410';;
+		yuv411p | yuvj411p | uyyvyy411 ) echo '411';; 
+		yuv420p | yuvj420p ) echo '420';;
+		yuv422p | yuyv422 | yuvj422p | uyvy422 | yvyu422 ) echo '422';;
+		yuv440p | yuvj440p ) echo '440';;
+		yuv444p | yuvj444p ) echo '444';;
+		yuva420p ) echo '420';;
+		yuva422p ) echo '422';;
+		yuva440p ) echo '440';;
+		yuva444p ) echo '444';;
+		gray9be | gray9le ) echo '444';;
+		gbrp9be | gbrp9le ) echo '444';;
+		yuv420p9be | yuv420p9le ) echo '420';;
+		yuv422p9be | yuv422p9le ) echo '422';;
+		yuv440p9be | yuv440p9le ) echo '440';;
+		yuv444p9be | yuv444p9le ) echo '444';;
+		yuva420p9be | yuva420p9le ) echo '420';;
+		yuva422p9be | yuva422p9be) echo '422';;
+		yuva440p9be | yuva440p9le ) echo '440';;
+		yuva444p9be | yuva444p9be) echo '444';;
+		gray10be | gray10le ) echo '444';;
+		gbrp10be | gbrp10le ) echo '444';;
+		gbrap10be | gbrap10le ) echo '444';;
+		yuv420p10be | yuv420p10le ) echo '420';;
+		yuv422p10be | yuv422p10le ) echo '422';;
+		yuv440p10le | yuv440p10be ) echo '440';;
+		yuv444p10be | yuv444p10le ) echo '444';;
+		yuva420p10be | yuva420p10le ) echo '420';;
+		yuva422p10be | yuva422p10be ) echo '422';;
+		yuva440p10be | yuva440p10be ) echo '440';;
+		yuva444p10be | yuva444p10be) echo '444';;
+		gray12be | gray12le ) echo '444';;
+		xyz12le | xyz12be | gbrp12be | gbrp12le ) echo '444';;
+		gbrap12be | gbrap12le ) echo '444';;
+		yuv420p12be | yuv420p12le ) echo '420';;
+		yuv422p12be | yuv422p12le ) echo '422';;
+		yuv440p12le | yuv440p12be ) echo '440';;
+		yuv444p12be | yuv444p12le ) echo '444';;
+		yuva420p12be | yuva420p12le ) echo '420';;
+		yuva422p12be | yuva422p12le ) echo '422';;
+		yuva440p12be | yuva440p12le ) echo '440';;
+		yuva444p12be | yuva444p12le ) echo '444';;
+		gray14be | gray14le ) echo '444';;
+		gbrp14be | gbrp14le ) echo '444';;
+		yuv420p14be | yuv420p14le ) echo '420';;
+		yuv422p14be | yuv422p14le ) echo '422';;
+		yuv440p14be | yuv440p14le ) echo '440';;
+		yuv444p14be | yuv444p14le ) echo '444';;
+		ya16be | ya16le ) echo '444';;
+		rgb48be | rgb48le | bgr48be | bgr48le ) echo '444';;
+		rgba64be | rgba64le | bgra64be | bgra64le ) echo '444';;
+		gbrp16be | gbrp16le ) echo '444';;
+		bayer_bggr16le | bayer_bggr16be | bayer_rggb16le | bayer_rggb16be | bayer_gbrg16le | bayer_gbrg16be | bayer_grbg16le | bayer_grbg16be ) echo '444';;
+		yuv420p16le | yuv420p16be ) echo '420';;
+		yuv422p16le | yuv422p16le ) echo '422';;
+		yuv440p16le | yuv440p16be ) echo '440';;
+		yuv444p16le | yuv444p16le ) echo '444';;
+		yuva420p16be | yuva420p16le ) echo '420';;
+		yuva422p16be | yuva422p16be) echo '422';;
+		ayuv64le | ayuv64be | yuva444p16be | yuva444p16be) echo '444';;
+		grayf32be | grayf32le ) echo '444';;
+		gbrpf32be | gbrpf32le ) echo '444';;
+		gbrapf32be | gbrapf32le ) echo '444';;
+		* ) echo '-1';; 
+	esac
+}
+
+getColorChannelCount() {
+	local pixelFormat="${1,,}"
+	local channel="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $3}')"
+	if [[ -z "${channel}" ]]; then
+		echo '-1'
+	else
+		echo "${channel}"
+	fi
+}
+
+getColorBitCount() {
+	local pixelFormat="${1,,}"
+	local bits="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $4}')"
+	if [[ -z "${bits}" ]]; then
+		echo '-1'
+	else
+		echo "${bits}"
+	fi
+}
+
+doComparison() {
+	local value1="${1}"
+	local comparison="${2,,}"
+	local value2="${3}"
+	
+	if [[ "${comparison}" = 'eq' ]]; then
+		if [[ "${value1}" -eq "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = 'ne' ]]; then
+		if [[ "${value1}" -ne "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = 'gt' ]]; then
+		if [[ "${value1}" -gt "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = 'ge' ]]; then
+		if [[ "${value1}" -ge "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = 'lt' ]]; then
+		if [[ "${value1}" -lt "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = 'le' ]]; then
+		if [[ "${value1}" -le "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '==' ]]; then
+		if [[ "${value1}" = "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '=' ]]; then
+		if [[ "${value1}" = "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '!=' ]]; then
+		if [[ "${value1}" != "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '<>' ]]; then
+		if [[ "${value1}" != "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '!' ]]; then
+		if [[ "${value1}" != "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '<=' ]]; then
+		if [[ "${value1}" -le "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '=<' ]]; then
+		if [[ "${value1}" -le "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '<' ]]; then
+		if [[ "${value1}" -lt "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '>=' ]]; then
+		if [[ "${value1}" -ge "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '=>' ]]; then
+		if [[ "${value1}" -ge "${value2}" ]]; then
+			echo 'true'
+		fi
+	elif [[ "${comparison}" = '>' ]]; then
+		if [[ "${value1}" -gt "${value2}" ]]; then
+			echo 'true'
+		fi
+	fi
+}
+
+findPixelFormatMostApplicableFromList() {
+	local function="${1}"
+	local comparison="${2}"
+	local newPixelFormatList="${3,,}"
+	local newPixelFormat=''
+	local newPixelValue=''
+	local currentValue=''
+	local newList=''
+	local hasCopy=''
+	
+	IFS=$'\n'
+	for newPixelFormat in $( echo "${newPixelFormatList}" | sed 's/,/\n/g' ); do
+		newPixelValue="$(${function} "${newPixelFormat}")"
+		if [[ "${newPixelFormat}" = 'copy' ]]; then
+			hasCopy="copy"
+		elif [[ -z "${currentValue}" ]]; then
+			newList="${newPixelFormat}"
+			currentValue="${newPixelValue}"
+		elif [[ "${currentValue}" = "${newPixelValue}" ]]; then
+			newList="${newList},${newPixelFormat}"
+		elif [[ "${newPixelValue}" != '-1' && 'true' = "$(doComparison "${newPixelValue}" "${comparison}" "${currentValue}")" ]]; then
+			newList="${newPixelFormat}"
+			currentValue="${newPixelValue}"
+		fi
+	done
+	
+	if [[ -n "${newList}" && -n "${hasCopy}" ]]; then
+		echo "$( echo "${newList},${hasCopy}" | sed 's/,/\n/g' )"
+	elif [[ -n "${newList}" ]]; then
+		echo "$( echo "${newList}" | sed 's/,/\n/g' )"
+	else
+		echo "${hasCopy}"
+	fi
+}
+
+findPixelFormatAdequateFromList() {
+	local function="${1}"
+	local oldPixelFormat="${2,,}"
+	local comparison="${3}"
+	local newPixelFormatList="${4,,}"
+	local oldPixelValue="$(${function} "${oldPixelFormat}")"
+	local newPixelFormat=''
+	local newPixelValue=''
+	local newList=''
+	
+	IFS=$'\n'
+	for newPixelFormat in $( echo "${newPixelFormatList}" | sed 's/,/\n/g' ); do
+		newPixelValue="$(${function} "${newPixelFormat}")"
+		if [[ "${newPixelFormat}" = 'copy' ]]; then
+			echo "${newPixelFormat}"
+		elif [[ "${newPixelValue}" != '-1' && 'true' = "$(doComparison "${oldPixelValue}" "${comparison}" "${newPixelValue}")" ]]; then
+			echo "${newPixelFormat}"
+		fi
+	done
+}
+
+findPixelFormat() {
+	local oldPixelFormat="${1,,}"
+	local videoPixelFormat="${2,,}"
+	local newPixelFormat=''
+	local newPixelFormatOrder=''
+	local formatFunction=''
+	
+	IFS=$'\n'
+	for newPixelFormat in $( echo "${videoPixelFormat}" | sed 's/,/\n/g' ); do
+		if [[ "${newPixelFormat,,}" = "${oldPixelFormat}" ]]; then
+			break;
+		fi
+	done
+	
+	if [[ "${newPixelFormat,,}" != "${oldPixelFormat}" ]]; then
+		newPixelFormat="$( echo "${videoPixelFormat}" | sed 's/,/\n/g' )"
+		for newPixelFormatOrder in $( echo "${videoPixelFormatExclusionOrder}" | sed 's/,/\n/g' ); do
+			case "${newPixelFormatOrder,,}" in
+				depth ) formatFunction='getColorDepth';;
+				channel ) formatFunction='getColorChannelCount';; 
+				compression ) formatFunction='getColorCompression';;
+				bit ) formatFunction='getColorBitCount';;
+				format ) formatFunction='getColorFormat';;
+				* ) formatFunction='';;
+			esac
+			if [[ -n "${formatFunction}" ]]; then
+				if [[ "${formatFunction}" = 'getColorFormat' ]]; then
+					formatFunction="$(findPixelFormatAdequateFromList "${formatFunction}" "${oldPixelFormat}" "==" "${newPixelFormat}")"
+				else
+					formatFunction="$(findPixelFormatAdequateFromList "${formatFunction}" "${oldPixelFormat}" "<=" "${newPixelFormat}")"
+				fi
+				if [[ -n "${formatFunction}" ]]; then
+					newPixelFormat="${formatFunction}"
+				fi
+			fi
+		done
+		
+		for newPixelFormatOrder in $( echo "${videoPixelFormatPerferenceOrder}" | sed 's/,/\n/g' ); do
+			case "${newPixelFormatOrder,,}" in
+				depth ) formatFunction='getColorDepth';;
+				channel ) formatFunction='getColorChannelCount';; 
+				compression ) formatFunction='getColorCompression';;
+				bit ) formatFunction='getColorBitCount';;
+				format ) formatFunction='getColorFormat';;
+				* ) formatFunction='';;
+			esac
+			if [[ -n "${formatFunction}" ]]; then
+				if [[ "${formatFunction}" = 'getColorFormat' ]]; then
+					formatFunction="$(findPixelFormatMostApplicableFromList "${formatFunction}" "==" "${newPixelFormat}")"
+				else
+					formatFunction="$(findPixelFormatMostApplicableFromList "${formatFunction}" "<" "${newPixelFormat}")"
+				fi
+				if [[ -n "${formatFunction}" ]]; then
+					newPixelFormat="${formatFunction}"
+				fi
+			fi
+		done
+	fi
+	
+	if [[ -n "${newPixelFormat}" ]]; then
+		echo "$( echo "${newPixelFormat}" | sed 's/,/\n/g' | awk 'NR==1{print}' )"
+	else
+		echo "$( echo "${videoPixelFormat}" | sed 's/,/\n/g' | awk 'NR==1{print}' )"
+	fi
+}
+
 getPresetComplexityOrder() {
 	local videoPreset="${1,,}"
 	case "${videoPreset}" in
@@ -243,14 +717,10 @@ getPresetComplexityOrder() {
 
 getProfileComplexityOrder() {
 	local videoProfile="${1,,}"
-	case "${videoProfile}" in
-		baseline ) echo '1';;
+	case "${videoProfile::4}" in
+		base ) echo '1';;
 		main ) echo '2';;
 		high ) echo '3';;
-		main10 ) echo '4';;
-		high10 ) echo '5';;
-		main12 ) echo '6';;
-		high12 ) echo '7';;
 		* ) echo '-1';;
 	esac
 }
@@ -384,6 +854,55 @@ getVideoProfileFromStream() {
 	echo "${oldProfile}"
 }
 
+getProfileValue() {
+	local encoder="$(normalizeVideoCodec "${1,,}")"
+	local profile="$(normalizeVideoProfileComplexity "${2,,}")"
+	local colorDepth="$(getColorDepth "${3,,}")"
+	local colorCompression"$(getColorCompression "${3,,}")"
+	
+	if [[ "${encoder}" = 'hevc' ]]; then
+		if [[ "${profile}" = 'main' ]]; then
+			if [[ "${colorDepth}" -le 8 ]]; then
+				if [[ "${colorCompression}" -ge 444 ]]; then
+					echo 'main444-8'
+				else
+					echo 'main'
+				fi
+			elif [[ "${colorDepth}" -le 10 ]]; then
+				if [[ "${colorCompression}" -ge 444 ]]; then
+					echo 'main444-10'
+				elif [[ "${colorCompression}" -ge 422 ]]; then
+					echo 'main422-10'
+				else
+					echo 'main10'
+				fi
+			else
+				if [[ "${colorCompression}" -ge 444 ]]; then
+					echo 'main444-12'
+				elif [[ "${colorCompression}" -ge 422 ]]; then
+					echo 'main422-12'
+				else
+					echo 'main12'
+				fi
+			fi
+		elif [[ "${profile}" = 'high' ]]; then
+			echo 'high'
+		else
+			echo "${2,,}"
+		fi
+	elif [[ "${encoder}" = 'h264' ]]; then
+		if [[ "${profile}" = 'high' ]]; then
+			echo 'high'
+		elif [[ "${profile}" = 'main' ]]; then
+			echo 'main'
+		else
+			echo 'baseline'
+		fi
+	else
+		echo "${2,,}"
+	fi
+}
+
 getInputFiles() {
 	local inputFile="${1}"
 	local inputFilePath="$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')"
@@ -394,6 +913,7 @@ getInputFiles() {
 	local fileName=''
 	
 	echo "${inputFile}"
+	IFS=$'\n'
 	for subtitleExt in $( echo "${subtitlesAllowed}" | sed 's/,/\n/g' ); do
 		for fileName in $( find "${inputDirectory}" -type f -name "${inputFileName}.*.${subtitleExt}" ); do
 			echo "${fileName}"
@@ -546,9 +1066,6 @@ getVideoEncodingSettings() {
 		newQuality="${videoQuality}"
 		newTune="${videoTune}"
 		newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
-		normalizedNewVideoProfile="$(normalizeVideoProfileComplexity "${newProfile}")"
-		normalizedNewFrameRate="$(normalizeFrameRate "${newFrameRate}")"
-		newProfileComplexity="$(getProfileComplexityOrder "${normalizedNewVideoProfile}")"
 		oldCodec="$(getCodecFromStream "${probeResult}")"
 		duration="$(getMetadata 'DURATION' "${probeResult}")"
 		oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
@@ -565,6 +1082,13 @@ getVideoEncodingSettings() {
 		normalizedOldVideoProfile="$(normalizeVideoProfileComplexity "${oldProfile}")"
 		oldProfileComplexity="$(getProfileComplexityOrder "${normalizedOldVideoProfile}")"
 		
+		if [[ -z "${newProfile}" || "${newProfile,,}" = "copy" ]]; then
+			newProfile="${oldProfile}"
+		fi
+		normalizedNewVideoProfile="$(normalizeVideoProfileComplexity "${newProfile}")"
+		normalizedNewFrameRate="$(normalizeFrameRate "${newFrameRate}")"
+		newProfileComplexity="$(getProfileComplexityOrder "${normalizedNewVideoProfile}")"
+		
 		if [[ -z "${newLevel}" || "${newLevel}" == 'copy' ]]; then
 			newLevel="${oldLevel}"
 		elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$( echo "${oldLevel}" | sed 's/\.//' )" -gt '0' && "$( echo "${newLevel}" | sed 's/\.//' )" -gt "$( echo "${oldLevel}" | sed 's/\.//' )" ]]; then
@@ -572,6 +1096,8 @@ getVideoEncodingSettings() {
 		fi
 		if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
 			newPixelFormat="${oldPixelFormat}"
+		elif [[ -n "$(echo "${newPixelFormat}" | grep -o ',')"  ]]; then
+			newPixelFormat="$(findPixelFormat "${oldPixelFormat}" "${newPixelFormat}")"
 		fi
 		if [[ -z "${oldQuality}" ]]; then
 			oldQuality=0
@@ -582,10 +1108,20 @@ getVideoEncodingSettings() {
 		if  [[ -z "${newTune}" ]]; then
 			newTune="${oldTune}"
 		fi 
+		
+		oldProfile="$(getProfileValue "${oldCodec}" "${normalizedOldVideoProfile}" "${oldPixelFormat}")"
+		if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]]; then
+			newProfile="$(getProfileValue "${oldCodec}" "${normalizedNewVideoProfile}" "${newPixelFormat}")"
+		else
+			newProfile="$(getProfileValue "${newCodec}" "${normalizedNewVideoProfile}" "${newPixelFormat}")"
+		fi
+		
 		if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
 			normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
 			normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
-			if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]] || [[ "${forceRun}" = 'false' && "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" ]] || ([ "${forceRun}" = 'false' ] && [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${newPreset}" = 'ultrafast' ]); then
+			if [[ -z "${newCodec}" || "${newCodec,,}" = "copy" ]] || \
+			[[ "${forceRun}" = 'false' && "${normalizedOldCodecName}" = "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" && "${newPixelFormat}" = "${oldPixelFormat}" ]] || \
+			([ "${forceRun}" = 'false' ] && [[ "${normalizedOldCodecName}" = "${normalizedNewCodecName}" || "${normalizedOldCodecName}" = 'h264' || "${normalizedOldCodecName}" = 'hevc' ]] && [ "${newPreset}" = 'ultrafast' ]); then
 				videoEncoding="${videoEncoding} -map 0:v:${stream}"
 				videoEncoding="${videoEncoding} -codec:v:${stream} copy -metadata:s:v:${stream} '${metadataCodecName}=${oldCodec}'"
 				if [[ -n "${oldLevel}" ]]; then
@@ -850,8 +1386,15 @@ convertFile() {
 	if [[ "$dryRun" = "true" ]]; then
 		finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
 		echo "convert \"${inputFile}\" \"${tmpFile}\" \"${pid}\""
-		echo "rm -v \"${inputFile}\""
-		echo "mv -v \"$tmpFile\" \"${outputFile}\""
+		echo "ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
+		if [[ "$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')" = "$(echo "${outputFile}" | sed 's/\(.*\)\..*/\1/')" ]]; then
+			local fileFromList=''
+			IFS=$'\n'
+			for fileFromList in $(getInputFiles "${inputFile}"); do
+				echo "rm ${fileFromList}"
+			done
+		fi
+		echo "mv \"$tmpFile\" \"${outputFile}\""
 		echo "chown \"${owner}:${group}\" -v \"${outputFile}\""
 		echo "chmod \"${mod}\" -v \"${outputFile}\""
 		echo "File '${inputFile}' reduced to $((${finalSize}/1024/1204))MiB from original size $((${originalSize}/1024/1204))MiB"
