@@ -1,13 +1,9 @@
 #!/bin/bash
 
-## Input Values
-path="${0}"
-command="${1}"; shift
-options="${@}"
-
 #-----------------
 # Configurable Default Options
 #-----------------
+
 inputDirectory='~/Videos' #/home/public/Videos/TV/Sonarr
 outputDirectory=''        #/home/public/Videos/TV/Sonarr
 tmpDirectory='/tmp'
@@ -35,8 +31,18 @@ outputExtension='.mkv'
 sortBy='size' # date, size, reverse-date, reverse-size
 
 #-----------------
+# Input Values
+#-----------------
+
+path="${0}"
+command="${1}"; shift
+options="${@}"
+
+#-----------------
 # Non-Configurable Variables
 #-----------------
+
+additionalParameters=''
 metadataTitle='title'
 metadataLanguage='language'
 metadataCodecName='ENCODER-CODEC'
@@ -50,6 +56,116 @@ metadataVideoQuality='ENCODER-QUALITY'
 metadataVideoTune='ENCODER-TUNE'
 lockfileExtension='.compression.lock.pid'
 allPixelFormats="$(ffmpeg -pix_fmts -loglevel error)"
+
+#-----------------
+# Input Value Handling
+#-----------------
+
+additionalParameters=''
+while true; do
+  case "${1}" in
+    --audio) audioCodec="${2}"; shift 2;;
+    --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2;;
+    --dry) dryRun="true"; shift;;
+    --ext) outputExtension="${2}"; shift 2;;
+    --force) forceRun="true"; shift;;
+    --input) inputDirectory="${2}"; shift 2;;
+    --log) logFile="${2}"; shift 2;;
+    --metadata) metadataRun="true"; shift;;
+    --output) outputDirectory="${2}"; shift 2;;
+    --pid) pidLocation="${2}"; shift 2;;
+    --sort) sortBy="${2}"; shift 2;;
+    --subtitle) subtitlesAllowed="${2}"; shift 2;;
+    --subtitle-update) subtitlesUpdateMethod="${2}"; shift 2;;
+    --thread) threadCount="${2}"; shift 2;;
+    --tmp) tmpDirectory="${2}"; shift 2;;
+    --video) videoCodec="${2}"; shift 2;;
+    --video-level) videoLevel="${2}"; shift 2;;
+    --video-pixel) videoPixelFormat="${2}"; shift 2;;
+    --video-pixel-exclusion) videoPixelFormatExclusionOrder="${2}"; shift 2;;
+    --video-pixel-preference) videoPixelFormatExclusionOrder="${2}"; shift 2;;
+    --video-preset) videoPreset="${2}"; shift 2;;
+    --video-profile) videoProfile="${2}"; shift 2;;
+    --video-quality) videoQuality="${2}"; shift 2;;
+    --video-rate) videoFrameRate="${2}"; shift 2;;
+    --video-tune) videoTune="${2}"; shift 2;;
+    --) shift; additionalParameters="${additionalParameters} ${@}"; break;;
+    *)
+      if [[ $(echo "${@}" | wc -c) -le 1 ]]; then
+        break;
+      else
+        additionalParameters="${additionalParameters} ${1}"; shift
+      fi
+    ;;
+  esac
+done
+
+if [[ "${outputDirectory}" == "${inputDirectory}" ]]; then
+  outputDirectory=''
+fi
+
+getCommand() {
+  local command="${1}"
+  echo "'${path}' '${command}'" \
+    "--audio '${audioCodec}'" \
+    "--audio-bitrate '${bitratePerAudioChannel}'" \
+    "$(if [ "${dryRun}" = true ]; then echo ' --dry'; fi)" \
+    "--ext '${outputExtension}'" \
+    "$(if [ "${forceRun}" = true ]; then echo ' --force'; fi)" \
+    "--input '${inputDirectory}'" \
+    "--output '${outputDirectory}'" \
+    "--log '${logFile}'" \
+    "$(if [ "${metadataRun}" = true ]; then echo ' --metadata'; fi)" \
+    "--pid '${pidLocation}'" \
+    "--sort '${sortBy}'" \
+    "--subtitles '${subtitlesAllowed}'" \
+    "--subtitles-update '${subtitlesUpdateMethod}'" \
+    "--thread '${threadCount}'" \
+    "--tmp '${tmpDirectory}'" \
+    "--video '${videoCodec}'" \
+    "--video-level '${videoLevel}'" \
+    "--video-pixel '${videoPixelFormat}'" \
+    "--video-pixel-exclusion '${videoPixelFormatExclusionOrder}'" \
+    "--video-pixel-preference '${videoPixelFormatPreferenceOrder}'" \
+    "--video-preset '${videoPreset}'" \
+    "--video-profile '${videoProfile}'" \
+    "--video-quality '${videoQuality}'" \
+    "--video-rate '${videoFrameRate}'" \
+    "--video-tune '${videoTune}'"
+}
+
+getUsage() {
+  echo "Usage \"$0 [active|start|start-local|output|stop]" \
+    "[--audio Codec to use when processing audio aac]" \
+    "[--audio-bitrate Bit rate per an audio channel {98304}]" \
+    "[--dry Will out what commands it will execute without modifying anything]" \
+    "[--ext The extension of the output file {.mkv}]" \
+    "[--force Will always convert, even if codecs matches]" \
+    "[--input Directory of files to process {~/Video}]" \
+    "[--output Output directory of the processed files, blank will cause replacement {~/ProcessedVideo}]" \
+    "[--log Location of where to output the logs {~/encoding.results}]" \
+    "[--metadata Will allow convert files to update metadata]" \
+    "[--pid Location of pid file {~/plex-encoding.pid}]" \
+    "[--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
+    "[--subtitles List of allowed subtitle formats {srt,ass}]" \
+    "[--subtitle-update Method to use for updating subtitles {strip|convert}]" \
+    "[--thread Thread to use while processing {3}]" \
+    "[--tmp tmpDirectory Temporary directory to store processing video files {/tmp}]" \
+    "[--video videoCodec Video codecs to use {libx264|libx265}]" \
+    "[--video-level Maximum Allowed Video Level {4.1}]" \
+    "[--video-pixel List of allowed pixel formats {yuv420p,yuv420p10le}]" \
+    "[--video-pixel-exclusion videoPixelFormatExclusionOrder {depth,channel,compression,bit,format}]" \
+    "[--video-pixel-preference videoPixelFormatPreferenceOrder {depth,channel,compression,bit,format}]" \
+    "[--video-preset The preset to use when processing the video {ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo}]" \
+    "[--video-profile The profile to use when processing the video {baseline|main|high}]" \
+    "[--video-quality The quality to use when processing the video {1-50}]" \
+    "[--video-rate The frame rate to use when processing the file {any_faction|ntsc|ntsc_film|pal|film}]" \
+    "[--video-tune The tune parameter to use when processing the file {animation|fastdecode|film|grain|stillimage|zerolatency}]"
+}
+
+#-----------------
+# Logging
+#-----------------
 
 error() {
   log "[ERROR] ${@}"
@@ -79,6 +195,10 @@ getTime() {
   echo "$(date +%FT%TZ)"
 }
 
+#-----------------
+# File and Folder Handling
+#-----------------
+
 getExtension() {
   local fileNameWithExt="$(basename "${1}")"
   echo "${fileNameWithExt##*.}"
@@ -104,6 +224,44 @@ getDirectory() {
   fi
   echo "$(normalizeDirectory "${directory}")"
 }
+
+#-----------------
+# File Locking
+# -----------------
+
+lockFile() {
+  local inputFile="${1}"
+  local pid="${2}"
+  local lockedPid=''
+  if [[ -f "${inputFile}${lockfileExtension}" ]]; then
+    if [[ "$(isPidRunning "$(cat "${inputFile}${lockfileExtension}")")" == 'false' ]]; then
+      echo "${pid}" >"${inputFile}${lockfileExtension}"
+    fi
+  else
+    echo "${pid}" >"${inputFile}${lockfileExtension}"
+  fi
+
+  if [[ "$(cat "${inputFile}${lockfileExtension}")" == "${pid}" ]]; then
+    echo 'true'
+  else
+    echo 'false'
+  fi
+}
+
+unlockFile() {
+  local inputFile="${1}"
+  local pid="${2}"
+  local lockedPid=''
+  if [[ -f "${inputFile}${lockfileExtension}" ]]; then
+    if [[ "$(cat "${inputFile}${lockfileExtension}")" == "${pid}" ]]; then
+      rm -f "${inputFile}${lockfileExtension}"
+    fi
+  fi
+}
+
+#-----------------
+# Mathematics
+#
 
 divide() {
   local numerator="${1}"
@@ -146,105 +304,85 @@ divide() {
   fi
 }
 
-getCommand() {
-  local command="${1}"
-  echo "'${path}' '${command}'" \
-    " --audio '${audioCodec}'" \
-    " --audio-bitrate '${bitratePerAudioChannel}'" \
-    "$(if [ "${dryRun}" = true ]; then echo ' --dry'; fi)" \
-    " --ext '${outputExtension}'" \
-    "$(if [ "${forceRun}" = true ]; then echo ' --force'; fi)" \
-    " --input '${inputDirectory}'" \
-    " --output '${outputDirectory}'" \
-    " --log '${logFile}'" \
-    "$(if [ "${metadataRun}" = true ]; then echo ' --metadata'; fi)" \
-    " --pid '${pidLocation}'" \
-    " --sort '${sortBy}'" \
-    " --subtitles '${subtitlesAllowed}'" \
-    " --subtitles-update '${subtitlesUpdateMethod}'" \
-    " --thread '${threadCount}'" \
-    " --tmp '${tmpDirectory}'" \
-    " --video '${videoCodec}'" \
-    " --video-level '${videoLevel}'" \
-    " --video-pixel '${videoPixelFormat}'" \
-    " --video-pixel-exclusion '${videoPixelFormatExclusionOrder}'" \
-    " --video-pixel-preference '${videoPixelFormatPreferenceOrder}'" \
-    " --video-preset '${videoPreset}'" \
-    " --video-profile '${videoProfile}'" \
-    " --video-quality '${videoQuality}'" \
-    " --video-rate '${videoFrameRate}'" \
-    " --video-tune '${videoTune}'"
-}
+doComparison() {
+  local value1="${1}"
+  local comparison="${2,,}"
+  local value2="${3}"
 
-setVariables() {
-  local unusedValues=''
-  while true; do
-    case "${1}" in
-      --audio) audioCodec="${2}"; shift 2;;
-      --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2;;
-      --dry) dryRun="true"; shift;;
-      --ext) outputExtension="${2}"; shift 2;;
-      --force) forceRun="true"; shift;;
-      --input) inputDirectory="${2}"; shift 2;;
-      --log) logFile="${2}"; shift 2;;
-      --metadata) metadataRun="true"; shift;;
-      --output) outputDirectory="${2}"; shift 2;;
-      --pid) pidLocation="${2}"; shift 2;;
-      --sort) sortBy="${2}"; shift 2;;
-      --subtitle) subtitlesAllowed="${2}"; shift 2;;
-      --subtitle-update) subtitlesUpdateMethod="${2}"; shift 2;;
-      --thread) threadCount="${2}"; shift 2;;
-      --tmp) tmpDirectory="${2}"; shift 2;;
-      --video) videoCodec="${2}"; shift 2;;
-      --video-level) videoLevel="${2}"; shift 2;;
-      --video-pixel) videoPixelFormat="${2}"; shift 2;;
-      --video-pixel-exclusion) videoPixelFormatExclusionOrder="${2}"; shift 2;;
-      --video-pixel-preference) videoPixelFormatExclusionOrder="${2}"; shift 2;;
-      --video-preset) videoPreset="${2}"; shift 2;;
-      --video-profile) videoProfile="${2}"; shift 2;;
-      --video-quality) videoQuality="${2}"; shift 2;;
-      --video-rate) videoFrameRate="${2}"; shift 2;;
-      --video-tune) videoTune="${2}"; shift 2;;
-      --) shift; unusedValues="${unusedValues} ${@}"; break;;
-      *) unusedValues="${unusedValues} ${1}"; shift;;
-    esac
-  done
-
-  if [[ "${outputDirectory}" == "${inputDirectory}" ]]; then
-    outputDirectory=''
+  if [[ "${comparison}" == 'eq' ]]; then
+    if [[ "${value1}" -eq "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == 'ne' ]]; then
+    if [[ "${value1}" -ne "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == 'gt' ]]; then
+    if [[ "${value1}" -gt "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == 'ge' ]]; then
+    if [[ "${value1}" -ge "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == 'lt' ]]; then
+    if [[ "${value1}" -lt "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == 'le' ]]; then
+    if [[ "${value1}" -le "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '==' ]]; then
+    if [[ "${value1}" == "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '=' ]]; then
+    if [[ "${value1}" == "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '!=' ]]; then
+    if [[ "${value1}" != "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '<>' ]]; then
+    if [[ "${value1}" != "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '!' ]]; then
+    if [[ "${value1}" != "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '<=' ]]; then
+    if [[ "${value1}" -le "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '=<' ]]; then
+    if [[ "${value1}" -le "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '<' ]]; then
+    if [[ "${value1}" -lt "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '>=' ]]; then
+    if [[ "${value1}" -ge "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '=>' ]]; then
+    if [[ "${value1}" -ge "${value2}" ]]; then
+      echo 'true'
+    fi
+  elif [[ "${comparison}" == '>' ]]; then
+    if [[ "${value1}" -gt "${value2}" ]]; then
+      echo 'true'
+    fi
   fi
-
-  echo "${unusedValues:1}"
 }
 
-getUsage() {
-  echo "Usage \"$0 [active|start|start-local|output|stop]" \
-    " [--audio Codec to use when processing audio aac]" \
-    " [--audio-bitrate Bit rate per an audio channel {98304}]" \
-    " [--dry Will out what commands it will execute without modifying anything]" \
-    " [--ext The extension of the output file {.mkv}]" \
-    " [--force Will always convert, even if codecs matches]" \
-    " [--input Directory of files to process {~/Video}]" \
-    " [--output Output directory of the processed files, blank will cause replacement {~/ProcessedVideo}]" \
-    " [--log Location of where to output the logs {~/encoding.results}]" \
-    " [--metadata Will allow convert files to update metadata]" \
-    " [--pid Location of pid file {~/plex-encoding.pid}]" \
-    " [--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
-    " [--subtitles List of allowed subtitle formats {srt,ass}]" \
-    " [--subtitle-update Method to use for updating subtitles {strip|convert}]" \
-    " [--thread Thread to use while processing {3}]" \
-    " [--tmp tmpDirectory Temporary directory to store processing video files {/tmp}]" \
-    " [--video videoCodec Video codecs to use {libx264|libx265}]" \
-    " [--video-level Maximum Allowed Video Level {4.1}]" \
-    " [--video-pixel List of allowed pixel formats {yuv420p,yuv420p10le}]" \
-    " [--video-pixel-exclusion videoPixelFormatExclusionOrder {depth,channel,compression,bit,format}]" \
-    " [--video-pixel-preference videoPixelFormatPreferenceOrder {depth,channel,compression,bit,format}]" \
-    " [--video-preset The preset to use when processing the video {ultrafast|superfast|veryfast|fast|medium|slow|slower|veryslow|placebo}]" \
-    " [--video-profile The profile to use when processing the video {baseline|main|high}]" \
-    " [--video-quality The quality to use when processing the video {1-50}]" \
-    " [--video-rate The frame rate to use when processing the file {any_faction|ntsc|ntsc_film|pal|film}]" \
-    " [--video-tune The tune parameter to use when processing the file {animation|fastdecode|film|grain|stillimage|zerolatency}]"
-}
+#-----------------
+# Value Normalization
+#-----------------
 
 normalizeAudioCodec() {
   local codecName="${1,,}"
@@ -336,6 +474,26 @@ normalizeLanguage() {
   jp | jpn | japanese) echo 'jpn' ;;
   ru | rus | russian) echo 'rus' ;;
   *) echo 'unknown' ;;
+  esac
+}
+
+#-----------------
+# Value Transformation
+#-----------------
+
+getChannelNaming() {
+  local channelCount="${1}"
+  case "${channelCount,,}" in
+    1 | '1.0' | mono) echo 'Mono';;
+    2 | '2.0' | stereo) echo 'Stereo';;
+    3 | '2.1') echo '2.1';;
+    4 | '4.0') echo '4.0';;
+    5 | '4.1') echo '4.1';;
+    6 | '5.1') echo '5.1';;
+    8 | '7.1') echo '7.1';;
+    9 | '7.2') echo '7.2';;
+    10 | '9.1') echo '9.1';;
+    11 | '9.2') echo '9.2';;
   esac
 }
 
@@ -624,82 +782,6 @@ getColorBitCount() {
   fi
 }
 
-doComparison() {
-  local value1="${1}"
-  local comparison="${2,,}"
-  local value2="${3}"
-
-  if [[ "${comparison}" == 'eq' ]]; then
-    if [[ "${value1}" -eq "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == 'ne' ]]; then
-    if [[ "${value1}" -ne "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == 'gt' ]]; then
-    if [[ "${value1}" -gt "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == 'ge' ]]; then
-    if [[ "${value1}" -ge "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == 'lt' ]]; then
-    if [[ "${value1}" -lt "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == 'le' ]]; then
-    if [[ "${value1}" -le "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '==' ]]; then
-    if [[ "${value1}" == "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '=' ]]; then
-    if [[ "${value1}" == "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '!=' ]]; then
-    if [[ "${value1}" != "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '<>' ]]; then
-    if [[ "${value1}" != "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '!' ]]; then
-    if [[ "${value1}" != "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '<=' ]]; then
-    if [[ "${value1}" -le "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '=<' ]]; then
-    if [[ "${value1}" -le "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '<' ]]; then
-    if [[ "${value1}" -lt "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '>=' ]]; then
-    if [[ "${value1}" -ge "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '=>' ]]; then
-    if [[ "${value1}" -ge "${value2}" ]]; then
-      echo 'true'
-    fi
-  elif [[ "${comparison}" == '>' ]]; then
-    if [[ "${value1}" -gt "${value2}" ]]; then
-      echo 'true'
-    fi
-  fi
-}
-
 findPixelFormatMostApplicableFromList() {
   local function="${1}"
   local comparison="${2}"
@@ -877,6 +959,59 @@ getSubtitleEncodingType() {
   esac
 }
 
+getProfileValue() {
+  local encoder="$(normalizeVideoCodec "${1,,}")"
+  local profile="$(normalizeVideoProfileComplexity "${2,,}")"
+  local colorDepth="$(getColorDepth "${3,,}")"
+  local colorCompression"$(getColorCompression "${3,,}")"
+
+  if [[ "${encoder}" == 'hevc' ]]; then
+    if [[ "${profile}" == 'main' ]]; then
+      if [[ "${colorDepth}" -le 8 ]]; then
+        if [[ "${colorCompression}" -ge 444 ]]; then
+          echo 'main444-8'
+        else
+          echo 'main'
+        fi
+      elif [[ "${colorDepth}" -le 10 ]]; then
+        if [[ "${colorCompression}" -ge 444 ]]; then
+          echo 'main444-10'
+        elif [[ "${colorCompression}" -ge 422 ]]; then
+          echo 'main422-10'
+        else
+          echo 'main10'
+        fi
+      else
+        if [[ "${colorCompression}" -ge 444 ]]; then
+          echo 'main444-12'
+        elif [[ "${colorCompression}" -ge 422 ]]; then
+          echo 'main422-12'
+        else
+          echo 'main12'
+        fi
+      fi
+    elif [[ "${profile}" == 'high' ]]; then
+      echo 'high'
+    else
+      echo "${2,,}"
+    fi
+  elif [[ "${encoder}" == 'h264' ]]; then
+    if [[ "${profile}" == 'high' ]]; then
+      echo 'high'
+    elif [[ "${profile}" == 'main' ]]; then
+      echo 'main'
+    else
+      echo 'baseline'
+    fi
+  else
+    echo "${2,,}"
+  fi
+}
+
+#-----------------
+# Value Retrieval
+#-----------------
+
 getValue() {
   local id="${1}"
   local stream="${2}"
@@ -977,55 +1112,6 @@ getVideoProfileFromStream() {
   echo "${oldProfile}"
 }
 
-getProfileValue() {
-  local encoder="$(normalizeVideoCodec "${1,,}")"
-  local profile="$(normalizeVideoProfileComplexity "${2,,}")"
-  local colorDepth="$(getColorDepth "${3,,}")"
-  local colorCompression"$(getColorCompression "${3,,}")"
-
-  if [[ "${encoder}" == 'hevc' ]]; then
-    if [[ "${profile}" == 'main' ]]; then
-      if [[ "${colorDepth}" -le 8 ]]; then
-        if [[ "${colorCompression}" -ge 444 ]]; then
-          echo 'main444-8'
-        else
-          echo 'main'
-        fi
-      elif [[ "${colorDepth}" -le 10 ]]; then
-        if [[ "${colorCompression}" -ge 444 ]]; then
-          echo 'main444-10'
-        elif [[ "${colorCompression}" -ge 422 ]]; then
-          echo 'main422-10'
-        else
-          echo 'main10'
-        fi
-      else
-        if [[ "${colorCompression}" -ge 444 ]]; then
-          echo 'main444-12'
-        elif [[ "${colorCompression}" -ge 422 ]]; then
-          echo 'main422-12'
-        else
-          echo 'main12'
-        fi
-      fi
-    elif [[ "${profile}" == 'high' ]]; then
-      echo 'high'
-    else
-      echo "${2,,}"
-    fi
-  elif [[ "${encoder}" == 'h264' ]]; then
-    if [[ "${profile}" == 'high' ]]; then
-      echo 'high'
-    elif [[ "${profile}" == 'main' ]]; then
-      echo 'main'
-    else
-      echo 'baseline'
-    fi
-  else
-    echo "${2,,}"
-  fi
-}
-
 getInputFiles() {
   local inputFile="${1}"
   local inputDirectory="$(getDirectory "${inputFile}")"
@@ -1041,8 +1127,11 @@ getInputFiles() {
       echo "${fileName}"
     done
   done
-
 }
+
+#-----------------
+# FFMpeg Argument Processing
+#-----------------
 
 getChapterSettings() {
   local inputFile="${1}"
@@ -1128,7 +1217,9 @@ getAudioEncodingSettings() {
           audioEncoding="${audioEncoding} -b:a:${stream} ${newBitRate} -metadata:s:a:${stream} '${metadataAudioBitRate}=${newBitRate}'"
         fi
       fi
-      if [[ -n "${oldTitle}" ]]; then
+      if [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
+        audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}")})'"
+      elif [[ -n "${oldTitle}" ]]; then
         audioEncoding="${audioEncoding} -metadata:s:a:${stream} '${metadataTitle}=${oldTitle}'"
       fi
       if [[ -n "${oldLanguage}" ]]; then
@@ -1296,11 +1387,16 @@ getVideoEncodingSettings() {
           videoEncoding="${videoEncoding} -tune:v:${stream} ${newTune} -metadata:s:v:${stream} '${metadataVideoTune}=${newTune}'"
         fi
       fi
-      if [[ -n "${oldTitle}" ]]; then
-        videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataTitle}=${oldTitle}'"
-      fi
-      if [[ -n "${oldLanguage}" ]]; then
-        videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataLanguage}=${oldLanguage}'"
+      if [[ "${streamCount}" -gt 1 ]]; then
+        if [[ -n "${oldTitle}" ]]; then
+          videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataTitle}=${oldTitle}'"
+        fi
+        if [[ -n "${oldLanguage}" ]]; then
+          if [[ -z "${oldTitle}" && "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
+            videoEncoding="${videoEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
+          fi
+          videoEncoding="${videoEncoding} -metadata:s:v:${stream} '${metadataLanguage}=${oldLanguage}'"
+        fi
       fi
     fi
   done
@@ -1386,6 +1482,9 @@ getSubtitleEncodingSettings() {
         subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
       fi
       if [[ -n "${oldLanguage}" ]]; then
+        if [[ -z "${oldTitle}" && "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
+        fi
         subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
       fi
       index="$(("${index}" + 1))"
@@ -1449,36 +1548,6 @@ assembleArguments() {
   echo "${arguments}"
 }
 
-lockFile() {
-  local inputFile="${1}"
-  local pid="${2}"
-  local lockedPid=''
-  if [[ -f "${inputFile}${lockfileExtension}" ]]; then
-    if [[ "$(isPidRunning "$(cat "${inputFile}${lockfileExtension}")")" == 'false' ]]; then
-      echo "${pid}" >"${inputFile}${lockfileExtension}"
-    fi
-  else
-    echo "${pid}" >"${inputFile}${lockfileExtension}"
-  fi
-
-  if [[ "$(cat "${inputFile}${lockfileExtension}")" == "${pid}" ]]; then
-    echo 'true'
-  else
-    echo 'false'
-  fi
-}
-
-unlockFile() {
-  local inputFile="${1}"
-  local pid="${2}"
-  local lockedPid=''
-  if [[ -f "${inputFile}${lockfileExtension}" ]]; then
-    if [[ "$(cat "${inputFile}${lockfileExtension}")" == "${pid}" ]]; then
-      rm -f "${inputFile}${lockfileExtension}"
-    fi
-  fi
-}
-
 hasChanges() {
   local arguments="${1}"
 
@@ -1496,6 +1565,10 @@ hasChanges() {
     fi
   fi
 }
+
+#-----------------
+# Conversion Processing
+# -----------------
 
 convert() {
   local inputFile="${1}"
@@ -1629,6 +1702,10 @@ convertAll() {
   info "Completed"
 }
 
+#-----------------
+# Basic Commands
+# -----------------
+
 startLocal() {
   local pid=''
 
@@ -1698,30 +1775,32 @@ stopProcess() {
 runCommand() {
   local command="${1}"
 
-  if [[ "$(getPresetComplexityOrder ${videoPreset})" -lt 1 ]]; then
-    echo "--video-preset is an invalid value"
+  if [[ -n "${additionalParameters}" ]]; then
+    warn "Unused Values: ${additionalParameters}"
+  fi
+  if [[ "$(getPresetComplexityOrder "${videoPreset}")" -lt 1 ]]; then
+    error "--video-preset is an invalid value"
     command="badVariable"
   fi
 
-  if [[ "{command}" == "active" ]]; then
+  if [[ "${command}" == "active" ]]; then
     echo "$(isRunning)"
-  elif [[ "{command}" == "start-local" ]]; then
-    echo "$(getCommand "{command}")"
+  elif [[ "${command}" == "start-local" ]]; then
+    info "$(getCommand "${command}")"
     startLocal
-  elif [[ "{command}" == "start" ]]; then
-    echo "$(getCommand "{command}")"
+  elif [[ "${command}" == "start" ]]; then
+    info "$(getCommand "${command}")"
     startDaemon
-  elif [[ "{command}" == "output" ]]; then
+  elif [[ "${command}" == "output" ]]; then
     echo "$(tail -n 1000 "${logFile}")"
-  elif [[ "{command}" == "stop" ]]; then
-    echo "$(getCommand "{command}")"
-    echo "$(stopProcess)"
+  elif [[ "${command}" == "stop" ]]; then
+    info "$(getCommand "${command}")"
+    info "$(stopProcess)"
   else
-    echo "$(getCommand "${1}")"
-    echo "$(getUsage)"
+    info "$(getCommand "${1}")"
+    info "$(getUsage)"
     exit 1
   fi
 }
 
-setVariables ${options}
 runCommand "${command}"
