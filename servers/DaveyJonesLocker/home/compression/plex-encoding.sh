@@ -1218,7 +1218,7 @@ getAudioEncodingSettings() {
         fi
       fi
       if [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-        audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}")})'"
+        audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
       elif [[ -n "${oldTitle}" ]]; then
         audioEncoding="${audioEncoding} -metadata:s:a:${stream} '${metadataTitle}=${oldTitle}'"
       fi
