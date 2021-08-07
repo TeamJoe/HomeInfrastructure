@@ -1947,9 +1947,9 @@ convertFile() {
       done
     fi
     debug "mv \"${tmpFile}\" \"${outputFile}\""
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}\" -exec -mv '{}' \"${outputDirectory}/.\" \;"
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${videoExportExtension}\" -exec -mv '{}' \"${outputDirectory}/.\" \;"
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}\" -exec -mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${videoExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
     debug "chown \"${owner}:${group}\" -v \"${outputFile}\""
     debug "chmod \"${mod}\" -v \"${outputFile}\""
     debug "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
@@ -1969,9 +1969,9 @@ convertFile() {
         done
       fi
       mv "${tmpFile}" "${outputFile}"
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}" -exec -mv '{}' "/${outputDirectory}/" \;
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${videoExportExtension}" -exec -mv '{}' "/${outputDirectory}/" \;
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}" -exec -mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${videoExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
       chown "${owner}:${group}" "${outputFile}"
       chmod "${mod}" "${outputFile}"
       trace "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
