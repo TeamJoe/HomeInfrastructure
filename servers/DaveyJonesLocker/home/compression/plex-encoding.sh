@@ -20,16 +20,16 @@ audioCodec='aac'
 audioUpdateMethod='convert'     # convert, export, delete
 audioExtension='.mp3,.aac,.ac3' # comma list of audio extensions
 audioExportExtension='.audio'
-videoCodec='libx265'
+videoCodec='libx265'        # libx264, libx265
 videoUpdateMethod='convert' # convert, export, delete
 videoPreset='fast'          # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 videoProfile='main'         # For x264 baseline, main, high | For x265 main, high
 videoPixelFormat='yuv420p,yuv420p10le'
 videoPixelFormatExclusionOrder='depth,channel,compression,bit,format'
 videoPixelFormatPreferenceOrder='depth,channel,compression,bit,format'
-videoQuality=20 # 1-50, lower is better quailty
-videoLevel='4.1'
-videoFrameRate='copy'         # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
+videoQuality=20               # 1-50, lower is better quailty
+videoLevel='4.1'              # 1.0 to 6.1
+videoFrameRate='copy'         # Any Fraction, copy, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, zerolatency
 videoExportExtension='.video'
 subtitlesUpdateMethod='export' # convert, export, delete
@@ -1811,23 +1811,32 @@ assembleArguments() {
   local inputFile="${1}"
   local outputFile="${2}"
   local arguments=''
-  local chapterArguments=''
-  local videoArguments=''
-  local audioArguments=''
-  local subtitleArguments=''
+  local chapterConvertArguments=''
+  local videoConvertArguments=''
+  local audioConvertArguments=''
+  local subtitleConvertArguments=''
+  local chapterExportArguments=''
+  local videoExportArguments=''
+  local audioExportArguments=''
+  local subtitleExportArguments=''
   local fileFromList=''
 
-  chapterArguments="$(getChapterSettings "${inputFile}" "${outputFile}" 'convert')"
-  videoArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
-  audioArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
-  subtitleArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
+  chapterConvertArguments="$(getChapterSettings "${inputFile}" "${outputFile}" 'convert')"
+  videoConvertArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
+  audioConvertArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
+  subtitleConvertArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
+
+  chapterExportArguments="$(getChapterSettings "${inputFile}" "${outputFile}" 'export')"
+  videoExportArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+  audioExportArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+  subtitleExportArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'export')"
 
   IFS=$'\n'
   for fileFromList in $(getInputFiles "${inputFile}"); do
     arguments="${arguments} -i '$(echo "${fileFromList}" | sed -e "s/'/'\"'\"'/g")'"
   done
 
-  arguments="${arguments} -map_metadata -1 ${chapterArguments} ${videoArguments} ${audioArguments} ${subtitleArguments} -threads ${threadCount} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+  arguments="${arguments} -map_metadata -1 ${chapterConvertArguments} ${videoConvertArguments} ${audioConvertArguments} ${subtitleConvertArguments} -threads ${threadCount} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")' ${chapterExportArguments} ${videoExportArguments} ${audioExportArguments} ${subtitleExportArguments}"
 
   echo "${arguments}"
 }
