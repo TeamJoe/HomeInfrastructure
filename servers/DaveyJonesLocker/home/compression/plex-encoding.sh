@@ -19,6 +19,7 @@ threadCount=4 # 0 is unlimited
 audioCodec='aac'
 audioUpdateMethod='convert'     # convert, export, delete
 audioExtension='.mp3,.aac,.ac3' # comma list of audio extensions
+audioExportExtension='.audio'
 videoCodec='libx265'
 videoUpdateMethod='convert' # convert, export, delete
 videoPreset='fast'          # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
@@ -30,9 +31,11 @@ videoQuality=20 # 1-50, lower is better quailty
 videoLevel='4.1'
 videoFrameRate='copy'         # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, zerolatency
+videoExportExtension='.video'
 subtitlesUpdateMethod='export' # convert, export, delete
 subtitleCodec='srt'           # Comma list of allowed formats
 subtitleExtension='.srt'      # Comma list of subtitle extensions
+subtitleExportExtension='.subtitles'
 bitratePerAudioChannel=98304  # 65536 is default
 outputExtension='.mkv'
 sortBy='size' # date, size, reverse-date, reverse-size
@@ -1275,6 +1278,7 @@ getTitle() {
       fi
     done
   fi
+
   echo "${title}"
 }
 
@@ -1294,6 +1298,43 @@ getLanguage() {
     done
   fi
   echo "${language}"
+}
+
+determineTitle() {
+  local extras="${1}"
+  local stream="${2}"
+  local audioChannelCount="${3}"
+  local title=''
+  local language=''
+
+  title="$(getTitle "${extras}" "${stream}")"
+  language="$(normalizeLanguageFullName "$(getLanguage "${extras}" "${stream}")")"
+
+  if [[ -n "${audioChannelCount}" ]]; then
+    audioChannelCount="$(getChannelNaming "${audioChannelCount}")"
+  fi
+
+  if [[ -n "${title}" && "${title}" != "$(normalizeLanguageFullName "${title}")" ]]; then
+    echo "${title}"
+  elif [[ -n "${audioChannelCount}" && "${language}" != 'unknown' ]]; then
+    echo "${language} ${audioChannelCount}"
+  fi
+}
+
+determineLanguage() {
+  local extras="${1}"
+  local stream="${2}"
+  local title=''
+  local language=''
+
+  title="$(normalizeLanguage "$(getTitle "${extras}" "${stream}")")"
+  language="$(normalizeLanguage "$(getLanguage "${extras}" "${stream}")")"
+
+  if [[ -n "${language}" ]]; then
+    echo "${language}"
+  elif [[ "${title}" != 'unknown' ]]; then
+    echo "${title}"
+  fi
 }
 
 isSupported() {
@@ -1325,7 +1366,6 @@ getInputFiles() {
   local inputDirectory=''
   local inputFileName=''
   local fileExt=''
-  local fileName=''
 
   inputDirectory="$(getDirectory "${inputFile}")"
   inputFileName="$(getFileName "${inputFile}")"
@@ -1373,15 +1413,18 @@ getChapterSettings() {
 
 getAudioEncodingSettings() {
   local baseFile="${1}"
-  local mode="${2}"
+  local outputFile="${2}"
+  local mode="${3}"
   local baseName=''
   local allFiles=''
   local fileCount=0
   local index=0
   local inputFile=''
+  local outputDirectory=''
 
   baseName="$(getFileName "${baseFile}")"
   allFiles="$(getInputFiles "${baseFile}")"
+  outputDirectory="$(getDirectory "${outputFile}")"
 
   IFS=$'\n'
   for inputFile in ${allFiles}; do
@@ -1415,13 +1458,14 @@ getAudioEncodingSettings() {
       newChannelCount='2'
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
-      oldTitle="$(getTitle "${inputExtras}" "${probeResult}")"
-      oldLanguage="$(getLanguage "${inputExtras}" "${probeResult}")"
       oldChannelCount="$(getValue 'channels' "${probeResult}")"
       if [[ -z "${oldChannelCount}" ]]; then
         oldChannelCount='2'
       fi
+      oldTitle="$(determineTitle "${inputExtras}" "${probeResult}" "${oldChannelCount}")"
+      oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
       oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
+      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${audioExportExtension}"
 
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${audioUpdateMethod}" "${oldCodec}" 'normalizeAudioCodec' "${audioCodec}")" == 'true' ]]; then
@@ -1453,17 +1497,17 @@ getAudioEncodingSettings() {
           fi
         fi
 
-        if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
+        if [[ -n "${oldTitle}" ]]; then
           audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=${oldTitle}'"
-        elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
           audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataLanguage}=${oldLanguage}'"
-        elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
-        index="$(("${index}" + 1))"
+        if [[ "${mode}" == 'convert' ]]; then
+          index="$(("${index}" + 1))"
+        elif [[ "${mode}" == 'export' ]]; then
+          audioEncoding="${audioEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+        fi
       fi
     done
     fileCount="$(("${fileCount}" + 1))"
@@ -1473,14 +1517,18 @@ getAudioEncodingSettings() {
 
 getVideoEncodingSettings() {
   local baseFile="${1}"
-  local mode="${2}"
+  local outputFile="${2}"
+  local mode="${3}"
   local baseName=''
   local fileCount='0'
   local index='0'
+  local inputFile=''
+  local outputDirectory=''
 
   baseName="$(getFileName "${baseFile}")"
+  outputDirectory="$(getDirectory "${outputFile}")"
+  inputFile="${baseFile}"
 
-  local inputFile="${baseFile}"
   local inputFileName=''
   local inputExtras=''
   local videoEncoding=''
@@ -1535,8 +1583,8 @@ getVideoEncodingSettings() {
     newTune="${videoTune}"
     oldCodec="$(getCodecFromStream "${probeResult}")"
     duration="$(getMetadata 'DURATION' "${probeResult}")"
-    oldTitle="$(getTitle "${inputExtras}" "${probeResult}")"
-    oldLanguage="$(getLanguage "${inputExtras}" "${probeResult}")"
+    oldTitle="$(determineTitle "${inputExtras}" "${probeResult}")"
+    oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
     oldLevel="$(getVideoLevelFromStream "${probeResult}")"
     oldPixelFormat="$(getVideoPixelFormatFromStream "${probeResult}")"
     oldFrameRate="$(getVideoFrameRateFromStream "${probeResult}")"
@@ -1544,6 +1592,7 @@ getVideoEncodingSettings() {
     oldProfile="$(getVideoProfileFromStream "${probeResult}")"
     oldQuality="$(getMetadata "${metadataVideoQuality}" "${probeResult}")"
     oldTune="$(getMetadata "${metadataVideoTune}" "${probeResult}")"
+    outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${videoExportExtension}"
 
     # Calculated Values
     normalizedOldFrameRate="$(normalizeFrameRate "${oldFrameRate}")"
@@ -1662,18 +1711,18 @@ getVideoEncodingSettings() {
         fi
       fi
       if [[ "${streamCount}" -gt 1 ]]; then
-        if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
+        if [[ -n "${oldTitle}" ]]; then
           videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=${oldTitle}'"
-        elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
           videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataLanguage}=${oldLanguage}'"
-        elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
       fi
-      index="$(("${index}" + 1))"
+      if [[ "${mode}" == 'convert' ]]; then
+        index="$(("${index}" + 1))"
+      elif [[ "${mode}" == 'export' ]]; then
+        videoEncoding="${videoEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+      fi
     fi
   done
   echo "${videoEncoding}"
@@ -1681,14 +1730,17 @@ getVideoEncodingSettings() {
 
 getSubtitleEncodingSettings() {
   local baseFile="${1}"
-  local mode="${2}"
+  local outputFile="${2}"
+  local mode="${3}"
   local baseName=''
   local allFiles=''
   local fileCount='0'
   local index='0'
   local inputFile=''
+  local outputDirectory''
 
   baseName="$(getFileName "${baseFile}")"
+  outputDirectory="$(getDirectory "${outputFile}")"
   allFiles="$(getInputFiles "${baseFile}")"
 
   IFS=$'\n'
@@ -1717,8 +1769,9 @@ getSubtitleEncodingSettings() {
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
-      oldTitle="$(getTitle "${inputExtras}" "${probeResult}")"
-      oldLanguage="$(getLanguage "${inputExtras}" "${probeResult}")"
+      oldTitle="$(determineTitle "${inputExtras}" "${probeResult}")"
+      oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
+      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${subtitleExportExtension}"
 
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${subtitlesUpdateMethod}" "${oldCodec}" 'normalizeSubtitleCodec' "${subtitleCodec}")" == 'true' ]]; then
@@ -1734,19 +1787,20 @@ getSubtitleEncodingSettings() {
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
         fi
-        if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
+        if [[ -n "${oldTitle}" ]]; then
           subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
-        elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
           subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
-        elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
-          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
-        index="$(("${index}" + 1))"
+        if [[ "${mode}" == 'convert' ]]; then
+          index="$(("${index}" + 1))"
+        elif [[ "${mode}" == 'export' ]]; then
+          subtitleEncoding="${subtitleEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+        fi
       fi
     done
+
     fileCount="$(("${fileCount}" + 1))"
   done
 
@@ -1763,10 +1817,10 @@ assembleArguments() {
   local subtitleArguments=''
   local fileFromList=''
 
-  chapterArguments="$(getChapterSettings "${inputFile}" 'convert')"
-  videoArguments="$(getVideoEncodingSettings "${inputFile}" 'convert')"
-  audioArguments="$(getAudioEncodingSettings "${inputFile}" 'convert')"
-  subtitleArguments="$(getSubtitleEncodingSettings "${inputFile}" 'convert')"
+  chapterArguments="$(getChapterSettings "${inputFile}" "${outputFile}" 'convert')"
+  videoArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
+  audioArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
+  subtitleArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
 
   IFS=$'\n'
   for fileFromList in $(getInputFiles "${inputFile}"); do
