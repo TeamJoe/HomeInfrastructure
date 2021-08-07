@@ -1913,6 +1913,9 @@ convertFile() {
   local outputFile="${3}"
   local pid="${4}"
 
+  local tmpDirectory=''
+  local outputBaseName=''
+  local outputDirectory=''
   local mod=''
   local owner=''
   local group=''
@@ -1923,6 +1926,9 @@ convertFile() {
   owner="$(ls -al "${inputFile}" | awk '{print $3}')"
   group="$(ls -al "${inputFile}" | awk '{print $4}')"
   originalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
+  tmpDirectory="$(getDirectory "${tmpFile}")"
+  outputBaseName="$(getFileName "${outputFile}")"
+  outputDirectory="$(getDirectory "${outputFile}")"
 
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
@@ -1940,7 +1946,10 @@ convertFile() {
         debug "rm ${fileFromList}"
       done
     fi
-    debug "mv \"$tmpFile\" \"${outputFile}\""
+    debug "mv \"${tmpFile}\" \"${outputFile}\""
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}\" -exec -mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${videoExportExtension}\" -exec -mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}\" -exec -mv '{}' \"${outputDirectory}/.\" \;"
     debug "chown \"${owner}:${group}\" -v \"${outputFile}\""
     debug "chmod \"${mod}\" -v \"${outputFile}\""
     debug "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
@@ -1960,6 +1969,9 @@ convertFile() {
         done
       fi
       mv "${tmpFile}" "${outputFile}"
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}" -exec -mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${videoExportExtension}" -exec -mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}" -exec -mv '{}' "/${outputDirectory}/" \;
       chown "${owner}:${group}" "${outputFile}"
       chmod "${mod}" "${outputFile}"
       trace "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
