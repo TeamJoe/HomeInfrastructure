@@ -18,7 +18,7 @@ pidLocation="${HOME}/plex-encoding.pid"
 threadCount=4 # 0 is unlimited
 audioCodec='aac'
 audioUpdateMethod='convert'     # convert, export, delete
-audioExtension='.mp3,.aac,.ac3' # comma list of audio extensions
+audioImportExtension='.mp3,.aac,.ac3' # comma list of audio extensions
 audioExportExtension='.audio'
 videoCodec='libx265'        # libx264, libx265
 videoUpdateMethod='convert' # convert, export, delete
@@ -34,7 +34,7 @@ videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, 
 videoExportExtension='.video'
 subtitlesUpdateMethod='export' # convert, export, delete
 subtitleCodec='srt'           # Comma list of allowed formats
-subtitleExtension='.srt'      # Comma list of subtitle extensions
+subtitleImportExtension='.srt'      # Comma list of subtitle extensions
 subtitleExportExtension='.subtitles'
 bitratePerAudioChannel=98304  # 65536 is default
 outputExtension='.mkv'
@@ -76,7 +76,8 @@ while true; do
   case "${1}" in
     --audio) audioCodec="${2}" shift 2 ;;
     --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2 ;;
-    --audio-extension) audioExtension="${2}"; shift 2 ;;
+    --audio-export-extension) audioExportExtension="${2}"; shift 2 ;;
+    --audio-import-extension) audioImportExtension="${2}"; shift 2 ;;
     --audio-update) audioUpdateMethod="${2}"; shift 2 ;;
     --dry) dryRun="true"; shift ;;
     --ext) outputExtension="${2}"; shift 2 ;;
@@ -88,11 +89,13 @@ while true; do
     --pid) pidLocation="${2}"; shift 2 ;;
     --sort) sortBy="${2}"; shift 2 ;;
     --subtitle) subtitleCodec="${2}"; shift 2 ;;
-    --subtitle-extension) subtitleExtension="${2}"; shift 2 ;;
+    --subtitle-export-extension) subtitleExportExtension="${2}"; shift 2 ;;
+    --subtitle-import-extension) subtitleImportExtension="${2}"; shift 2 ;;
     --subtitle-update) subtitlesUpdateMethod="${2}"; shift 2 ;;
     --thread) threadCount="${2}"; shift 2 ;;
     --tmp) tmpDirectory="${2}"; shift 2 ;;
     --video) videoCodec="${2}"; shift 2 ;;
+    --video-export-extension) videoExportExtension="${2}"; shift 2 ;;
     --video-level) videoLevel="${2}"; shift 2 ;;
     --video-pixel) videoPixelFormat="${2}"; shift 2 ;;
     --video-pixel-exclusion) videoPixelFormatExclusionOrder="${2}"; shift 2 ;;
@@ -124,7 +127,8 @@ getCommand() {
   echo "'${path}' '${command}'" \
     "--audio '${audioCodec}'" \
     "--audio-bitrate '${bitratePerAudioChannel}'" \
-    "--audio-extension '${audioExtension}'" \
+    "--audio-export-extension '${audioExportExtension}'" \
+    "--audio-import-extension '${audioImportExtension}'" \
     "--audio-update '${audioUpdateMethod}'" \
     "$(if [ "${dryRun}" = true ]; then echo '--dry'; fi)" \
     "--ext '${outputExtension}'" \
@@ -136,7 +140,8 @@ getCommand() {
     "--pid '${pidLocation}'" \
     "--sort '${sortBy}'" \
     "--subtitle '${subtitleCodec}'" \
-    "--subtitle-extension '${subtitleExtension}'" \
+    "--subtitle-export-extension '${subtitleExportExtension}'" \
+    "--subtitle-import-extension '${subtitleImportExtension}'" \
     "--subtitle-update '${subtitlesUpdateMethod}'" \
     "--thread '${threadCount}'" \
     "--tmp '${tmpDirectory}'" \
@@ -157,7 +162,8 @@ getUsage() {
   echo "Usage \"$0 [active|start|start-local|output-[error|warn|info|debug|trace|all]|stop]" \
     "[--audio Codec to use when processing audio aac]" \
     "[--audio-bitrate Bit rate per an audio channel {98304}]" \
-    "[--audio-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
+    "[--audio-export-extension Audio extension to export to when run in export mode {.audio}]" \
+    "[--audio-import-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
     "[--audio-update Method to use for updating audio {convert|export|delete}]" \
     "[--dry Will out what commands it will execute without modifying anything]" \
     "[--ext The extension of the output file {.mkv}]" \
@@ -169,11 +175,13 @@ getUsage() {
     "[--pid Location of pid file {~/plex-encoding.pid}]" \
     "[--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
     "[--subtitle List of allowed subtitle formats {srt,ass}]" \
-    "[--subtitle-extension List of subtitle extensions to read {.srt,.ass}]" \
+    "[--subtitle-export-extension Subtitle extension to export to when run in export mode {.subtitles}]" \
+    "[--subtitle-import-extension List of subtitle extensions to read {.srt,.ass}]" \
     "[--subtitle-update Method to use for updating subtitles {convert|export|delete}]" \
     "[--thread Thread to use while processing {3}]" \
     "[--tmp tmpDirectory Temporary directory to store processing video files {/tmp}]" \
     "[--video videoCodec Video codecs to use {libx264|libx265}]" \
+    "[--video-export-extension Video extension to export to when run in export mode {.video}]" \
     "[--video-level Maximum Allowed Video Level {4.1}]" \
     "[--video-pixel List of allowed pixel formats {yuv420p,yuv420p10le}]" \
     "[--video-pixel-exclusion videoPixelFormatExclusionOrder {depth,channel,compression,bit,format}]" \
@@ -1372,10 +1380,10 @@ getInputFiles() {
 
   echo "${inputFile}"
   IFS=$'\n'
-  for fileExt in $(echo "${audioExtension}" | sed 's/,/\n/g'); do
+  for fileExt in $(echo "${audioImportExtension}" | sed 's/,/\n/g'); do
     echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
   done
-  for fileExt in $(echo "${subtitleExtension}" | sed 's/,/\n/g'); do
+  for fileExt in $(echo "${subtitleImportExtension}" | sed 's/,/\n/g'); do
     echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
   done
 }
