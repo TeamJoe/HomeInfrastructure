@@ -17,10 +17,10 @@ metadataRun='false'
 pidLocation="${HOME}/plex-encoding.pid"
 threadCount=4 # 0 is unlimited
 audioCodec='aac'
-audioUpdateMethod='convert'     # convert, strip
+audioUpdateMethod='convert'     # convert, export, delete
 audioExtension='.mp3,.aac,.ac3' # comma list of audio extensions
 videoCodec='libx265'
-videoUpdateMethod='convert' # convert, strip
+videoUpdateMethod='convert' # convert, export, delete
 videoPreset='fast'          # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
 videoProfile='main'         # For x264 baseline, main, high | For x265 main, high
 videoPixelFormat='yuv420p,yuv420p10le'
@@ -30,7 +30,7 @@ videoQuality=20 # 1-50, lower is better quailty
 videoLevel='4.1'
 videoFrameRate='copy'         # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, zerolatency
-subtitlesUpdateMethod='strip' # convert, strip
+subtitlesUpdateMethod='export' # convert, export, delete
 subtitleCodec='srt'           # Comma list of allowed formats
 subtitleExtension='.srt'      # Comma list of subtitle extensions
 bitratePerAudioChannel=98304  # 65536 is default
@@ -155,7 +155,7 @@ getUsage() {
     "[--audio Codec to use when processing audio aac]" \
     "[--audio-bitrate Bit rate per an audio channel {98304}]" \
     "[--audio-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
-    "[--audio-update Method to use for updating audio {strip|convert}]" \
+    "[--audio-update Method to use for updating audio {convert|export|delete}]" \
     "[--dry Will out what commands it will execute without modifying anything]" \
     "[--ext The extension of the output file {.mkv}]" \
     "[--force Will always convert, even if codecs matches]" \
@@ -167,7 +167,7 @@ getUsage() {
     "[--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
     "[--subtitle List of allowed subtitle formats {srt,ass}]" \
     "[--subtitle-extension List of subtitle extensions to read {.srt,.ass}]" \
-    "[--subtitle-update Method to use for updating subtitles {strip|convert}]" \
+    "[--subtitle-update Method to use for updating subtitles {convert|export|delete}]" \
     "[--thread Thread to use while processing {3}]" \
     "[--tmp tmpDirectory Temporary directory to store processing video files {/tmp}]" \
     "[--video videoCodec Video codecs to use {libx264|libx265}]" \
@@ -180,7 +180,7 @@ getUsage() {
     "[--video-quality The quality to use when processing the video {1-50}]" \
     "[--video-rate The frame rate to use when processing the file {any_faction|ntsc|ntsc_film|pal|film}]" \
     "[--video-tune The tune parameter to use when processing the file {animation|fastdecode|film|grain|stillimage|zerolatency}]" \
-    "[--video-update Method to use for updating video {strip|convert}]"
+    "[--video-update Method to use for updating video {convert|export|delete}]"
 }
 
 #-----------------
