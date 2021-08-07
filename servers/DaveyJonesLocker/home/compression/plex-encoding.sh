@@ -146,6 +146,7 @@ getCommand() {
     "--thread '${threadCount}'" \
     "--tmp '${tmpDirectory}'" \
     "--video '${videoCodec}'" \
+    "--video-export-extension '${videoExportExtension}'" \
     "--video-level '${videoLevel}'" \
     "--video-pixel '${videoPixelFormat}'" \
     "--video-pixel-exclusion '${videoPixelFormatExclusionOrder}'" \
