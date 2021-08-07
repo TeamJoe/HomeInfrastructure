@@ -1,36 +1,39 @@
 #!/bin/bash
+# shellcheck disable=SC2001
+# shellcheck disable=SC2004
+# shellcheck disable=SC2005
 
 #-----------------
 # Configurable Default Options
 #-----------------
 
-inputDirectory='~/Videos' #/home/public/Videos/TV/Sonarr
+inputDirectory="${HOME}/Videos" #/home/public/Videos/TV/Sonarr
 outputDirectory=''        #/home/public/Videos/TV/Sonarr
 tmpDirectory='/tmp'
-logFile='~/encoding.results'
+logFile="${HOME}/encoding.results"
 dryRun='false'
 forceRun='false'
 metadataRun='false'
-pidLocation='~/plex-encoding.pid'
+pidLocation="${HOME}/plex-encoding.pid"
 threadCount=4 # 0 is unlimited
 audioCodec='aac'
-audioUpdateMethod='convert' # convert, strip
+audioUpdateMethod='convert'     # convert, strip
 audioExtension='.mp3,.aac,.ac3' # comma list of audio extensions
 videoCodec='libx265'
 videoUpdateMethod='convert' # convert, strip
-videoPreset='fast'  # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
-videoProfile='main' # For x264 baseline, main, high | For x265 main, high
+videoPreset='fast'          # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
+videoProfile='main'         # For x264 baseline, main, high | For x265 main, high
 videoPixelFormat='yuv420p,yuv420p10le'
 videoPixelFormatExclusionOrder='depth,channel,compression,bit,format'
 videoPixelFormatPreferenceOrder='depth,channel,compression,bit,format'
 videoQuality=20 # 1-50, lower is better quailty
 videoLevel='4.1'
-videoFrameRate='copy'  # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
-videoTune='fastdecode' # animation, fastdecode, film, grain, stillimage, zerolatency
+videoFrameRate='copy'         # Any Value, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
+videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, zerolatency
 subtitlesUpdateMethod='strip' # convert, strip
-subtitleCodec='srt' # Comma list of allowed formats
-subtitleExtension='.srt' # Comma list of subtitle extensions
-bitratePerAudioChannel=98304 # 65536 is default
+subtitleCodec='srt'           # Comma list of allowed formats
+subtitleExtension='.srt'      # Comma list of subtitle extensions
+bitratePerAudioChannel=98304  # 65536 is default
 outputExtension='.mkv'
 sortBy='size' # date, size, reverse-date, reverse-size
 
@@ -40,7 +43,7 @@ sortBy='size' # date, size, reverse-date, reverse-size
 
 path="${0}"
 command="${1}"; shift
-options="${@}"
+options="${*}"
 
 #-----------------
 # Non-Configurable Variables
@@ -68,7 +71,7 @@ allPixelFormats="$(ffmpeg -pix_fmts -loglevel error)"
 additionalParameters=''
 while true; do
   case "${1}" in
-    --audio) audioCodec="${2}"; shift 2 ;;
+    --audio) audioCodec="${2}" shift 2 ;;
     --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2 ;;
     --audio-extension) audioExtension="${2}"; shift 2 ;;
     --audio-update) audioUpdateMethod="${2}"; shift 2 ;;
@@ -97,14 +100,15 @@ while true; do
     --video-rate) videoFrameRate="${2}"; shift 2 ;;
     --video-tune) videoTune="${2}"; shift 2 ;;
     --video-update) videoUpdateMethod="${2}"; shift 2 ;;
-    --) shift; additionalParameters="${additionalParameters} ${@}"; break ;;
+    --) shift; additionalParameters="${additionalParameters} ${*}"; break ;;
     *)
-      if [[ $(echo "${@}" | wc -c) -le 1 ]]; then
-        break;
+      if [[ "${#@}" -le 1 ]]; then
+        break
       else
-        additionalParameters="${additionalParameters} ${1}"; shift
+        additionalParameters="${additionalParameters} ${1}"
+        shift
       fi
-    ;;
+      ;;
   esac
 done
 
@@ -150,7 +154,7 @@ getUsage() {
   echo "Usage \"$0 [active|start|start-local|output-[error|warn|info|debug|trace|all]|stop]" \
     "[--audio Codec to use when processing audio aac]" \
     "[--audio-bitrate Bit rate per an audio channel {98304}]" \
-    "[--audio-extension List of audio extensions to read {.mp3,.acc,.ac3}]"\
+    "[--audio-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
     "[--audio-update Method to use for updating audio {strip|convert}]" \
     "[--dry Will out what commands it will execute without modifying anything]" \
     "[--ext The extension of the output file {.mkv}]" \
@@ -162,7 +166,7 @@ getUsage() {
     "[--pid Location of pid file {~/plex-encoding.pid}]" \
     "[--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
     "[--subtitle List of allowed subtitle formats {srt,ass}]" \
-    "[--subtitle-extension List of subtitle extensions to read {.srt,.ass}]"\
+    "[--subtitle-extension List of subtitle extensions to read {.srt,.ass}]" \
     "[--subtitle-update Method to use for updating subtitles {strip|convert}]" \
     "[--thread Thread to use while processing {3}]" \
     "[--tmp tmpDirectory Temporary directory to store processing video files {/tmp}]" \
@@ -184,27 +188,27 @@ getUsage() {
 #-----------------
 
 error() {
-  log "[ERROR] ${@}"
+  log "[ERROR] ${*}"
 }
 
 warn() {
-  log "[WARN] ${@}"
+  log "[WARN] ${*}"
 }
 
 info() {
-  log "[INFO] ${@}"
+  log "[INFO] ${*}"
 }
 
 debug() {
-  log "[DEBUG] ${@}"
+  log "[DEBUG] ${*}"
 }
 
 trace() {
-  log "[TRACE] ${@}"
+  log "[TRACE] ${*}"
 }
 
 log() {
-  echo "[$(getTime)] ${@}"
+  echo "[$(getTime)] ${*}"
 }
 
 getTime() {
@@ -216,12 +220,16 @@ getTime() {
 #-----------------
 
 getExtension() {
-  local fileNameWithExt="$(basename "${1}")"
+  local fileNameWithExt=''
+  fileNameWithExt="$(basename "${1}")"
+
   echo "${fileNameWithExt##*.}"
 }
 
 getFileName() {
-  local fileNameWithExt="$(basename "${1}")"
+  local fileNameWithExt=''
+  fileNameWithExt="$(basename "${1}")"
+
   echo "$(echo "${fileNameWithExt}" | sed 's/\(.*\)\..*/\1/')"
 }
 
@@ -235,6 +243,7 @@ normalizeDirectory() {
 
 getDirectory() {
   local directory="${1}"
+
   if [[ "${directory: -1}" != '/' && ! -d "${directory}" ]]; then
     directory="$(dirname "${directory}")"
   fi
@@ -248,7 +257,7 @@ getDirectory() {
 lockFile() {
   local inputFile="${1}"
   local pid="${2}"
-  local lockedPid=''
+
   if [[ -f "${inputFile}${lockfileExtension}" ]]; then
     if [[ "$(isPidRunning "$(cat "${inputFile}${lockfileExtension}")")" == 'false' ]]; then
       echo "${pid}" >"${inputFile}${lockfileExtension}"
@@ -267,7 +276,7 @@ lockFile() {
 unlockFile() {
   local inputFile="${1}"
   local pid="${2}"
-  local lockedPid=''
+
   if [[ -f "${inputFile}${lockfileExtension}" ]]; then
     if [[ "$(cat "${inputFile}${lockfileExtension}")" == "${pid}" ]]; then
       rm -f "${inputFile}${lockfileExtension}"
@@ -279,7 +288,7 @@ unlockFile() {
 # List Functions
 #-----------------
 
-getFirst() {
+getListFirstValue() {
   local list="${1}"
   local delimiter="${2}"
 
@@ -290,11 +299,16 @@ getFirst() {
   fi
 }
 
-doesContain() {
+getListFirstMatch() {
   local value="${1}"
   local list="${2}"
   local delimiter="${3}"
+  local normalizer="${4:-echo}"
+  local default="${5}"
+  local normalValue=''
   local listValue=''
+
+  normalValue="$(${normalizer} "${value}")"
 
   if [[ -n "${delimiter}" ]]; then
     list="$(echo "${list}" | sed "s/${delimiter}/\\n/g")"
@@ -302,12 +316,21 @@ doesContain() {
 
   IFS=$'\n'
   for listValue in ${list}; do
-    if [[ "${value}" == "${listValue}" ]]; then
+    listValue="$(${normalizer} "${listValue}")"
+    if [[ "${normalValue}" == "${listValue}" ]]; then
       break
     fi
   done
 
   if [[ "${value}" == "${listValue}" ]]; then
+    echo "${value}"
+  else
+    echo "${default}"
+  fi
+}
+
+doesListContain() {
+  if [[ -n "$(getListFirstMatch "${1}" "${2}" "${3}" "${4}" '')" ]]; then
     echo 'true'
   fi
 }
@@ -315,7 +338,7 @@ doesContain() {
 forEach() {
   local list="${1}"
   local delimiter="${2}"
-  local action="${3}"
+  local normalizer="${3}"
   local value=''
   local newList=''
   local newValue=''
@@ -326,12 +349,12 @@ forEach() {
 
   IFS=$'\n'
   for value in ${list}; do
-    newValue="$(${action} ${listValue})"
+    newValue="$(${normalizer} "${listValue}")"
     if [[ -n "${newValue}" ]]; then
       if [[ -n "${newList}" ]]; then
-        newList="${newList}${delimiter}$(${action} ${listValue})"
+        newList="${newList}${delimiter}$(${normalizer} "${listValue}")"
       else
-        newList="$(${action} ${listValue})"
+        newList="$(${normalizer} "${listValue}")"
       fi
     fi
   done
@@ -349,6 +372,7 @@ divide() {
   local precision="${3:-0}"     # Between 0 and 17, for small denominators, less for larger denominators
   local rounding="${4:-halfup}" # halfup, halfdown, floor, ceil
   rounding="${rounding,,}"
+
   local quotient="$(("${numerator}" / "${denominator}"))"
   local remainder="$(("${numerator}" % "${denominator}"))"
   local precisionQuotient="$(( ( (10 ** "${precision}") * ("${remainder}")) / "${denominator}"))"
@@ -498,6 +522,7 @@ normalizeSubtitleCodec() {
 
 normalizeVideoProfileComplexity() {
   local videoProfile="${1,,}"
+
   if [[ "${videoProfile}" =~ .*baseline.* ]]; then
     echo "baseline"
   elif [[ "${videoProfile}" =~ .*main.* ]]; then
@@ -511,6 +536,8 @@ normalizeVideoProfileComplexity() {
 
 normalizeFrameRate() {
   local frameRate="${1,,}"
+  local fraction=''
+
   if [[ "${frameRate}" == '30000/1001' || "${frameRate}" == '29.9' || "${frameRate}" == '29.97' || "${frameRate}" == '29.970' ]]; then
     echo "ntsc"
   elif [[ "${frameRate}" == '25/1' || "${frameRate}" == '25.0' || "${frameRate}" == '25' ]]; then
@@ -524,7 +551,7 @@ normalizeFrameRate() {
   elif [[ "${frameRate: -2}" == '/1' || "${frameRate: -2}" == '.0' ]]; then
     echo "${frameRate::-2}"
   elif [[ "${frameRate}" != "$(echo "${frameRate}" | sed 's/.*\///')" ]]; then
-    local fraction="$(divide "$(echo "${frameRate}" | sed 's/.*\///')" "$(echo "${frameRate}" | sed 's/\.*///')" '2' 'floor')"
+    fraction="$(divide "$(echo "${frameRate}" | sed 's/.*\///')" "$(echo "${frameRate}" | sed 's/\.*///')" '2' 'floor')"
     if [[ "${fraction}" == '29.96' || "${fraction}" == '29.97' || "${fraction}" == '29.98' ]]; then
       echo "ntsc"
     elif [[ "${fraction}" == '23.96' || "${fraction}" == '23.97' || "${fraction}" == '23.98' ]]; then
@@ -538,7 +565,8 @@ normalizeFrameRate() {
 }
 
 normalizeLanguageFullName() {
-  local language="$(echo "${1,,}" | awk '{print $1}')"
+  local language="${1,,}"
+  language="$(echo "${language}" | awk '{print $1}')"
   case "${language}" in
     en | eng | english) echo 'English' ;;
     jp | jpn | japanese) echo 'Japanese' ;;
@@ -548,7 +576,8 @@ normalizeLanguageFullName() {
 }
 
 normalizeLanguage() {
-  local language="$(echo "${1,,}" | awk '{print $1}')"
+  local language="${1,,}"
+  language="$(echo "${language}" | awk '{print $1}')"
   case "${language}" in
     en | eng | english) echo 'eng' ;;
     jp | jpn | japanese) echo 'jpn' ;;
@@ -562,10 +591,10 @@ normalizeVideoLevel() {
   if [[ -n "${level}" ]]; then
     if [[ "${level}" == '1b' ]]; then
       level='10'
-    elif [[ -n "$(echo "${level}" | grep '\.')" ]]; then
+    elif echo "${level}" | grep -q '\.'; then
       level="$(echo "${level}" | sed 's/\.//')"
     elif [[ "${level}" -lt 10 ]]; then
-      level="$(( "${level}" * 10 ))"
+      level="$(("${level}" * 10))"
     fi
   fi
 
@@ -581,16 +610,16 @@ normalizeVideoLevel() {
 getChannelNaming() {
   local channelCount="${1}"
   case "${channelCount,,}" in
-    1 | '1.0' | mono) echo 'Mono';;
-    2 | '2.0' | stereo) echo 'Stereo';;
-    3 | '2.1') echo '2.1';;
-    4 | '4.0') echo '4.0';;
-    5 | '4.1') echo '4.1';;
-    6 | '5.1') echo '5.1';;
-    8 | '7.1') echo '7.1';;
-    9 | '7.2') echo '7.2';;
-    10 | '9.1') echo '9.1';;
-    11 | '9.2') echo '9.2';;
+    1 | '1.0' | mono) echo 'Mono' ;;
+    2 | '2.0' | stereo) echo 'Stereo' ;;
+    3 | '2.1') echo '2.1' ;;
+    4 | '4.0') echo '4.0' ;;
+    5 | '4.1') echo '4.1' ;;
+    6 | '5.1') echo '5.1' ;;
+    8 | '7.1') echo '7.1' ;;
+    9 | '7.2') echo '7.2' ;;
+    10 | '9.1') echo '9.1' ;;
+    11 | '9.2') echo '9.2' ;;
   esac
 }
 
@@ -611,10 +640,10 @@ getColorFormat() {
     rgb444be | rgb444le | bgr444be | bgr444le) echo 'rgb' ;;
     nv12 | nv21) echo 'nv' ;;
     nv16) echo 'nv' ;;
-    nv20le | nv20be) echo 'nv' ;;
+    nv20be | nv20le) echo 'nv' ;;
     nv24 | nv42) echo 'nv' ;;
-    p010le | p010be) echo 'p01' ;;
-    p016le | p016be) echo 'p01' ;;
+    p010be | p010le) echo 'p01' ;;
+    p016be | p016le) echo 'p01' ;;
     yuv410p) echo 'yuv' ;;
     yuv411p | yuvj411p | uyyvyy411) echo 'yuv' ;;
     yuv420p | yuvj420p) echo 'yuv' ;;
@@ -632,26 +661,26 @@ getColorFormat() {
     yuv440p9be | yuv440p9le) echo 'yuv' ;;
     yuv444p9be | yuv444p9le) echo 'yuv' ;;
     yuva420p9be | yuva420p9le) echo 'yuv' ;;
-    yuva422p9be | yuva422p9be) echo 'yuv' ;;
+    yuva422p9be | yuva422p9le) echo 'yuv' ;;
     yuva440p9be | yuva440p9le) echo 'yuv' ;;
-    yuva444p9be | yuva444p9be) echo 'yuv' ;;
+    yuva444p9be | yuva444p9le) echo 'yuv' ;;
     gray10be | gray10le) echo 'rgb' ;;
     gbrp10be | gbrp10le) echo 'rgb' ;;
     gbrap10be | gbrap10le) echo 'rgb' ;;
     yuv420p10be | yuv420p10le) echo 'yuv' ;;
     yuv422p10be | yuv422p10le) echo 'yuv' ;;
-    yuv440p10le | yuv440p10be) echo 'yuv' ;;
+    yuv440p10be | yuv440p10le) echo 'yuv' ;;
     yuv444p10be | yuv444p10le) echo 'yuv' ;;
     yuva420p10be | yuva420p10le) echo 'yuv' ;;
-    yuva422p10be | yuva422p10be) echo 'yuv' ;;
-    yuva440p10be | yuva440p10be) echo 'yuv' ;;
-    yuva444p10be | yuva444p10be) echo 'yuv' ;;
+    yuva422p10be | yuva422p10le) echo 'yuv' ;;
+    yuva440p10be | yuva440p10le) echo 'yuv' ;;
+    yuva444p10be | yuva444p10le) echo 'yuv' ;;
     gray12be | gray12le) echo 'gray' ;;
-    xyz12le | xyz12be | gbrp12be | gbrp12le) echo 'rgb' ;;
+    xyz12be | xyz12le | gbrp12be | gbrp12le) echo 'rgb' ;;
     gbrap12be | gbrap12le) echo 'rgb' ;;
     yuv420p12be | yuv420p12le) echo 'yuv' ;;
     yuv422p12be | yuv422p12le) echo 'yuv' ;;
-    yuv440p12le | yuv440p12be) echo 'yuv' ;;
+    yuv440p12be | yuv440p12le) echo 'yuv' ;;
     yuv444p12be | yuv444p12le) echo 'yuv' ;;
     yuva420p12be | yuva420p12le) echo 'yuv' ;;
     yuva422p12be | yuva422p12le) echo 'yuv' ;;
@@ -667,14 +696,14 @@ getColorFormat() {
     rgb48be | rgb48le | bgr48be | bgr48le) echo 'rgb' ;;
     rgba64be | rgba64le | bgra64be | bgra64le) echo 'rgb' ;;
     gbrp16be | gbrp16le) echo 'rgb' ;;
-    bayer_bggr16le | bayer_bggr16be | bayer_rggb16le | bayer_rggb16be | bayer_gbrg16le | bayer_gbrg16be | bayer_grbg16le | bayer_grbg16be) echo 'bayer' ;;
-    yuv420p16le | yuv420p16be) echo 'yuv' ;;
-    yuv422p16le | yuv422p16le) echo 'yuv' ;;
-    yuv440p16le | yuv440p16be) echo 'yuv' ;;
-    yuv444p16le | yuv444p16le) echo 'yuv' ;;
+    bayer_bggr16be | bayer_bggr16le | bayer_rggb16be | bayer_rggb16le | bayer_gbrg16be | bayer_gbrg16le | bayer_grbg16be | bayer_grbg16le) echo 'bayer' ;;
+    yuv420p16be | yuv420p16le) echo 'yuv' ;;
+    yuv422p16be | yuv422p16le) echo 'yuv' ;;
+    yuv440p16be | yuv440p16le) echo 'yuv' ;;
+    yuv444p16be | yuv444p16le) echo 'yuv' ;;
     yuva420p16be | yuva420p16le) echo 'yuv' ;;
-    yuva422p16be | yuva422p16be) echo 'yuv' ;;
-    ayuv64le | ayuv64be | yuva444p16be | yuva444p16be) echo 'yuv' ;;
+    yuva422p16be | yuva422p16le) echo 'yuv' ;;
+    ayuv64be | ayuv64le | yuva444p16be | yuva444p16le) echo 'yuv' ;;
     grayf32be | grayf32le) echo 'gray' ;;
     gbrpf32be | gbrpf32le) echo 'rgb' ;;
     gbrapf32be | gbrapf32le) echo 'rgb' ;;
@@ -700,10 +729,10 @@ getColorDepth() {
     rgb444be | rgb444le | bgr444be | bgr444le) echo '8' ;;
     nv12 | nv21) echo '8' ;;
     nv16) echo '8' ;;
-    nv20le | nv20be) echo '8' ;;
+    nv20be | nv20le) echo '8' ;;
     nv24 | nv42) echo '8' ;;
-    p010le | p010be) echo '8' ;;
-    p016le | p016be) echo '8' ;;
+    p010be | p010le) echo '8' ;;
+    p016be | p016le) echo '8' ;;
     yuv410p) echo '8' ;;
     yuv411p | yuvj411p | uyyvyy411) echo '8' ;;
     yuv420p | yuvj420p) echo '8' ;;
@@ -721,26 +750,26 @@ getColorDepth() {
     yuv440p9be | yuv440p9le) echo '9' ;;
     yuv444p9be | yuv444p9le) echo '9' ;;
     yuva420p9be | yuva420p9le) echo '9' ;;
-    yuva422p9be | yuva422p9be) echo '9' ;;
+    yuva422p9be | yuva422p9le) echo '9' ;;
     yuva440p9be | yuva440p9le) echo '9' ;;
-    yuva444p9be | yuva444p9be) echo '9' ;;
+    yuva444p9be | yuva444p9le) echo '9' ;;
     gray10be | gray10le) echo '10' ;;
     gbrp10be | gbrp10le) echo '10' ;;
     gbrap10be | gbrap10le) echo '10' ;;
     yuv420p10be | yuv420p10le) echo '10' ;;
     yuv422p10be | yuv422p10le) echo '10' ;;
-    yuv440p10le | yuv440p10be) echo '10' ;;
+    yuv440p10be | yuv440p10le) echo '10' ;;
     yuv444p10be | yuv444p10le) echo '10' ;;
     yuva420p10be | yuva420p10le) echo '10' ;;
-    yuva422p10be | yuva422p10be) echo '10' ;;
-    yuva440p10be | yuva440p10be) echo '10' ;;
-    yuva444p10be | yuva444p10be) echo '10' ;;
+    yuva422p10be | yuva422p10le) echo '10' ;;
+    yuva440p10be | yuva440p10le) echo '10' ;;
+    yuva444p10be | yuva444p10le) echo '10' ;;
     gray12be | gray12le) echo '12' ;;
-    xyz12le | xyz12be | gbrp12be | gbrp12le) echo '12' ;;
+    xyz12be | xyz12le | gbrp12be | gbrp12le) echo '12' ;;
     gbrap12be | gbrap12le) echo '12' ;;
     yuv420p12be | yuv420p12le) echo '12' ;;
     yuv422p12be | yuv422p12le) echo '12' ;;
-    yuv440p12le | yuv440p12be) echo '12' ;;
+    yuv440p12be | yuv440p12le) echo '12' ;;
     yuv444p12be | yuv444p12le) echo '12' ;;
     yuva420p12be | yuva420p12le) echo '12' ;;
     yuva422p12be | yuva422p12le) echo '12' ;;
@@ -756,14 +785,14 @@ getColorDepth() {
     rgb48be | rgb48le | bgr48be | bgr48le) echo '16' ;;
     rgba64be | rgba64le | bgra64be | bgra64le) echo '16' ;;
     gbrp16be | gbrp16le) echo '16' ;;
-    bayer_bggr16le | bayer_bggr16be | bayer_rggb16le | bayer_rggb16be | bayer_gbrg16le | bayer_gbrg16be | bayer_grbg16le | bayer_grbg16be) echo '16' ;;
-    yuv420p16le | yuv420p16be) echo '16' ;;
-    yuv422p16le | yuv422p16le) echo '16' ;;
-    yuv440p16le | yuv440p16be) echo '16' ;;
-    yuv444p16le | yuv444p16le) echo '16' ;;
+    bayer_bggr16be | bayer_bggr16le | bayer_rggb16be | bayer_rggb16le | bayer_gbrg16be | bayer_gbrg16le | bayer_grbg16be | bayer_grbg16le) echo '16' ;;
+    yuv420p16be | yuv420p16le) echo '16' ;;
+    yuv422p16be | yuv422p16le) echo '16' ;;
+    yuv440p16be | yuv440p16le) echo '16' ;;
+    yuv444p16be | yuv444p16le) echo '16' ;;
     yuva420p16be | yuva420p16le) echo '16' ;;
-    yuva422p16be | yuva422p16be) echo '16' ;;
-    ayuv64le | ayuv64be | yuva444p16be | yuva444p16be) echo '16' ;;
+    yuva422p16be | yuva422p16le) echo '16' ;;
+    ayuv64be | ayuv64le | yuva444p16be | yuva444p16le) echo '16' ;;
     grayf32be | grayf32le) echo '32' ;;
     gbrpf32be | gbrpf32le) echo '32' ;;
     gbrapf32be | gbrapf32le) echo '32' ;;
@@ -788,10 +817,10 @@ getColorCompression() {
     rgb444be | rgb444le | bgr444be | bgr444le) echo '444' ;;
     nv12 | nv21) echo '420' ;;
     nv16) echo '422' ;;
-    nv20le | nv20be) echo '442' ;;
+    nv20be | nv20le) echo '442' ;;
     nv24 | nv42) echo '444' ;;
-    p010le | p010be) echo '420' ;;
-    p016le | p016be) echo '444' ;;
+    p010be | p010le) echo '420' ;;
+    p016be | p016le) echo '444' ;;
     yuv410p) echo '410' ;;
     yuv411p | yuvj411p | uyyvyy411) echo '411' ;;
     yuv420p | yuvj420p) echo '420' ;;
@@ -809,26 +838,26 @@ getColorCompression() {
     yuv440p9be | yuv440p9le) echo '440' ;;
     yuv444p9be | yuv444p9le) echo '444' ;;
     yuva420p9be | yuva420p9le) echo '420' ;;
-    yuva422p9be | yuva422p9be) echo '422' ;;
+    yuva422p9be | yuva422p9le) echo '422' ;;
     yuva440p9be | yuva440p9le) echo '440' ;;
-    yuva444p9be | yuva444p9be) echo '444' ;;
+    yuva444p9be | yuva444p9le) echo '444' ;;
     gray10be | gray10le) echo '444' ;;
     gbrp10be | gbrp10le) echo '444' ;;
     gbrap10be | gbrap10le) echo '444' ;;
     yuv420p10be | yuv420p10le) echo '420' ;;
     yuv422p10be | yuv422p10le) echo '422' ;;
-    yuv440p10le | yuv440p10be) echo '440' ;;
+    yuv440p10be | yuv440p10le) echo '440' ;;
     yuv444p10be | yuv444p10le) echo '444' ;;
     yuva420p10be | yuva420p10le) echo '420' ;;
-    yuva422p10be | yuva422p10be) echo '422' ;;
-    yuva440p10be | yuva440p10be) echo '440' ;;
-    yuva444p10be | yuva444p10be) echo '444' ;;
+    yuva422p10be | yuva422p10le) echo '422' ;;
+    yuva440p10be | yuva440p10le) echo '440' ;;
+    yuva444p10be | yuva444p10le) echo '444' ;;
     gray12be | gray12le) echo '444' ;;
-    xyz12le | xyz12be | gbrp12be | gbrp12le) echo '444' ;;
+    xyz12be | xyz12le | gbrp12be | gbrp12le) echo '444' ;;
     gbrap12be | gbrap12le) echo '444' ;;
     yuv420p12be | yuv420p12le) echo '420' ;;
     yuv422p12be | yuv422p12le) echo '422' ;;
-    yuv440p12le | yuv440p12be) echo '440' ;;
+    yuv440p12be | yuv440p12le) echo '440' ;;
     yuv444p12be | yuv444p12le) echo '444' ;;
     yuva420p12be | yuva420p12le) echo '420' ;;
     yuva422p12be | yuva422p12le) echo '422' ;;
@@ -844,14 +873,14 @@ getColorCompression() {
     rgb48be | rgb48le | bgr48be | bgr48le) echo '444' ;;
     rgba64be | rgba64le | bgra64be | bgra64le) echo '444' ;;
     gbrp16be | gbrp16le) echo '444' ;;
-    bayer_bggr16le | bayer_bggr16be | bayer_rggb16le | bayer_rggb16be | bayer_gbrg16le | bayer_gbrg16be | bayer_grbg16le | bayer_grbg16be) echo '444' ;;
-    yuv420p16le | yuv420p16be) echo '420' ;;
-    yuv422p16le | yuv422p16le) echo '422' ;;
-    yuv440p16le | yuv440p16be) echo '440' ;;
-    yuv444p16le | yuv444p16le) echo '444' ;;
+    bayer_bggr16be | bayer_bggr16le | bayer_rggb16be | bayer_rggb16le | bayer_gbrg16be | bayer_gbrg16le | bayer_grbg16be | bayer_grbg16le) echo '444' ;;
+    yuv420p16be | yuv420p16le) echo '420' ;;
+    yuv422p16be | yuv422p16le) echo '422' ;;
+    yuv440p16be | yuv440p16le) echo '440' ;;
+    yuv444p16be | yuv444p16le) echo '444' ;;
     yuva420p16be | yuva420p16le) echo '420' ;;
-    yuva422p16be | yuva422p16be) echo '422' ;;
-    ayuv64le | ayuv64be | yuva444p16be | yuva444p16be) echo '444' ;;
+    yuva422p16be | yuva422p16le) echo '422' ;;
+    ayuv64be | ayuv64le | yuva444p16be | yuva444p16le) echo '444' ;;
     grayf32be | grayf32le) echo '444' ;;
     gbrpf32be | gbrpf32le) echo '444' ;;
     gbrapf32be | gbrapf32le) echo '444' ;;
@@ -861,7 +890,8 @@ getColorCompression() {
 
 getColorChannelCount() {
   local pixelFormat="${1,,}"
-  local channel="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $3}')"
+  local channel=''
+  channel="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $3}')"
   if [[ -z "${channel}" ]]; then
     echo '-1'
   else
@@ -871,7 +901,8 @@ getColorChannelCount() {
 
 getColorBitCount() {
   local pixelFormat="${1,,}"
-  local bits="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $4}')"
+  local bits=''
+  bits="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $4}')"
   if [[ -z "${bits}" ]]; then
     echo '-1'
   else
@@ -919,10 +950,11 @@ findPixelFormatAdequateFromList() {
   local oldPixelFormat="${2,,}"
   local comparison="${3}"
   local newPixelFormatList="${4,,}"
-  local oldPixelValue="$(${function} "${oldPixelFormat}")"
+  local oldPixelValue=''
   local newPixelFormat=''
   local newPixelValue=''
   local newList=''
+  oldPixelValue="$(${function} "${oldPixelFormat}")"
 
   IFS=$'\n'
   for newPixelFormat in $(echo "${newPixelFormatList}" | sed 's/,/\n/g'); do
@@ -942,7 +974,7 @@ findPixelFormat() {
   local newPixelFormatOrder=''
   local formatFunction=''
 
-  if [[ "$(doesContain "${oldPixelFormat}" "${videoPixelFormat,,}" ',')" == 'true' ]]; then
+  if [[ "$(doesListContain "${oldPixelFormat}" "${videoPixelFormat,,}" ',')" == 'true' ]]; then
     newPixelFormat="$(echo "${videoPixelFormat}" | sed 's/,/\n/g')"
     for newPixelFormatOrder in $(echo "${videoPixelFormatExclusionOrder}" | sed 's/,/\n/g'); do
       case "${newPixelFormatOrder,,}" in
@@ -988,9 +1020,9 @@ findPixelFormat() {
   fi
 
   if [[ -n "${newPixelFormat}" ]]; then
-    echo "$(getFirst "${newPixelFormat}" ',')"
+    echo "$(getListFirstValue "${newPixelFormat}" ',')"
   else
-    echo "$(getFirst "${videoPixelFormat}" ',')"
+    echo "$(getListFirstValue "${videoPixelFormat}" ',')"
   fi
 }
 
@@ -1022,7 +1054,7 @@ getProfileComplexityOrder() {
 
 getSubtitleEncodingType() {
   local codecName="${1,,}"
-  case "${codecName}" in
+  case "$(normalizeSubtitleCodec "${codecName}")" in
     dvbsub) echo 'image' ;;
     dvdsub) echo 'image' ;;
     pgssub) echo 'image' ;;
@@ -1050,10 +1082,16 @@ getSubtitleEncodingType() {
 }
 
 getProfileValue() {
-  local encoder="$(normalizeVideoCodec "${1,,}")"
-  local profile="$(normalizeVideoProfileComplexity "${2,,}")"
-  local colorDepth="$(getColorDepth "${3,,}")"
-  local colorCompression"$(getColorCompression "${3,,}")"
+  local encoder="${1,,}"
+  local profile="${2,,}"
+  local pixelFormat="${3,,}"
+  local colorDepth=''
+  local colorCompression=''
+
+  encoder="$(normalizeVideoCodec "${encoder}")"
+  profile="$(normalizeVideoProfileComplexity "${profile}")"
+  colorDepth="$(getColorDepth "${pixelFormat}")"
+  colorCompression="$(getColorCompression "${pixelFormat}")"
 
   if [[ "${encoder}" == 'hevc' ]]; then
     if [[ "${profile}" == 'main' || "${profile}" == 'high' ]]; then
@@ -1116,8 +1154,9 @@ getMetadata() {
 
 getCodecFromStream() {
   local stream="${1}"
+  local oldCodec=''
 
-  local oldCodec="$(getMetadata "${metadataCodecName}" "${stream}")"
+  oldCodec="$(getMetadata "${metadataCodecName}" "${stream}")"
   if [[ -z "${oldCodec}" ]]; then
     oldCodec="$(getValue 'codec_name' "${stream}")"
   fi
@@ -1127,8 +1166,9 @@ getCodecFromStream() {
 
 getAudioBitRateFromStream() {
   local stream="${1}"
+  local oldBitRate=''
 
-  local oldBitRate="$(getMetadata "${metadataAudioBitRate}" "${stream}")"
+  oldBitRate="$(getMetadata "${metadataAudioBitRate}" "${stream}")"
   if [[ -z "${oldBitRate}" || "${oldBitRate}" == 'N/A' ]]; then
     oldBitRate="$(getValue 'bit_rate' "${stream}")"
   fi
@@ -1149,18 +1189,19 @@ getAudioBitRateFromStream() {
 
 getVideoLevelFromStream() {
   local stream="${1}"
-
   local codec=''
-  local oldLevel="$(getMetadata "${metadataVideoLevel}" "${stream}")"
+  local oldLevel=''
+
+  oldLevel="$(getMetadata "${metadataVideoLevel}" "${stream}")"
   if [[ -z "${oldLevel}" ]]; then
     codec="$(normalizeVideoCodec "$(getCodecFromStream "${stream}")")"
     oldLevel="$(getValue 'level' "${stream}")"
     if [[ -z "${oldLevel}" ]]; then
       if [[ "${codec}" == 'hevc' ]]; then
-        if [[ "${oldLevel}" -ge 241 && "$(( "${oldLevel}" % 6 ))" -eq 1 ]]; then
-          oldLevel="$(( ("${oldLevel}" - 1) / 6 ))"
-        elif [[ "${oldLevel}" -ge 30  && "$(( "${oldLevel}" % 3 ))" -eq 0 ]]; then
-          oldLevel="$(( "${oldLevel}" / 3 ))"
+        if [[ "${oldLevel}" -ge 241 && "$(("${oldLevel}" % 6))" -eq 1 ]]; then
+          oldLevel="$((("${oldLevel}" - 1) / 6))"
+        elif [[ "${oldLevel}" -ge 30 && "$(("${oldLevel}" % 3))" -eq 0 ]]; then
+          oldLevel="$(("${oldLevel}" / 3))"
         fi
       fi
     fi
@@ -1171,8 +1212,9 @@ getVideoLevelFromStream() {
 
 getVideoPixelFormatFromStream() {
   local stream="${1}"
+  local oldFormat=''
 
-  local oldFormat="$(getMetadata "${metadataVideoPixelFormat}" "${stream}")"
+  oldFormat="$(getMetadata "${metadataVideoPixelFormat}" "${stream}")"
   if [[ -z "${oldFormat}" ]]; then
     oldFormat="$(getValue 'pix_fmt' "${stream}")"
   fi
@@ -1182,8 +1224,9 @@ getVideoPixelFormatFromStream() {
 
 getVideoFrameRateFromStream() {
   local stream="${1}"
+  local oldRate=''
 
-  local oldRate="$(getMetadata "${metadataVideoFrameRate}" "${stream}")"
+  oldRate="$(getMetadata "${metadataVideoFrameRate}" "${stream}")"
   if [[ -z "${oldRate}" ]]; then
     oldRate="$(getValue 'r_frame_rate' "${stream}")"
   fi
@@ -1193,16 +1236,17 @@ getVideoFrameRateFromStream() {
 
 getVideoProfileFromStream() {
   local stream="${1}"
-
   local codec=''
-  local oldProfile="$(getMetadata "${metadataVideoProfile}" "${stream}")"
+  local oldProfile=''
+
+  oldProfile="$(getMetadata "${metadataVideoProfile}" "${stream}")"
   if [[ -z "${oldProfile}" ]]; then
     codec="$(normalizeVideoCodec "$(getCodecFromStream "${stream}")")"
     if [[ "${codec}" == 'hevc' ]]; then
       oldProfile="$(getValue 'level' "${stream}")"
-      if [[ "${oldProfile}" -ge 241 && "$(( "${oldProfile}" % 6 ))" -eq 1 ]]; then
+      if [[ "${oldProfile}" -ge 241 && "$(("${oldProfile}" % 6))" -eq 1 ]]; then
         oldProfile='high'
-      elif [[ "${oldProfile}" -ge 30  && "$(( "${oldProfile}" % 3 ))" -eq 0 ]]; then
+      elif [[ "${oldProfile}" -ge 30 && "$(("${oldProfile}" % 3))" -eq 0 ]]; then
         oldProfile='main'
       else
         oldProfile=''
@@ -1217,13 +1261,32 @@ getVideoProfileFromStream() {
   echo "${oldProfile}"
 }
 
-getLanguage() {
-  local fileName="${1}"
+getTitle() {
+  local extras="${1}"
   local stream="${2}"
-  local language="$(getMetadata "${metadataLanguage}" "${stream}")"
+  local title=''
+
+  title="$(getMetadata "${metadataTitle}" "${stream}")"
+  if [[ -z "${title}" ]]; then
+    IFS=$'\n'
+    for title in $(echo "${extras}" | sed 's/\./\n/g'); do
+      if [[ "$(normalizeLanguage "${title}")" == 'unknown' ]]; then
+        break
+      fi
+    done
+  fi
+  echo "${title}"
+}
+
+getLanguage() {
+  local extras="${1}"
+  local stream="${2}"
+  local language=''
+
+  language="$(getMetadata "${metadataLanguage}" "${stream}")"
   if [[ -z "${language}" ]]; then
     IFS=$'\n'
-    for language in $(echo "${fileName}" | sed 's/\./\n/g'); do
+    for language in $(echo "${extras}" | sed 's/\./\n/g'); do
       language="$(normalizeLanguage "${language}")"
       if [[ "${language}" != 'unknown' ]]; then
         break
@@ -1233,25 +1296,47 @@ getLanguage() {
   echo "${language}"
 }
 
+isSupported() {
+  local mode="${1}"
+  local method="${2}"
+  local codec="${3}"
+  local normalizer="${4}"
+  local supportedList="${5}"
+
+  if [[ "${mode}" == 'convert' && "${method}" == 'convert' ]]; then
+    echo 'true'
+  elif [[ "${mode}" == 'convert' && "${method}" == 'export' ]]; then
+    if [[ "$(doesListContain "${codec}" "${supportedList}" ',' "${normalizer}")" == 'true' ]]; then
+      echo 'true'
+    fi
+  elif [[ "${mode}" == 'export' && "${method}" == 'export' ]]; then
+    if [[ "$(doesListContain "${codec}" "${supportedList}" ',' "${normalizer}")" != 'true' ]]; then
+      echo 'true'
+    fi
+  elif [[ "${mode}" == 'convert' && "${method}" == 'delete' ]]; then
+    if [[ "$(doesListContain "${codec}" "${supportedList}" ',' "${normalizer}")" == 'true' ]]; then
+      echo 'true'
+    fi
+  fi
+}
+
 getInputFiles() {
   local inputFile="${1}"
-  local inputDirectory="$(getDirectory "${inputFile}")"
-  local inputFileName="$(getFileName "${inputFile}")"
-
+  local inputDirectory=''
+  local inputFileName=''
   local fileExt=''
   local fileName=''
+
+  inputDirectory="$(getDirectory "${inputFile}")"
+  inputFileName="$(getFileName "${inputFile}")"
 
   echo "${inputFile}"
   IFS=$'\n'
   for fileExt in $(echo "${audioExtension}" | sed 's/,/\n/g'); do
-    for fileName in $(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}"); do
-      echo "${fileName}"
-    done
+    echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
   done
   for fileExt in $(echo "${subtitleExtension}" | sed 's/,/\n/g'); do
-    for fileName in $(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}"); do
-      echo "${fileName}"
-    done
+    echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
   done
 }
 
@@ -1261,17 +1346,20 @@ getInputFiles() {
 
 getChapterSettings() {
   local inputFile="${1}"
-
+  local mode="${2}"
   local chapterEncoding=''
-  local chapterList="$(ffprobe "${inputFile}" -loglevel error -show_chapters)"
-  local chapterCount="$(echo "${chapterList}" | grep -o '\[CHAPTER\]' | wc -l)"
+  local chapterList=''
+  local chapterCount=''
   local probeResult=''
   local chapter=0
   local oldTitle=''
 
-  if [[ "${chapterCount}" -gt 0 ]]; then
+  chapterList="$(ffprobe "${inputFile}" -loglevel error -show_chapters)"
+  chapterCount="$(echo "${chapterList}" | grep -o '\[CHAPTER\]' | wc -l)"
+
+  if [[ "${mode}" == 'convert' && "${chapterCount}" -gt 0 ]]; then
     chapterEncoding="${chapterEncoding} -map_chapters 0"
-    for chapter in $(seq 0 1 ${chapterCount}); do
+    for chapter in $(seq 0 1 "${chapterCount}"); do
       probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((${chapter} + 1)){print;}")"
       oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 
@@ -1285,16 +1373,23 @@ getChapterSettings() {
 
 getAudioEncodingSettings() {
   local baseFile="${1}"
-  local allFiles="$(getInputFiles "${baseFile}")"
-  local fileCount='0'
-  local index='0'
+  local mode="${2}"
+  local baseName=''
+  local allFiles=''
+  local fileCount=0
+  local index=0
   local inputFile=''
+
+  baseName="$(getFileName "${baseFile}")"
+  allFiles="$(getInputFiles "${baseFile}")"
 
   IFS=$'\n'
   for inputFile in ${allFiles}; do
-    local audioEncoding=""
-    local streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams a)"
-    local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+    local inputFileName=''
+    local inputExtras=''
+    local audioEncoding=''
+    local streamList=''
+    local streamCount=''
     local probeResult=''
     local stream=0
     local duration=''
@@ -1306,9 +1401,13 @@ getAudioEncodingSettings() {
     local newCodec=''
     local newChannelCount=''
     local newBitRate=''
-    local wantedBitRate=''
     local normalizedOldCodecName=''
     local normalizedNewCodecName=''
+
+    inputFileName="$(getFileName "${inputFile}")"
+    inputExtras="${inputFileName#"${baseName}"}"
+    streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams a)"
+    streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
 
     for stream in $(seq 0 1 $((${streamCount} - 1))); do
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
@@ -1316,33 +1415,20 @@ getAudioEncodingSettings() {
       newChannelCount='2'
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
-      oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
-      oldLanguage="$(getLanguage "${inputFileName}" "${probeResult}")"
+      oldTitle="$(getTitle "${inputExtras}" "${probeResult}")"
+      oldLanguage="$(getLanguage "${inputExtras}" "${probeResult}")"
       oldChannelCount="$(getValue 'channels' "${probeResult}")"
       if [[ -z "${oldChannelCount}" ]]; then
         oldChannelCount='2'
       fi
       oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
 
-      if [[ "${audioUpdateMethod}" == 'strip' && "$(doesContain "$(normalizeAudioCodec "${oldCodec}")" "$(forEach "${audioCodec}" ',' 'normalizeAudioCodec')" ',')" != 'true' ]]; then
-        oldCodec=''
-      fi
-
-      if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
+      if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
+       "$(isSupported "${mode}" "${audioUpdateMethod}" "${oldCodec}" 'normalizeAudioCodec' "${audioCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeAudioCodec "${oldCodec}")"
-
-        IFS=$'\n'
-        for newCodec in $(echo "${audioCodec}" | sed 's/,/\n/g'); do
-          normalizedNewCodecName="$(normalizeAudioCodec "${newCodec}")"
-          if [[ "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
-            break
-          fi
-        done
-
-        if [[ "${normalizedOldCodecName}" != "${normalizedNewCodecName}" ]]; then
-          newCodec="$(getFirst "${audioCodec}" ',')"
-          normalizedNewCodecName="$(normalizeAudioCodec "${newCodec}")"
-        fi
+        newCodec="$(getListFirstValue "${audioCodec}" ',')"
+        newCodec="$(getListFirstMatch "${oldCodec}" "${audioCodec}" ',' 'normalizeAudioCodec' "${newCodec}")"
+        normalizedNewCodecName="$(normalizeAudioCodec "${newCodec}")"
 
         if [[ "${newChannelCount}" != "${oldChannelCount}" ]]; then
           newChannelCount="${oldChannelCount}"
@@ -1386,15 +1472,20 @@ getAudioEncodingSettings() {
 }
 
 getVideoEncodingSettings() {
+  local baseFile="${1}"
+  local mode="${2}"
+  local baseName=''
   local fileCount='0'
   local index='0'
 
-  local inputFile="${1}"
-  local inputFileName="$(getFileName "${inputFile}")"
+  baseName="$(getFileName "${baseFile}")"
 
-  local videoEncoding=""
-  local streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams v)"
-  local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+  local inputFile="${baseFile}"
+  local inputFileName=''
+  local inputExtras=''
+  local videoEncoding=''
+  local streamList=''
+  local streamCount=''
   local probeResult=''
   local stream=0
   local newCodec=''
@@ -1406,7 +1497,6 @@ getVideoEncodingSettings() {
   local newQuality=''
   local newTune=''
   local newPresetComplexity=''
-  local newProfileComplexity=''
   local duration=''
   local oldTitle=''
   local oldLanguage=''
@@ -1419,7 +1509,6 @@ getVideoEncodingSettings() {
   local oldQuality=''
   local oldTune=''
   local oldPresetComplexity=''
-  local oldProfileComplexity=''
   local normalizedOldCodecName=''
   local normalizedNewCodecName=''
   local normalizedOldVideoProfile=''
@@ -1428,6 +1517,11 @@ getVideoEncodingSettings() {
   local normalizedNewFrameRate=''
   local additionalParameters=''
   local index='0'
+
+  inputFileName="${baseName}"
+  inputExtras="${inputFileName#"${baseName}"}"
+  streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams v)"
+  streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
 
   for stream in $(seq 0 1 $((${streamCount} - 1))); do
     probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
@@ -1441,8 +1535,8 @@ getVideoEncodingSettings() {
     newTune="${videoTune}"
     oldCodec="$(getCodecFromStream "${probeResult}")"
     duration="$(getMetadata 'DURATION' "${probeResult}")"
-    oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
-    oldLanguage="$(getLanguage "${inputFileName}" "${probeResult}")"
+    oldTitle="$(getTitle "${inputExtras}" "${probeResult}")"
+    oldLanguage="$(getLanguage "${inputExtras}" "${probeResult}")"
     oldLevel="$(getVideoLevelFromStream "${probeResult}")"
     oldPixelFormat="$(getVideoPixelFormatFromStream "${probeResult}")"
     oldFrameRate="$(getVideoFrameRateFromStream "${probeResult}")"
@@ -1454,36 +1548,22 @@ getVideoEncodingSettings() {
     # Calculated Values
     normalizedOldFrameRate="$(normalizeFrameRate "${oldFrameRate}")"
     normalizedNewFrameRate="$(normalizeFrameRate "${newFrameRate}")"
-    normalizedOldVideoProfile="$(normalizeVideoProfileComplexity "${oldProfile}")"
-    normalizedNewVideoProfile="$(normalizeVideoProfileComplexity "${newProfile}")"
     oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
     newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
-    oldProfileComplexity="$(getProfileComplexityOrder "${normalizedOldVideoProfile}")"
-    newProfileComplexity="$(getProfileComplexityOrder "${normalizedNewVideoProfile}")"
 
-    if [[ "${videoUpdateMethod}" == 'strip' && "$(doesContain "$(normalizeVideoCodec "${oldCodec}")" "$(forEach "${videoCodec}" ',' 'normalizeVideoCodec')" ',')" != 'true' ]]; then
-      oldCodec=''
-    fi
-
-    if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
+    if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
+     "$(isSupported "${mode}" "${videoUpdateMethod}" "${oldCodec}" 'normalizeVideoCodec' "${videoCodec}")" == 'true' ]]; then
       normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
-
-      IFS=$'\n'
-      for newCodec in $(echo "${videoCodec}" | sed 's/,/\n/g'); do
-        normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
-        if [[ "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
-          break
-        fi
-      done
-
-      if [[ "${normalizedOldCodecName}" != "${normalizedNewCodecName}" ]]; then
-        newCodec="$(getFirst "${videoCodec}" ',')"
-        normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
-      fi
+      newCodec="$(getListFirstValue "${videoCodec}" ',')"
+      newCodec="$(getListFirstMatch "${oldCodec}" "${videoCodec}" ',' 'normalizeVideoCodec' "${newCodec}")"
+      normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
 
       if [[ -z "${newProfile}" || "${newProfile,,}" == "copy" ]]; then
         newProfile="${oldProfile}"
       fi
+      normalizedOldVideoProfile="$(normalizeVideoProfileComplexity "${oldProfile}")"
+      normalizedNewVideoProfile="$(normalizeVideoProfileComplexity "${newProfile}")"
+
       if [[ -z "${newLevel}" || "${newLevel}" == 'copy' ]]; then
         newLevel="${oldLevel}"
       elif [[ -n "${oldLevel}" && "${oldLevel}" -ge '10' && "${newLevel}" -gt "${oldLevel}" ]]; then
@@ -1491,7 +1571,7 @@ getVideoEncodingSettings() {
       fi
       if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
         newPixelFormat="${oldPixelFormat}"
-      elif [[ -n "$(echo "${newPixelFormat}" | grep -o ',')" ]]; then
+      elif echo "${newPixelFormat}" | grep -q ','; then
         newPixelFormat="$(findPixelFormat "${oldPixelFormat}" "${newPixelFormat}")"
       fi
       if [[ -z "${oldQuality}" ]]; then
@@ -1583,14 +1663,14 @@ getVideoEncodingSettings() {
       fi
       if [[ "${streamCount}" -gt 1 ]]; then
         if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataTitle}=${oldTitle}'"
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=${oldTitle}'"
         elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataLanguage}=${oldLanguage}'"
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataLanguage}=${oldLanguage}'"
         elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
       fi
       index="$(("${index}" + 1))"
@@ -1601,65 +1681,51 @@ getVideoEncodingSettings() {
 
 getSubtitleEncodingSettings() {
   local baseFile="${1}"
-  local allFiles="$(getInputFiles "${baseFile}")"
+  local mode="${2}"
+  local baseName=''
+  local allFiles=''
   local fileCount='0'
   local index='0'
   local inputFile=''
 
+  baseName="$(getFileName "${baseFile}")"
+  allFiles="$(getInputFiles "${baseFile}")"
+
   IFS=$'\n'
   for inputFile in ${allFiles}; do
-    local inputFileName="$(getFileName "${inputFile}")"
-    local subtitleEncoding=""
-    local streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams s)"
-    local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+    local inputFileName=''
+    local inputExtras=''
+    local subtitleEncoding=''
+    local streamList=''
+    local streamCount=''
     local probeResult=''
     local stream=0
     local duration=''
     local oldTitle=''
     local oldLanguage=''
     local oldCodec=''
-    local oldCodecType=''
     local newCodec=''
-    local newCodecType=''
     local normalizedOldCodecName=''
     local normalizedNewCodecName=''
+
+    inputFileName="$(getFileName "${inputFile}")"
+    inputExtras="${inputFileName#"${baseName}"}"
+    streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams s)"
+    streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
 
     for stream in $(seq 0 1 $((${streamCount} - 1))); do
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
-      oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
-      oldLanguage="$(getLanguage "${inputFileName}" "${probeResult}")"
+      oldTitle="$(getTitle "${inputExtras}" "${probeResult}")"
+      oldLanguage="$(getLanguage "${inputExtras}" "${probeResult}")"
 
-      if [[ "${subtitlesUpdateMethod}" == 'strip' && "$(doesContain "$(normalizeSubtitleCodec "${oldCodec}")" "$(forEach "${newCodec}" ',' 'normalizeSubtitleCodec')" ',')" != 'true' ]]; then
-        oldCodec=''
-      fi
-
-      if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' ]]; then
+      if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
+       "$(isSupported "${mode}" "${subtitlesUpdateMethod}" "${oldCodec}" 'normalizeSubtitleCodec' "${subtitleCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
-
-        IFS=$'\n'
-        for newCodec in $(echo "${subtitleCodec}" | sed 's/,/\n/g'); do
-          normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
-          if [[ "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
-            break
-          fi
-        done
-
-        if [[ "${normalizedOldCodecName}" != "${normalizedNewCodecName}" ]]; then
-          oldCodecType="$(getSubtitleEncodingType "${normalizedOldCodecName}")"
-          for newCodec in $(echo "${subtitleCodec}" | sed 's/,/\n/g'); do
-            normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
-            newCodecType="$(getSubtitleEncodingType "${normalizedNewCodecName}")"
-            if [[ "${oldCodecType}" == "${newCodecType}" ]]; then
-              break
-            fi
-          done
-        fi
-
-        if [[ "${oldCodecType}" != "${newCodecType}" ]]; then
-          newCodec='copy'
-        fi
+        newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'getSubtitleEncodingType' 'copy')"
+        newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'normalizeSubtitleCodec' "${newCodec}")"
+        normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
 
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] || [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
@@ -1669,14 +1735,14 @@ getSubtitleEncodingSettings() {
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
         fi
         if [[ -n "${oldTitle}" && "${oldTitle}" != "$(normalizeLanguageFullName "${oldTitle}")" ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
         elif [[ "$(normalizeLanguageFullName "${oldLanguage}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}") ($(getChannelNaming "${oldChannelCount}"))'"
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguageFullName "${oldLanguage}")'"
         fi
         if [[ -n "${oldLanguage}" ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
         elif [[ "$(normalizeLanguage "${oldTitle}")" != 'unknown' ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=$(normalizeLanguage "${oldTitle}")'"
         fi
         index="$(("${index}" + 1))"
       fi
@@ -1691,13 +1757,16 @@ assembleArguments() {
   local inputFile="${1}"
   local outputFile="${2}"
   local arguments=''
-
-  local chapterArguments="$(getChapterSettings "${inputFile}")"
-  local videoArguments="$(getVideoEncodingSettings "${inputFile}")"
-  local audioArguments="$(getAudioEncodingSettings "${inputFile}")"
-  local subtitleArguments="$(getSubtitleEncodingSettings "${inputFile}")"
-
+  local chapterArguments=''
+  local videoArguments=''
+  local audioArguments=''
+  local subtitleArguments=''
   local fileFromList=''
+
+  chapterArguments="$(getChapterSettings "${inputFile}" 'convert')"
+  videoArguments="$(getVideoEncodingSettings "${inputFile}" 'convert')"
+  audioArguments="$(getAudioEncodingSettings "${inputFile}" 'convert')"
+  subtitleArguments="$(getSubtitleEncodingSettings "${inputFile}" 'convert')"
 
   IFS=$'\n'
   for fileFromList in $(getInputFiles "${inputFile}"); do
@@ -1712,14 +1781,16 @@ assembleArguments() {
 hasChanges() {
   local runnable="${1}"
   local inputFile="${2}"
+  local streamList=''
+  local streamCount=''
 
   if [[ -n "$(echo "${runnable}" | gawk 'match($0, /^.*(-codec:[vas]:[0-9]+[[:space:]]+([^c]|c[^o]|co[^p]|cop[^y]|copy[^[:space:]])).*$/, m) { print m[1]; }')" ]]; then
     echo 'true'
   elif [[ "$(echo "${runnable}" | grep -o "[[:blank:]]-i[[:blank:]]'[^']*'" | wc -l)" -gt 1 ]]; then
     echo 'true'
   else
-    local streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams)"
-    local streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+    streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams)"
+    streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
     if [[ "$(echo "${runnable}" | grep -o ' -codec:[vas]:[0-9]* ' | wc -l)" -ne "${streamCount}" ]]; then
       echo 'true'
     else
@@ -1736,8 +1807,9 @@ convert() {
   local inputFile="${1}"
   local outputFile="${2}"
   local pid="${3}"
+  local runnable=''
 
-  local runnable="ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
+  runnable="ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
 
   debug "${runnable}"
   if [[ "${runnable}" =~ .*-codec:v:0.* ]]; then
@@ -1767,11 +1839,16 @@ convertFile() {
   local outputFile="${3}"
   local pid="${4}"
 
-  local mod="$(stat --format '%a' "${inputFile}")"
-  local owner="$(ls -al "${inputFile}" | awk '{print $3}')"
-  local group="$(ls -al "${inputFile}" | awk '{print $4}')"
-  local originalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
+  local mod=''
+  local owner=''
+  local group=''
+  local originalSize=''
   local finalSize=''
+
+  mod="$(stat --format '%a' "${inputFile}")"
+  owner="$(ls -al "${inputFile}" | awk '{print $3}')"
+  group="$(ls -al "${inputFile}" | awk '{print $4}')"
+  originalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
 
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
@@ -1821,21 +1898,30 @@ convertFile() {
 }
 
 convertAll() {
-  local inputDirectory="$(normalizeDirectory "${1}")"
-  local tmpDirectory="$(normalizeDirectory "${2}")"
-  local outputDirectory="$(normalizeDirectory "${3}")"
+  local inputDirectory="${1}"
+  local tmpDirectory="${2}"
+  local outputDirectory="${3}"
   local pid="${4}"
-  local inputDirectoryLength="$(echo "${inputDirectory}" | wc -c)"
+  local inputDirectoryLength=''
   local currentDirectory=''
   local currentFileName=''
   local currentExt=''
   local tmpFile=''
   local outputFile=''
   local inputFile=''
-  local sortingType="$(if [[ "${sortBy^^}" =~ ^.*'DATE'$ ]]; then echo '%T@ %p\n'; else echo '%s %p\n'; fi)"
-  local sortingOrder="$(if [[ "${sortBy^^}" =~ ^'REVERSE'.*$ ]]; then echo ' -n'; else echo '-rn'; fi)"
-  local allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort ${sortingOrder} | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
-  local fileCount="$(echo "${allInputFiles}" | wc -l)"
+  local sortingType=''
+  local sortingOrder=''
+  local allInputFiles=''
+  local fileCount=''
+
+  inputDirectory="$(normalizeDirectory "${inputDirectory}")"
+  tmpDirectory="$(normalizeDirectory "${tmpDirectory}")"
+  outputDirectory="$(normalizeDirectory "${outputDirectory}")"
+  inputDirectoryLength="$(("${#inputDirectory}" + 1))"
+  sortingType="$(if [[ "${sortBy^^}" =~ ^.*'DATE'$ ]]; then echo '%T@ %p\n'; else echo '%s %p\n'; fi)"
+  sortingOrder="$(if [[ "${sortBy^^}" =~ ^'REVERSE'.*$ ]]; then echo ' -n'; else echo '-rn'; fi)"
+  allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort ${sortingOrder} | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
+  fileCount="$(echo "${allInputFiles}" | wc -l)"
 
   info "Processing ${fileCount} file"
   IFS=$'\n'
@@ -1883,17 +1969,17 @@ startLocal() {
     echo "Starting On Local Process"
     pid="$$"
     if [[ -n "${pidLocation}" ]]; then
-      echo "${pid}" > "${pidLocation}"
+      echo "${pid}" >"${pidLocation}"
     fi
     if [[ -n "${logFile}" ]]; then
-      info "$(getCommand "$command")" >> "${logFile}"
+      info "$(getCommand "$command")" >>"${logFile}"
     else
       info "$(getCommand "$command")"
     fi
     mkdir -p "${tmpDirectory}/${pid}"
 
     if [[ -n "${logFile}" ]]; then
-      convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" >> "${logFile}"
+      convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" >>"${logFile}"
     else
       convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}"
     fi
@@ -1901,8 +1987,6 @@ startLocal() {
 }
 
 startDaemon() {
-  local var=''
-
   if [[ "$(isRunning)" == "true" ]]; then
     echo "Daemon is already running"
   else
@@ -1933,7 +2017,7 @@ isRunning() {
   if [[ -z "${pidLocation}" ]]; then
     echo 'unknown'
   elif [[ -f "${pidLocation}" ]]; then
-    pid="$(getFirst "$(cat "${pidLocation}")" '')"
+    pid="$(getListFirstValue "$(cat "${pidLocation}")" '')"
     if [[ "$(isPidRunning "${pid}")" == 'true' ]]; then
       echo 'true'
     else
@@ -1947,7 +2031,7 @@ isRunning() {
 
 stopProcess() {
   if [[ "$(isRunning)" == "true" ]]; then
-    echo "-1" >> "${pidLocation}"
+    echo "-1" >>"${pidLocation}"
     echo "Stop signal has been sent to the process"
   else
     echo "Daemon is not running"
@@ -1973,12 +2057,12 @@ runCommand() {
   elif [[ "${command::6}" == "output" ]]; then
     local level="${command:6}"
     case "${level}" in
-      -error) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR)\].*' | tail -n 1000)" ;;
-      -warn) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN)\].*' | tail -n 1000)" ;;
-      -info) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN|INFO)\].*' | tail -n 1000)" ;;
-      -debug) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN|INFO|DEBUG)\].*' | tail -n 1000)" ;;
-      -trace) echo "$(cat "${logFile}" | egrep -o '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' | tail -n 1000)" ;;
-      -all) echo "$(cat "${logFile}" | tail -n 1000)" ;;
+      -error) echo "$(grep -E '.*\[(ERROR)\].*' "${logFile}" | tail -n 1000)" ;;
+      -warn) echo "$(grep -E '.*\[(ERROR|WARN)\].*' "${logFile}" | tail -n 1000)" ;;
+      -info) echo "$(grep -E '.*\[(ERROR|WARN|INFO)\].*' "${logFile}" | tail -n 1000)" ;;
+      -debug) echo "$(grep -E '.*\[(ERROR|WARN|INFO|DEBUG)\].*' "${logFile}" | tail -n 1000)" ;;
+      -trace) echo "$(grep -E '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' "${logFile}" | tail -n 1000)" ;;
+      -all) echo "$(tail -n 1000 "${logFile}")" ;;
     esac
   elif [[ "${command}" == "stop" ]]; then
     info "$(getCommand "${command}")"
