@@ -23,7 +23,7 @@ audioExportExtension='.audio'
 videoCodec='libx265'        # libx264, libx265
 videoUpdateMethod='convert' # convert, export, delete
 videoPreset='fast'          # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
-videoProfile='main'         # For x264 baseline, main, high | For x265 main, high
+videoProfile='high'         # For x264 baseline, main, high | For x265 main, high
 videoPixelFormat='yuv420p,yuv420p10le'
 videoPixelFormatExclusionOrder='depth,channel,compression,bit,format'
 videoPixelFormatPreferenceOrder='depth,channel,compression,bit,format'
@@ -336,7 +336,7 @@ getListFirstMatch() {
     fi
   done
 
-  if [[ "${value}" == "${listValue}" ]]; then
+  if [[ "${normalValue}" == "${listValue}" ]]; then
     echo "${value}"
   else
     echo "${default}"
@@ -1137,7 +1137,17 @@ getProfileValue() {
     fi
   elif [[ "${encoder}" == 'h264' ]]; then
     if [[ "${profile}" == 'high' ]]; then
-      echo 'high'
+      if [[ "${colorCompression}" -ge 444 ]]; then
+        echo 'high444'
+      elif [[ "${colorCompression}" -ge 422 ]]; then
+        echo 'high422'
+      elif [[ "${colorDepth}" -le 8 ]]; then
+        echo 'high'
+      elif [[ "${colorDepth}" -le 10 ]]; then
+        echo 'high10'
+      else
+        echo 'high'
+      fi
     elif [[ "${profile}" == 'main' ]]; then
       echo 'main'
     else
