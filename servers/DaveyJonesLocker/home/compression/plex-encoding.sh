@@ -557,6 +557,23 @@ normalizeLanguage() {
   esac
 }
 
+normalizeVideoLevel() {
+  local level="${1,,}"
+  if [[ -n "${level}" ]]; then
+    if [[ "${level}" == '1b' ]]; then
+      level='10'
+    elif [[ -n "$(echo "${level}" | grep '\.')" ]]; then
+      level="$(echo "${level}" | sed 's/\.//')"
+    elif [[ "${level}" -lt 10 ]]; then
+      level="$(( "${level}" * 10 ))"
+    fi
+  fi
+
+  if [[ -n "${level}" && "${level}" -ge 10 ]]; then
+    echo "${level}"
+  fi
+}
+
 #-----------------
 # Value Transformation
 #-----------------
@@ -1039,7 +1056,7 @@ getProfileValue() {
   local colorCompression"$(getColorCompression "${3,,}")"
 
   if [[ "${encoder}" == 'hevc' ]]; then
-    if [[ "${profile}" == 'main' ]]; then
+    if [[ "${profile}" == 'main' || "${profile}" == 'high' ]]; then
       if [[ "${colorDepth}" -le 8 ]]; then
         if [[ "${colorCompression}" -ge 444 ]]; then
           echo 'main444-8'
@@ -1063,8 +1080,6 @@ getProfileValue() {
           echo 'main12'
         fi
       fi
-    elif [[ "${profile}" == 'high' ]]; then
-      echo 'high'
     else
       echo "${2,,}"
     fi
@@ -1135,21 +1150,23 @@ getAudioBitRateFromStream() {
 getVideoLevelFromStream() {
   local stream="${1}"
 
+  local codec=''
   local oldLevel="$(getMetadata "${metadataVideoLevel}" "${stream}")"
   if [[ -z "${oldLevel}" ]]; then
+    codec="$(normalizeVideoCodec "$(getCodecFromStream "${stream}")")"
     oldLevel="$(getValue 'level' "${stream}")"
-  fi
-
-  # Not sure why 3, but wc -c is off by 1
-  if [[ -z "$(echo "${oldLevel}" | grep '\.')" ]]; then
-    if [[ "${oldLevel}" -ge 10 ]]; then
-      oldLevel="${oldLevel::-1}.${oldLevel: -1}"
-    elif [[ "${oldLevel}" -ge 1 ]]; then
-      oldLevel="0.${oldLevel}"
+    if [[ -z "${oldLevel}" ]]; then
+      if [[ "${codec}" == 'hevc' ]]; then
+        if [[ "${oldLevel}" -ge 241 && "$(( "${oldLevel}" % 6 ))" -eq 1 ]]; then
+          oldLevel="$(( ("${oldLevel}" - 1) / 6 ))"
+        elif [[ "${oldLevel}" -ge 30  && "$(( "${oldLevel}" % 3 ))" -eq 0 ]]; then
+          oldLevel="$(( "${oldLevel}" / 3 ))"
+        fi
+      fi
     fi
   fi
 
-  echo "${oldLevel}"
+  echo "$(normalizeVideoLevel "${oldLevel}")"
 }
 
 getVideoPixelFormatFromStream() {
@@ -1177,7 +1194,22 @@ getVideoFrameRateFromStream() {
 getVideoProfileFromStream() {
   local stream="${1}"
 
+  local codec=''
   local oldProfile="$(getMetadata "${metadataVideoProfile}" "${stream}")"
+  if [[ -z "${oldProfile}" ]]; then
+    codec="$(normalizeVideoCodec "$(getCodecFromStream "${stream}")")"
+    if [[ "${codec}" == 'hevc' ]]; then
+      oldProfile="$(getValue 'level' "${stream}")"
+      if [[ "${oldProfile}" -ge 241 && "$(( "${oldProfile}" % 6 ))" -eq 1 ]]; then
+        oldProfile='high'
+      elif [[ "${oldProfile}" -ge 30  && "$(( "${oldProfile}" % 3 ))" -eq 0 ]]; then
+        oldProfile='main'
+      else
+        oldProfile=''
+      fi
+    fi
+  fi
+
   if [[ -z "${oldProfile}" ]]; then
     oldProfile="$(getValue 'profile' "${stream}")"
   fi
@@ -1394,12 +1426,13 @@ getVideoEncodingSettings() {
   local normalizedNewVideoProfile=''
   local normalizedOldFrameRate=''
   local normalizedNewFrameRate=''
+  local additionalParameters=''
   local index='0'
 
   for stream in $(seq 0 1 $((${streamCount} - 1))); do
     probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
     newCodec=''
-    newLevel="${videoLevel}"
+    newLevel="$(normalizeVideoLevel "${videoLevel}")"
     newPixelFormat="${videoPixelFormat}"
     newFrameRate="${videoFrameRate}"
     newPreset="${videoPreset}"
@@ -1453,7 +1486,7 @@ getVideoEncodingSettings() {
       fi
       if [[ -z "${newLevel}" || "${newLevel}" == 'copy' ]]; then
         newLevel="${oldLevel}"
-      elif [[ -n "${oldLevel}" && "${oldLevel}" != '0' && "$(echo "${oldLevel}" | sed 's/\.//')" -gt '10' && "$(echo "${newLevel}" | sed 's/\.//')" -gt "$(echo "${oldLevel}" | sed 's/\.//')" ]]; then
+      elif [[ -n "${oldLevel}" && "${oldLevel}" -ge '10' && "${newLevel}" -gt "${oldLevel}" ]]; then
         newLevel="${oldLevel}"
       fi
       if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
@@ -1486,7 +1519,7 @@ getVideoEncodingSettings() {
         videoEncoding="${videoEncoding} -map ${fileCount}:v:${stream}"
         videoEncoding="${videoEncoding} -codec:v:${index} copy -metadata:s:v:${index} '${metadataCodecName}=${oldCodec}'"
         if [[ -n "${oldLevel}" ]]; then
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataVideoLevel}=${oldLevel}'"
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataVideoLevel}=${oldLevel::-1}.${oldLevel: -1}'"
         fi
         if [[ -n "${oldPixelFormat}" ]]; then
           videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataVideoPixelFormat}=${oldPixelFormat}'"
@@ -1507,10 +1540,16 @@ getVideoEncodingSettings() {
           videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataVideoTune}=${oldTune}'"
         fi
       else
+        additionalParameters=''
         videoEncoding="${videoEncoding} -map ${fileCount}:v:${stream}"
         videoEncoding="${videoEncoding} -codec:v:${index} ${newCodec} -metadata:s:v:${index} '${metadataCodecName}=${newCodec}'"
         if [[ -n "${newLevel}" ]]; then
-          videoEncoding="${videoEncoding} -level:v:${index} ${newLevel} -metadata:s:v:${index} '${metadataVideoLevel}=${newLevel}'"
+          if [[ "${normalizedNewCodecName}" == 'hevc' ]]; then
+            additionalParameters="${additionalParameters}:level-idc=${newLevel}"
+            videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataVideoLevel}=${newLevel::-1}.${newLevel: -1}'"
+          else
+            videoEncoding="${videoEncoding} -level:v:${index} ${newLevel} -metadata:s:v:${index} '${metadataVideoLevel}=${newLevel::-1}.${newLevel: -1}'"
+          fi
         fi
         if [[ -n "${newPixelFormat}" ]]; then
           videoEncoding="${videoEncoding} -pix_fmt:v:${index} ${newPixelFormat} -metadata:s:v:${index} '${metadataVideoPixelFormat}=${newPixelFormat}'"
@@ -1520,7 +1559,7 @@ getVideoEncodingSettings() {
             videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataVideoFrameRate}=${normalizedOldFrameRate}'"
           fi
         elif [[ -n "${normalizedNewFrameRate}" ]]; then
-          videoEncoding="${videoEncoding} -vf:v:${index} 'fps=fps=${normalizedNewFrameRate}:round=near' -metadata:s:v:${index} '${metadataVideoFrameRate}=${normalizedNewFrameRate}'"
+          videoEncoding="${videoEncoding} -filter:v:${index} 'fps=fps=${normalizedNewFrameRate}:round=near' -metadata:s:v:${index} '${metadataVideoFrameRate}=${normalizedNewFrameRate}'"
         fi
         if [[ -n "${newPreset}" ]]; then
           videoEncoding="${videoEncoding} -preset:v:${index} ${newPreset} -metadata:s:v:${index} '${metadataVideoPreset}=${newPreset}'"
@@ -1533,6 +1572,13 @@ getVideoEncodingSettings() {
         fi
         if [[ -n "${newTune}" ]]; then
           videoEncoding="${videoEncoding} -tune:v:${index} ${newTune} -metadata:s:v:${index} '${metadataVideoTune}=${newTune}'"
+        fi
+        if [[ -n "${additionalParameters}" ]]; then
+          if [[ "${normalizedNewCodecName}" == 'hevc' ]]; then
+            videoEncoding="${videoEncoding} -x265-params:v:${index} '${additionalParameters:1}'"
+          elif [[ "${normalizedNewCodecName}" == 'h264' ]]; then
+            videoEncoding="${videoEncoding} -x264-params:v:${index} '${additionalParameters:1}'"
+          fi
         fi
       fi
       if [[ "${streamCount}" -gt 1 ]]; then
