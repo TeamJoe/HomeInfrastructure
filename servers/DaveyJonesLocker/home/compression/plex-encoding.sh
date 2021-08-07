@@ -71,6 +71,7 @@ allPixelFormats="$(ffmpeg -pix_fmts -loglevel error)"
 # Input Value Handling
 #-----------------
 
+passedParameters=''
 additionalParameters=''
 while true; do
   case "${1}" in
@@ -106,7 +107,7 @@ while true; do
     --video-rate) videoFrameRate="${2}"; shift 2 ;;
     --video-tune) videoTune="${2}"; shift 2 ;;
     --video-update) videoUpdateMethod="${2}"; shift 2 ;;
-    --) shift; additionalParameters="${additionalParameters} ${*}"; break ;;
+    --) shift; passedParameters="${*}"; break ;;
     *)
       if [[ "${#@}" -le 1 ]]; then
         break
@@ -156,7 +157,8 @@ getCommand() {
     "--video-quality '${videoQuality}'" \
     "--video-rate '${videoFrameRate}'" \
     "--video-tune '${videoTune}'" \
-    "--video-update '${videoUpdateMethod}'"
+    "--video-update '${videoUpdateMethod}'" \
+    "${additionalParameters[*]} -- ${passedParameters[*]}"
 }
 
 getUsage() {
