@@ -138,3 +138,95 @@ transmission() {
 	sudo -u transmission --shell /bin/bash /home/transmission/transmission.sh "$@"
 }
 
+#-----------------
+# RegEx Functions
+#-----------------
+
+regexFind() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | grep -oE "${regex}"
+  else
+    echo "${value}" | grep -oE "${regex}"
+  fi
+}
+
+regexFindMultiline() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | tr -d '\r' | tr '\n' '\r' | grep -oE "${regex}" | tr '\r' '\n'
+  else
+    echo "${value}" | tr -d '\r' | tr '\n' '\r' | grep -oE "${regex}" | tr '\r' '\n'
+  fi
+}
+
+regexCount() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    value="$(cat - | regexFind "${regex}")"
+  else
+    value="$(regexFind "${regex}" "${value}")"
+  fi
+
+  if [[ -n "${value}" ]]; then
+    echo "${value}" | wc -l
+  else
+    echo '0'
+  fi
+}
+
+regexCountMultiline() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    value="$(cat - | regexFindMultiline "${regex}")"
+  else
+    value="$(regexFindMultiline "${regex}" "${value}")"
+  fi
+
+  if [[ -n "${value}" ]]; then
+    echo "${value}" | wc -l
+  else
+    echo '0'
+  fi
+}
+
+regex() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | sed -E "${regex}"
+  else
+    echo "${value}" | sed -E "${regex}"
+  fi
+}
+
+regexMultiline() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | tr -d '\r' | tr '\n' '\r' | sed -E "${regex}" | tr '\r' '\n'
+  else
+    echo "${value}" | tr -d '\r' | tr '\n' '\r' | sed -E "${regex}" | tr '\r' '\n'
+  fi
+}
+
+trim() {
+  local trimChar="${1:-\s}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | regexMultiline "${regex}"
+  else
+    regexMultiline "s/(^${trimChar}*|${trimChar}*$)//g" "${value}"
+  fi
+}

@@ -503,6 +503,99 @@ doComparison() {
 }
 
 #-----------------
+# RegEx Functions
+#-----------------
+
+regexFind() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | grep -oE "${regex}"
+  else
+    echo "${value}" | grep -oE "${regex}"
+  fi
+}
+
+regexFindMultiline() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | tr -d '\r' | tr '\n' '\r' | grep -oE "${regex}" | tr '\r' '\n'
+  else
+    echo "${value}" | tr -d '\r' | tr '\n' '\r' | grep -oE "${regex}" | tr '\r' '\n'
+  fi
+}
+
+regexCount() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    value="$(cat - | regexFind "${regex}")"
+  else
+    value="$(regexFind "${regex}" "${value}")"
+  fi
+
+  if [[ -n "${value}" ]]; then
+    echo "${value}" | wc -l
+  else
+    echo '0'
+  fi
+}
+
+regexCountMultiline() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    value="$(cat - | regexFindMultiline "${regex}")"
+  else
+    value="$(regexFindMultiline "${regex}" "${value}")"
+  fi
+
+  if [[ -n "${value}" ]]; then
+    echo "${value}" | wc -l
+  else
+    echo '0'
+  fi
+}
+
+regex() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | sed -E "${regex}"
+  else
+    echo "${value}" | sed -E "${regex}"
+  fi
+}
+
+regexMultiline() {
+  local regex="${1}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | tr -d '\r' | tr '\n' '\r' | sed -E "${regex}" | tr '\r' '\n'
+  else
+    echo "${value}" | tr -d '\r' | tr '\n' '\r' | sed -E "${regex}" | tr '\r' '\n'
+  fi
+}
+
+trim() {
+  local trimChar="${1:-\s}"
+  local value="${2}"
+
+  if [[ -p /dev/stdin ]]; then
+    cat - | regexMultiline "${regex}"
+  else
+    regexMultiline "s/(^${trimChar}*|${trimChar}*$)//g" "${value}"
+  fi
+}
+
+#-----------------
 # Value Normalization
 #-----------------
 
@@ -568,8 +661,8 @@ normalizeFrameRate() {
     echo "source_fps"
   elif [[ "${frameRate: -2}" == '/1' || "${frameRate: -2}" == '.0' ]]; then
     echo "${frameRate::-2}"
-  elif echo "${frameRate}" | grep -q '/'4; then
-    fraction="$(divide "$(echo "${frameRate}" | sed 's/.*\///')" "$(echo "${frameRate}" | sed 's/\.*///')" '2' 'floor')"
+  elif [[ "$(regexCount '/' "${frameRate}")" -eq 1 ]]; then
+    fraction="$(divide "$(regex 's/.*\///' "${frameRate}")" "$(regex 's/\.*///' "${frameRate}")" '2' 'floor')"
     if [[ "${fraction}" == '29.96' || "${fraction}" == '29.97' || "${fraction}" == '29.98' ]]; then
       echo "ntsc"
     elif [[ "${fraction}" == '23.96' || "${fraction}" == '23.97' || "${fraction}" == '23.98' ]]; then
@@ -609,8 +702,8 @@ normalizeVideoLevel() {
   if [[ -n "${level}" ]]; then
     if [[ "${level}" == '1b' ]]; then
       level='10'
-    elif echo "${level}" | grep -q '\.'; then
-      level="$(echo "${level}" | sed 's/\.//')"
+    elif [[ "$(regexCount '\.' "${frameRate}")" -gt 0 ]]; then
+      level="$(regex 's/\.//' "${level}")"
     elif [[ "${level}" -lt 10 ]]; then
       level="$(("${level}" * 10))"
     fi
@@ -909,7 +1002,7 @@ getColorCompression() {
 getColorChannelCount() {
   local pixelFormat="${1,,}"
   local channel=''
-  channel="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $3}')"
+  channel="$(echo "${allPixelFormats}" | regexFind ".*\s${pixelFormat}\s.*" | awk '{print $3}')"
   if [[ -z "${channel}" ]]; then
     echo '-1'
   else
@@ -920,7 +1013,7 @@ getColorChannelCount() {
 getColorBitCount() {
   local pixelFormat="${1,,}"
   local bits=''
-  bits="$(echo "${allPixelFormats}" | grep " ${pixelFormat} " | awk '{print $4}')"
+  bits="$(echo "${allPixelFormats}" | regexFind ".*\s${pixelFormat}\s.*" | awk '{print $4}')"
   if [[ -z "${bits}" ]]; then
     echo '-1'
   else
@@ -939,7 +1032,7 @@ findPixelFormatMostApplicableFromList() {
   local hasCopy=''
 
   IFS=$'\n'
-  for newPixelFormat in $(echo "${newPixelFormatList}" | sed 's/,/\n/g'); do
+  for newPixelFormat in $(regex 's/,/\n/g' "${newPixelFormatList}"); do
     newPixelValue="$(${function} "${newPixelFormat}")"
     if [[ "${newPixelFormat}" == 'copy' ]]; then
       hasCopy="copy"
@@ -955,9 +1048,9 @@ findPixelFormatMostApplicableFromList() {
   done
 
   if [[ -n "${newList}" && -n "${hasCopy}" ]]; then
-    echo "$(echo "${newList},${hasCopy}" | sed 's/,/\n/g')"
+    echo "$(regex 's/,/\n/g' "${newList},${hasCopy}")"
   elif [[ -n "${newList}" ]]; then
-    echo "$(echo "${newList}" | sed 's/,/\n/g')"
+    echo "$(regex 's/,/\n/g' "${newList}")"
   else
     echo "${hasCopy}"
   fi
@@ -975,7 +1068,7 @@ findPixelFormatAdequateFromList() {
   oldPixelValue="$(${function} "${oldPixelFormat}")"
 
   IFS=$'\n'
-  for newPixelFormat in $(echo "${newPixelFormatList}" | sed 's/,/\n/g'); do
+  for newPixelFormat in $(regex 's/,/\n/g' "${newPixelFormatList}"); do
     newPixelValue="$(${function} "${newPixelFormat}")"
     if [[ "${newPixelFormat}" == 'copy' ]]; then
       echo "${newPixelFormat}"
@@ -993,8 +1086,8 @@ findPixelFormat() {
   local formatFunction=''
 
   if [[ "$(doesListContain "${oldPixelFormat}" "${videoPixelFormat,,}" ',')" == 'true' ]]; then
-    newPixelFormat="$(echo "${videoPixelFormat}" | sed 's/,/\n/g')"
-    for newPixelFormatOrder in $(echo "${videoPixelFormatExclusionOrder}" | sed 's/,/\n/g'); do
+    newPixelFormat="$(regex 's/,/\n/g' "${videoPixelFormat}")"
+    for newPixelFormatOrder in $(regex 's/,/\n/g' "${videoPixelFormatExclusionOrder}"); do
       case "${newPixelFormatOrder,,}" in
         depth) formatFunction='getColorDepth' ;;
         channel) formatFunction='getColorChannelCount' ;;
@@ -1015,7 +1108,7 @@ findPixelFormat() {
       fi
     done
 
-    for newPixelFormatOrder in $(echo "${videoPixelFormatPreferenceOrder}" | sed 's/,/\n/g'); do
+    for newPixelFormatOrder in $(regex 's/,/\n/g' "${videoPixelFormatPreferenceOrder}"); do
       case "${newPixelFormatOrder,,}" in
         depth) formatFunction='getColorDepth' ;;
         channel) formatFunction='getColorChannelCount' ;;
@@ -1170,7 +1263,7 @@ getValue() {
   local id="${1}"
   local stream="${2}"
 
-  echo "$(echo "${stream}" | grep -o "^${id}=.*$" | grep -o '[^=]*$')"
+  echo "$(echo "${stream}" | regexFind "^${id}=.*$" | regexFind '[^=]*$')"
 }
 
 getMetadata() {
@@ -1297,7 +1390,7 @@ getTitle() {
   title="$(getMetadata "${metadataTitle}" "${stream}")"
   if [[ -z "${title}" ]]; then
     IFS=$'\n'
-    for title in $(echo "${extras}" | sed 's/\./\n/g'); do
+    for title in $(regex 's/\./\n/g' "${extras}"); do
       if [[ "$(normalizeLanguage "${title}")" == 'unknown' ]]; then
         break
       fi
@@ -1315,7 +1408,7 @@ getLanguage() {
   language="$(getMetadata "${metadataLanguage}" "${stream}")"
   if [[ -z "${language}" ]]; then
     IFS=$'\n'
-    for language in $(echo "${extras}" | sed 's/\./\n/g'); do
+    for language in $(regex 's/\./\n/g' "${extras}"); do
       language="$(normalizeLanguage "${language}")"
       if [[ "${language}" != 'unknown' ]]; then
         break
@@ -1399,10 +1492,10 @@ getInputFiles() {
 
   echo "${inputFile}"
   IFS=$'\n'
-  for fileExt in $(echo "${audioImportExtension}" | sed 's/,/\n/g'); do
+  for fileExt in $(regex 's/,/\n/g' "${audioImportExtension}"); do
     echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
   done
-  for fileExt in $(echo "${subtitleImportExtension}" | sed 's/,/\n/g'); do
+  for fileExt in $(regex 's/,/\n/g' "${subtitleImportExtension}"); do
     echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
   done
 }
@@ -1424,7 +1517,7 @@ getChapterSettings() {
   local oldTitle=''
 
   chapterList="$(ffprobe "${inputFile}" -loglevel error -show_chapters)"
-  chapterCount="$(echo "${chapterList}" | grep -o '\[CHAPTER\]' | wc -l)"
+  chapterCount="$(regexCount '\[CHAPTER\]' "${chapterList}")"
 
   if [[ "${mode}" == 'convert' && "${chapterCount}" -gt 0 ]]; then
     chapterEncoding="${chapterEncoding} -map_chapters 0"
@@ -1481,7 +1574,7 @@ getAudioEncodingSettings() {
     inputFileName="$(getFileName "${inputFile}")"
     inputExtras="${inputFileName#"${baseName}"}"
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams a)"
-    streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+    streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
 
     for stream in $(seq 0 1 $((${streamCount} - 1))); do
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
@@ -1540,7 +1633,7 @@ getAudioEncodingSettings() {
           index="$(("${index}" + 1))"
         elif [[ "${mode}" == 'export' ]]; then
           trace "Stream ${fileCount}:audio:${stream} '${outputFile}'"
-          audioEncoding="${audioEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+          audioEncoding="${audioEncoding} '$(regex "s/'/'\"'\"'/g" "${outputFile}")'"
         fi
       fi
     done
@@ -1603,7 +1696,7 @@ getVideoEncodingSettings() {
   inputFileName="${baseName}"
   inputExtras="${inputFileName#"${baseName}"}"
   streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams v)"
-  streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+  streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
 
   for stream in $(seq 0 1 $((${streamCount} - 1))); do
     probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
@@ -1655,7 +1748,7 @@ getVideoEncodingSettings() {
       fi
       if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
         newPixelFormat="${oldPixelFormat}"
-      elif echo "${newPixelFormat}" | grep -q ','; then
+      elif echo [[ "$(regexCount ',' "${newPixelFormat}")" -gt 0 ]]; then
         newPixelFormat="$(findPixelFormat "${oldPixelFormat}" "${newPixelFormat}")"
       fi
       if [[ -z "${oldQuality}" ]]; then
@@ -1758,7 +1851,7 @@ getVideoEncodingSettings() {
         index="$(("${index}" + 1))"
       elif [[ "${mode}" == 'export' ]]; then
         trace "Stream ${fileCount}:video:${stream} '${outputFile}'"
-        videoEncoding="${videoEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+        videoEncoding="${videoEncoding} '$(regex "s/'/'\"'\"'/g" "${outputFile}")'"
       fi
     fi
   done
@@ -1800,7 +1893,7 @@ getSubtitleEncodingSettings() {
     inputFileName="$(getFileName "${inputFile}")"
     inputExtras="${inputFileName#"${baseName}"}"
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams s)"
-    streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
+    streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
 
     for stream in $(seq 0 1 $((${streamCount} - 1))); do
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
@@ -1836,7 +1929,7 @@ getSubtitleEncodingSettings() {
           index="$(("${index}" + 1))"
         elif [[ "${mode}" == 'export' ]]; then
           trace "Stream ${fileCount}:subtitles:${stream} '${outputFile}'"
-          subtitleEncoding="${subtitleEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
+          subtitleEncoding="${subtitleEncoding} '$(regex "s/'/'\"'\"'/g" "${outputFile}")'"
         fi
       fi
     done
@@ -1880,10 +1973,10 @@ assembleArguments() {
 
   IFS=$'\n'
   for fileFromList in $(getInputFiles "${inputFile}"); do
-    arguments="${arguments} -i '$(echo "${fileFromList}" | sed -e "s/'/'\"'\"'/g")'"
+    arguments="${arguments} -i '$(regex "s/'/'\"'\"'/g" "${fileFromList}")'"
   done
 
-  arguments="${arguments} -map_metadata -1 ${chapterConvertArguments} ${videoConvertArguments} ${audioConvertArguments} ${subtitleConvertArguments} -threads ${threadCount} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")' ${chapterExportArguments} ${videoExportArguments} ${audioExportArguments} ${subtitleExportArguments}"
+  arguments="${arguments} -map_metadata -1 ${chapterConvertArguments} ${videoConvertArguments} ${audioConvertArguments} ${subtitleConvertArguments} -threads ${threadCount} '$(regex "s/'/'\"'\"'/g" "${outputFile}")' ${chapterExportArguments} ${videoExportArguments} ${audioExportArguments} ${subtitleExportArguments}"
 
   echo "${arguments}"
 }
@@ -1894,14 +1987,15 @@ hasChanges() {
   local streamList=''
   local streamCount=''
 
-  if [[ -n "$(echo "${runnable}" | gawk 'match($0, /^.*(-codec:[vas]:[0-9]+[[:space:]]+([^c]|c[^o]|co[^p]|cop[^y]|copy[^[:space:]])).*$/, m) { print m[1]; }')" ]]; then
+
+  if [[ -n "$(regexCount '\s-codec:[vas]:[0-9]+\s*([^c]|c[^o]|co[^p]|cop[^y]|copy[^\s])' "${runnable}")" ]]; then
     echo 'true'
-  elif [[ "$(echo "${runnable}" | grep -o "[[:blank:]]-i[[:blank:]]'[^']*'" | wc -l)" -gt 1 ]]; then
+  elif [[ "$(regexCount "\\s*-i\\s*'[^']*'" "${runnable}")" -gt 1 ]]; then
     echo 'true'
   else
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams)"
-    streamCount="$(echo "${streamList}" | grep -o '\[STREAM\]' | wc -l)"
-    if [[ "$(echo "${runnable}" | grep -o ' -codec:[vas]:[0-9]* ' | wc -l)" -ne "${streamCount}" ]]; then
+    streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
+    if [[ "$(regexCount '\s-codec:[vas]:[0-9]*\s' "${runnable}")" -ne "${streamCount}" ]]; then
       echo 'true'
     else
       echo 'false'
@@ -1949,6 +2043,8 @@ convertFile() {
   local outputFile="${3}"
   local pid="${4}"
 
+  local inputBaseName=''
+  local inputDirectory=''
   local tmpDirectory=''
   local outputBaseName=''
   local outputDirectory=''
@@ -1963,6 +2059,8 @@ convertFile() {
   owner="$(ls -al "${inputFile}" | awk '{print $3}')"
   group="$(ls -al "${inputFile}" | awk '{print $4}')"
   originalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
+  inputBaseName="$(getFileName "${inputFile}")"
+  inputDirectory="$(getDirectory "${inputFile}")"
   tmpDirectory="$(getDirectory "${tmpFile}")"
   outputBaseName="$(getFileName "${outputFile}")"
   outputDirectory="$(getDirectory "${outputFile}")"
@@ -1977,7 +2075,7 @@ convertFile() {
     else
       debug "No Changes detected; Will not convert"
     fi
-    if [[ "$(echo "${inputFile}" | sed -e 's/\(.*\)\..*/\1/')" == "$(echo "${outputFile}" | sed -e 's/\(.*\)\..*/\1/')" ]]; then
+    if [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
       local fileFromList=''
       IFS=$'\n'
       for fileFromList in $(getInputFiles "${inputFile}"); do
@@ -1999,7 +2097,7 @@ convertFile() {
     elif [[ "${hasCodecChanges}" == 'conflict' ]]; then
       info "Cannot achieve lock on file '${inputFile}', Skipping."
     elif [[ -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((${originalSize} / ${finalSize}))" -lt 1000 ]]; then
-      if [[ "$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')" == "$(echo "${outputFile}" | sed 's/\(.*\)\..*/\1/')" ]]; then
+      if [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
         local fileFromList=''
         IFS=$'\n'
         for fileFromList in $(getInputFiles "${inputFile}"); do
@@ -2120,7 +2218,7 @@ startDaemon() {
 isPidRunning() {
   local pid="${1}"
   if [[ -n "${pid}" ]]; then
-    isRunning="$(ps ax | awk '{print $1}' | grep "${pid}")"
+    isRunning="$(ps ax | awk '{print $1}' | regexFind "${pid}")"
     if [[ -n "$isRunning" ]]; then
       echo 'true'
     else
@@ -2178,11 +2276,11 @@ runCommand() {
   elif [[ "${command::6}" == "output" ]]; then
     local level="${command:6}"
     case "${level}" in
-      -error) echo "$(grep -E '.*\[(ERROR)\].*' "${logFile}" | tail -n 1000)" ;;
-      -warn) echo "$(grep -E '.*\[(ERROR|WARN)\].*' "${logFile}" | tail -n 1000)" ;;
-      -info) echo "$(grep -E '.*\[(ERROR|WARN|INFO)\].*' "${logFile}" | tail -n 1000)" ;;
-      -debug) echo "$(grep -E '.*\[(ERROR|WARN|INFO|DEBUG)\].*' "${logFile}" | tail -n 1000)" ;;
-      -trace) echo "$(grep -E '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' "${logFile}" | tail -n 1000)" ;;
+      -error) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR)\].*' | tail -n 1000)" ;;
+      -warn) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN)\].*'| tail -n 1000)" ;;
+      -info) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO)\].*' | tail -n 1000)" ;;
+      -debug) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO|DEBUG)\].*' | tail -n 1000)" ;;
+      -trace) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' | tail -n 1000)" ;;
       -all) echo "$(tail -n 1000 "${logFile}")" ;;
     esac
   elif [[ "${command}" == "stop" ]]; then
