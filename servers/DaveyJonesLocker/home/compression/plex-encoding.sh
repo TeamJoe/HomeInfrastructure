@@ -222,7 +222,11 @@ trace() {
 }
 
 log() {
-  echo "[$(getTime)] ${*}"
+  if [[ -n "${logFile}" ]]; then
+    echo "[$(getTime)] ${*}" >> "${logFile}"
+  else
+    echo "[$(getTime)] ${*}"
+  fi
 }
 
 getTime() {
@@ -564,7 +568,7 @@ normalizeFrameRate() {
     echo "source_fps"
   elif [[ "${frameRate: -2}" == '/1' || "${frameRate: -2}" == '.0' ]]; then
     echo "${frameRate::-2}"
-  elif [[ "${frameRate}" != "$(echo "${frameRate}" | sed 's/.*\///')" ]]; then
+  elif echo "${frameRate}" | grep -q '/'4; then
     fraction="$(divide "$(echo "${frameRate}" | sed 's/.*\///')" "$(echo "${frameRate}" | sed 's/\.*///')" '2' 'floor')"
     if [[ "${fraction}" == '29.96' || "${fraction}" == '29.97' || "${fraction}" == '29.98' ]]; then
       echo "ntsc"
@@ -1339,6 +1343,8 @@ determineTitle() {
     echo "${title}"
   elif [[ -n "${audioChannelCount}" && "${language}" != 'unknown' ]]; then
     echo "${language} ${audioChannelCount}"
+  elif [[ "${language}" != 'unknown' ]]; then
+    echo "${language}"
   fi
 }
 
@@ -1406,6 +1412,8 @@ getInputFiles() {
 #-----------------
 
 getChapterSettings() {
+  local fileCount=0
+  local index=0
   local inputFile="${1}"
   local mode="${2}"
   local chapterEncoding=''
@@ -1420,13 +1428,15 @@ getChapterSettings() {
 
   if [[ "${mode}" == 'convert' && "${chapterCount}" -gt 0 ]]; then
     chapterEncoding="${chapterEncoding} -map_chapters 0"
-    for chapter in $(seq 0 1 "${chapterCount}"); do
+    for chapter in $(seq 0 1 $((${chapterCount} - 1))); do
       probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((${chapter} + 1)){print;}")"
       oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 
+      trace "Stream ${fileCount}:chapter:${index} title:${oldTitle}"
       if [[ -n "${oldTitle}" ]]; then
-        chapterEncoding="${chapterEncoding} -metadata:c:${chapter} '${metadataTitle}=${oldTitle}'"
+        chapterEncoding="${chapterEncoding} -metadata:c:${index} '${metadataTitle}=${oldTitle}'"
       fi
+      index="$(("${index}" + 1))"
     done
   fi
   echo "${chapterEncoding}"
@@ -1488,6 +1498,7 @@ getAudioEncodingSettings() {
       oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
       outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${audioExportExtension}"
 
+      trace "Stream ${fileCount}:audio:${stream} codec:${oldCodec} duration:${duration} channels:${oldChannelCount} rate:${oldBitRate} title:${oldTitle} language:${oldLanguage}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${audioUpdateMethod}" "${oldCodec}" 'normalizeAudioCodec' "${audioCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeAudioCodec "${oldCodec}")"
@@ -1504,6 +1515,7 @@ getAudioEncodingSettings() {
           newBitRate="${oldBitRate}"
         fi
 
+        trace "Stream ${fileCount}:audio:${stream} codec:${newCodec} channels:${newChannelCount} rate:${newBitRate} title:${oldTitle} language:${oldLanguage}"
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] || ([[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]] && [[ -z "${oldBitRate}" || "${oldBitRate}" -le "${newBitRate}" ]]); then
           audioEncoding="${audioEncoding} -map ${fileCount}:a:${stream}"
           audioEncoding="${audioEncoding} -codec:a:${index} copy -metadata:s:a:${index} '${metadataCodecName}=${oldCodec}'"
@@ -1527,6 +1539,7 @@ getAudioEncodingSettings() {
         if [[ "${mode}" == 'convert' ]]; then
           index="$(("${index}" + 1))"
         elif [[ "${mode}" == 'export' ]]; then
+          trace "Stream ${fileCount}:audio:${stream} '${outputFile}'"
           audioEncoding="${audioEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
         fi
       fi
@@ -1621,6 +1634,7 @@ getVideoEncodingSettings() {
     oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
     newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
 
+    trace "Stream ${fileCount}:video:${stream} codec:${oldCodec} duration:${duration} level:${oldLevel} format:${oldPixelFormat} rate:${oldFrameRate} preset:${oldPreset} profile:${oldProfile} quality:${oldQuality} tune:${oldTune} title:${oldTitle} language:${oldLanguage}"
     if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
      "$(isSupported "${mode}" "${videoUpdateMethod}" "${oldCodec}" 'normalizeVideoCodec' "${videoCodec}")" == 'true' ]]; then
       normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
@@ -1663,6 +1677,7 @@ getVideoEncodingSettings() {
         newProfile="$(getProfileValue "${newCodec}" "${normalizedNewVideoProfile}" "${newPixelFormat}")"
       fi
 
+      trace "Stream ${fileCount}:video:${stream} codec:${newCodec} level:${newLevel} format:${newPixelFormat} rate:${newFrameRate} preset:${newPreset} profile:${newProfile} quality:${newQuality} tune:${newTune}"
       if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] ||
         [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldPresetComplexity}" -ge "${newPresetComplexity}" && "${oldQuality}" -ge "${newQuality}" && "${newPixelFormat}" == "${oldPixelFormat}" ]] ||
         [[ "${forceRun}" == 'false' && "${newPreset}" == 'ultrafast' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
@@ -1742,6 +1757,7 @@ getVideoEncodingSettings() {
       if [[ "${mode}" == 'convert' ]]; then
         index="$(("${index}" + 1))"
       elif [[ "${mode}" == 'export' ]]; then
+        trace "Stream ${fileCount}:video:${stream} '${outputFile}'"
         videoEncoding="${videoEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
       fi
     fi
@@ -1794,6 +1810,7 @@ getSubtitleEncodingSettings() {
       oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
       outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${subtitleExportExtension}"
 
+      trace "Stream ${fileCount}:subtitles:${stream} codec:${oldCodec} duration:${duration} title:${oldTitle} language:${oldLanguage}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${subtitlesUpdateMethod}" "${oldCodec}" 'normalizeSubtitleCodec' "${subtitleCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
@@ -1801,6 +1818,7 @@ getSubtitleEncodingSettings() {
         newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'normalizeSubtitleCodec' "${newCodec}")"
         normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
 
+        trace "Stream ${fileCount}:subtitles:${stream} codec:${newCodec}"
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] || [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} copy -metadata:s:s:${index} '${metadataCodecName}=${oldCodec}'"
@@ -1817,6 +1835,7 @@ getSubtitleEncodingSettings() {
         if [[ "${mode}" == 'convert' ]]; then
           index="$(("${index}" + 1))"
         elif [[ "${mode}" == 'export' ]]; then
+          trace "Stream ${fileCount}:subtitles:${stream} '${outputFile}'"
           subtitleEncoding="${subtitleEncoding} '$(echo "${outputFile}" | sed -e "s/'/'\"'\"'/g")'"
         fi
       fi
@@ -1851,6 +1870,13 @@ assembleArguments() {
   videoExportArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'export')"
   audioExportArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'export')"
   subtitleExportArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+
+  if [[ -z "${videoConvertArguments// }" && -z "${videoExportArguments// }" ]]; then
+    error "${inputFile} has no supported Video files"
+  fi
+  if [[ -z "${audioConvertArguments// }" && -z "${audioExportArguments// }" ]]; then
+    warn "${inputFile} has no supported Audio files"
+  fi
 
   IFS=$'\n'
   for fileFromList in $(getInputFiles "${inputFile}"); do
@@ -1931,6 +1957,7 @@ convertFile() {
   local group=''
   local originalSize=''
   local finalSize=''
+  local arguments=''
 
   mod="$(stat --format '%a' "${inputFile}")"
   owner="$(ls -al "${inputFile}" | awk '{print $3}')"
@@ -1943,13 +1970,14 @@ convertFile() {
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
     debug "convert \"${inputFile}\" \"${tmpFile}\" \"${pid}\""
-    debug "ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
-    if [[ "$(hasChanges "$(assembleArguments "${inputFile}" "${outputFile}")" "${outputFile}")" == 'true' ]]; then
+    arguments="ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
+    debug "${arguments}"
+    if [[ "$(hasChanges "${arguments}" "${inputFile}")" == 'true' ]]; then
       debug "Has Changes; Will Convert"
     else
       debug "No Changes detected; Will not convert"
     fi
-    if [[ "$(echo "${inputFile}" | sed 's/\(.*\)\..*/\1/')" == "$(echo "${outputFile}" | sed 's/\(.*\)\..*/\1/')" ]]; then
+    if [[ "$(echo "${inputFile}" | sed -e 's/\(.*\)\..*/\1/')" == "$(echo "${outputFile}" | sed -e 's/\(.*\)\..*/\1/')" ]]; then
       local fileFromList=''
       IFS=$'\n'
       for fileFromList in $(getInputFiles "${inputFile}"); do
@@ -2067,15 +2095,11 @@ startLocal() {
     if [[ -n "${pidLocation}" ]]; then
       echo "${pid}" >"${pidLocation}"
     fi
-    if [[ -n "${logFile}" ]]; then
-      info "$(getCommand "$command")" >>"${logFile}"
-    else
-      info "$(getCommand "$command")"
-    fi
+    info "$(getCommand "$command")"
     mkdir -p "${tmpDirectory}/${pid}"
 
     if [[ -n "${logFile}" ]]; then
-      convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" >>"${logFile}"
+      convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" 2>"${logFile}"
     else
       convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}"
     fi
@@ -2145,10 +2169,10 @@ runCommand() {
   if [[ "${command}" == "active" ]]; then
     echo "$(isRunning)"
   elif [[ "${command}" == "start-local" ]]; then
-    info "$(getCommand "${command}")"
+    echo "$(getCommand "${command}")"
     startLocal
   elif [[ "${command}" == "start" ]]; then
-    info "$(getCommand "${command}")"
+    echo "$(getCommand "${command}")"
     startDaemon
   elif [[ "${command::6}" == "output" ]]; then
     local level="${command:6}"
@@ -2161,16 +2185,16 @@ runCommand() {
       -all) echo "$(tail -n 1000 "${logFile}")" ;;
     esac
   elif [[ "${command}" == "stop" ]]; then
-    info "$(getCommand "${command}")"
-    info "$(stopProcess)"
+    echo "$(getCommand "${command}")"
+    echo "$(stopProcess)"
   else
-    info "$(getCommand "${1}")"
-    info "$(getUsage)"
+    echo "$(getCommand "${1}")"
+    echo "$(getUsage)"
     exit 1
   fi
 
-  if [[ -n "${additionalParameters}" ]]; then
-    warn "Unused Values: ${additionalParameters}"
+  if [[ -n "${additionalParameters}" || -n "${passedParameters}" ]]; then
+    echo "Unused Values: ${additionalParameters} -- ${passedParameters}"
   fi
 }
 
