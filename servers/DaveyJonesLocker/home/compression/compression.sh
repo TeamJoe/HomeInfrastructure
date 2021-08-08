@@ -18,13 +18,11 @@ additionalParameters=''
 while true; do
   case "${1}" in
     --output-level) outputLevel="${2}"; shift 2 ;;
-    --sort) sort="${2}"; shift 2 ;;
     --speed) speed="${2}"; shift 2 ;;
-    --threads) threads="${2}"; shift 2 ;;
     --video) video="${2}"; shift 2 ;;
-    --) shift; additionalParameters="${additionalParameters} ${@}"; break ;;
+    --) shift; additionalParameters="${additionalParameters} ${*}"; break ;;
     *)
-      if [[ $(echo "${@}" | wc -c) -le 1 ]]; then
+      if [[ "${#1}" -eq 0 ]]; then
         break;
       else
         additionalParameters="${additionalParameters} ${1}"; shift

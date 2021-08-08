@@ -1,7 +1,4 @@
 #!/bin/bash
-# shellcheck disable=SC2001
-# shellcheck disable=SC2004
-# shellcheck disable=SC2005
 
 #-----------------
 # Configurable Default Options
@@ -20,6 +17,8 @@ audioCodec='aac'
 audioUpdateMethod='convert'     # convert, export, delete
 audioImportExtension='.mp3,.aac,.ac3' # comma list of audio extensions
 audioExportExtension='.audio'
+deleteInputFiles='false'
+fileIgnoreRegex='.*\/(Downloads?|Uploads?|Imports?|To Import|Music)\/.*'
 videoCodec='libx265'        # libx264, libx265
 videoUpdateMethod='convert' # convert, export, delete
 videoPreset='fast'          # ultrafast, superfast, veryfast, fast, medium, slow, slower, veryslow, placebo
@@ -80,12 +79,14 @@ while true; do
     --audio-export-extension) audioExportExtension="${2}"; shift 2 ;;
     --audio-import-extension) audioImportExtension="${2}"; shift 2 ;;
     --audio-update) audioUpdateMethod="${2}"; shift 2 ;;
-    --dry) dryRun="true"; shift ;;
+    --delete-input) deleteInputFiles='true'; shift ;;
+    --dry) dryRun='true'; shift ;;
     --ext) outputExtension="${2}"; shift 2 ;;
-    --force) forceRun="true"; shift ;;
+    --force) forceRun='true'; shift ;;
+    --ignore) fileIgnoreRegex="${2}"; shift 2 ;;
     --input) inputDirectory="${2}"; shift 2 ;;
     --log) logFile="${2}"; shift 2 ;;
-    --metadata) metadataRun="true"; shift ;;
+    --metadata) metadataRun='true'; shift ;;
     --output) outputDirectory="${2}"; shift 2 ;;
     --pid) pidLocation="${2}"; shift 2 ;;
     --sort) sortBy="${2}"; shift 2 ;;
@@ -131,9 +132,11 @@ getCommand() {
     "--audio-export-extension '${audioExportExtension}'" \
     "--audio-import-extension '${audioImportExtension}'" \
     "--audio-update '${audioUpdateMethod}'" \
+    "$(if [ "${deleteInputFiles}" = true ]; then echo '--delete-input'; fi)" \
     "$(if [ "${dryRun}" = true ]; then echo '--dry'; fi)" \
     "--ext '${outputExtension}'" \
     "$(if [ "${forceRun}" = true ]; then echo '--force'; fi)" \
+    "--ignore '${fileIgnoreRegex}'" \
     "--input '${inputDirectory}'" \
     "--log '${logFile}'" \
     "$(if [ "${metadataRun}" = true ]; then echo '--metadata'; fi)" \
@@ -168,9 +171,11 @@ getUsage() {
     "[--audio-export-extension Audio extension to export to when run in export mode {.audio}]" \
     "[--audio-import-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
     "[--audio-update Method to use for updating audio {convert|export|delete}]" \
+    "[--delete-input Will delete input files after convert. Note video file always deletes if input and output are the same location]" \
     "[--dry Will out what commands it will execute without modifying anything]" \
     "[--ext The extension of the output file {.mkv}]" \
     "[--force Will always convert, even if codecs matches]" \
+    "[--ignore Regex match of file names with directory to ignore {.*\/(Downloads?|Uploads?|Imports?|To Import|Music)\/.*}]" \
     "[--input Directory of files to process {~/Video}]" \
     "[--output Output directory of the processed files, blank will cause replacement {~/ProcessedVideo}]" \
     "[--log Location of where to output the logs {~/encoding.results}]" \
@@ -230,7 +235,7 @@ log() {
 }
 
 getTime() {
-  echo "$(date +%FT%TZ)"
+  date +%FT%TZ
 }
 
 #-----------------
@@ -248,7 +253,7 @@ getFileName() {
   local fileNameWithExt=''
   fileNameWithExt="$(basename "${1}")"
 
-  echo "$(echo "${fileNameWithExt}" | sed 's/\(.*\)\..*/\1/')"
+  echo "${fileNameWithExt}" | sed 's/\(.*\)\..*/\1/'
 }
 
 normalizeDirectory() {
@@ -265,7 +270,7 @@ getDirectory() {
   if [[ "${directory: -1}" != '/' && ! -d "${directory}" ]]; then
     directory="$(dirname "${directory}")"
   fi
-  echo "$(normalizeDirectory "${directory}")"
+  normalizeDirectory "${directory}"
 }
 
 #-----------------
@@ -311,9 +316,9 @@ getListFirstValue() {
   local delimiter="${2}"
 
   if [[ -n "${delimiter}" ]]; then
-    echo "$(echo "${list}" | sed "s/${delimiter}/\\n/g" | awk 'NR==1{print}')"
+    echo "${list}" | sed "s/${delimiter}/\\n/g" | awk 'NR==1{print}'
   else
-    echo "$(echo "${list}" | awk 'NR==1{print}')"
+    echo "${list}" | awk 'NR==1{print}'
   fi
 }
 
@@ -391,38 +396,38 @@ divide() {
   local rounding="${4:-halfup}" # halfup, halfdown, floor, ceil
   rounding="${rounding,,}"
 
-  local quotient="$(("${numerator}" / "${denominator}"))"
-  local remainder="$(("${numerator}" % "${denominator}"))"
-  local precisionQuotient="$(( ( (10 ** "${precision}") * ("${remainder}")) / "${denominator}"))"
-  local precisionRemainder="$(( ( (10 ** "${precision}") * ("${remainder}")) % "${denominator}"))"
+  local quotient="$((numerator / denominator))"
+  local remainder="$((numerator % denominator))"
+  local precisionQuotient="$(( ( (10 ** precision) * (remainder)) / denominator))"
+  local precisionRemainder="$(( ( (10 ** precision) * (remainder)) % denominator))"
 
   if [[ "${rounding::4}" == 'half' ]]; then
     if [[ "${precisionRemainder}" -gt '0' ]]; then
-      local roundingQuotient="$(("${denominator}" / "${precisionRemainder}"))"
-      local roundingRemainder="$(("${denominator}" % "${precisionRemainder}"))"
+      local roundingQuotient="$((denominator / precisionRemainder))"
+      local roundingRemainder="$((denominator % precisionRemainder))"
       if [[ "${roundingQuotient}" -lt '2' ]]; then
-        precisionQuotient="$(("${precisionQuotient}" + 1))"
+        precisionQuotient="$((precisionQuotient + 1))"
       elif [[ "${roundingQuotient}" -eq '2' && "${roundingRemainder}" -eq '0' ]]; then
         if [[ "${rounding}" == 'half' || "${rounding}" == 'halfup' || "${rounding}" == 'half-up' ]]; then
-          precisionQuotient="$(("${precisionQuotient}" + 1))"
+          precisionQuotient="$((precisionQuotient + 1))"
         fi
       fi
     fi
   elif [[ "${rounding}" == 'ceil' || "${rounding}" == 'ceiling' ]]; then
     if [[ "${precisionRemainder}" -gt '0' ]]; then
-      precisionQuotient="$(("${precisionQuotient}" + 1))"
+      precisionQuotient="$((precisionQuotient + 1))"
     fi
   fi
 
   if [[ "${precisionQuotient}" -ge "$((10 ** "${precision}"))" ]]; then
-    quotient="$(("${quotient}" + 1))"
+    quotient="$((quotient + 1))"
     precisionQuotient='0'
   fi
 
   if [[ "${precision}" -eq 0 ]]; then
-    echo "$(printf "%d" "${quotient}")"
+    printf "%d" "${quotient}"
   else
-    echo "$(printf "%d.%0${precision}d" "${quotient}" "${precisionQuotient}")"
+    printf "%d.%0${precision}d" "${quotient}" "${precisionQuotient}"
   fi
 }
 
@@ -705,7 +710,7 @@ normalizeVideoLevel() {
     elif [[ "$(regexCount '\.' "${level}")" -gt 0 ]]; then
       level="$(regex 's/\.//' "${level}")"
     elif [[ "${level}" -lt 10 ]]; then
-      level="$(("${level}" * 10))"
+      level="$((level * 10))"
     fi
   fi
 
@@ -1048,9 +1053,9 @@ findPixelFormatMostApplicableFromList() {
   done
 
   if [[ -n "${newList}" && -n "${hasCopy}" ]]; then
-    echo "$(regex 's/,/\n/g' "${newList},${hasCopy}")"
+    regex 's/,/\n/g' "${newList},${hasCopy}"
   elif [[ -n "${newList}" ]]; then
-    echo "$(regex 's/,/\n/g' "${newList}")"
+    regex 's/,/\n/g' "${newList}"
   else
     echo "${hasCopy}"
   fi
@@ -1131,9 +1136,9 @@ findPixelFormat() {
   fi
 
   if [[ -n "${newPixelFormat}" ]]; then
-    echo "$(getListFirstValue "${newPixelFormat}" ',')"
+    getListFirstValue "${newPixelFormat}" ','
   else
-    echo "$(getListFirstValue "${videoPixelFormat}" ',')"
+    getListFirstValue "${videoPixelFormat}" ','
   fi
 }
 
@@ -1263,14 +1268,14 @@ getValue() {
   local id="${1}"
   local stream="${2}"
 
-  echo "$(echo "${stream}" | regexFind "^${id}=.*$" | regexFind '[^=]*$')"
+  echo "${stream}" | regexFind "^${id}=.*$" | regexFind '[^=]*$'
 }
 
 getMetadata() {
   local id="${1}"
   local stream="${2}"
 
-  echo "$(getValue "TAG:${id}" "${stream}")"
+  getValue "TAG:${id}" "${stream}"
 }
 
 getCodecFromStream() {
@@ -1319,16 +1324,16 @@ getVideoLevelFromStream() {
     oldLevel="$(getValue 'level' "${stream}")"
     if [[ -z "${oldLevel}" ]]; then
       if [[ "${codec}" == 'hevc' ]]; then
-        if [[ "${oldLevel}" -ge 241 && "$(("${oldLevel}" % 6))" -eq 1 ]]; then
-          oldLevel="$((("${oldLevel}" - 1) / 6))"
-        elif [[ "${oldLevel}" -ge 30 && "$(("${oldLevel}" % 3))" -eq 0 ]]; then
-          oldLevel="$(("${oldLevel}" / 3))"
+        if [[ "${oldLevel}" -ge 241 && "$((oldLevel % 6))" -eq 1 ]]; then
+          oldLevel="$(((oldLevel - 1) / 6))"
+        elif [[ "${oldLevel}" -ge 30 && "$((oldLevel % 3))" -eq 0 ]]; then
+          oldLevel="$((oldLevel / 3))"
         fi
       fi
     fi
   fi
 
-  echo "$(normalizeVideoLevel "${oldLevel}")"
+  normalizeVideoLevel "${oldLevel}"
 }
 
 getVideoPixelFormatFromStream() {
@@ -1365,9 +1370,9 @@ getVideoProfileFromStream() {
     codec="$(normalizeVideoCodec "$(getCodecFromStream "${stream}")")"
     if [[ "${codec}" == 'hevc' ]]; then
       oldProfile="$(getValue 'level' "${stream}")"
-      if [[ "${oldProfile}" -ge 241 && "$(("${oldProfile}" % 6))" -eq 1 ]]; then
+      if [[ "${oldProfile}" -ge 241 && "$((oldProfile % 6))" -eq 1 ]]; then
         oldProfile='high'
-      elif [[ "${oldProfile}" -ge 30 && "$(("${oldProfile}" % 3))" -eq 0 ]]; then
+      elif [[ "${oldProfile}" -ge 30 && "$((oldProfile % 3))" -eq 0 ]]; then
         oldProfile='main'
       else
         oldProfile=''
@@ -1493,10 +1498,10 @@ getInputFiles() {
   echo "${inputFile}"
   IFS=$'\n'
   for fileExt in $(regex 's/,/\n/g' "${audioImportExtension}"); do
-    echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
+    find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}"
   done
   for fileExt in $(regex 's/,/\n/g' "${subtitleImportExtension}"); do
-    echo "$(find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}")"
+    find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}"
   done
 }
 
@@ -1522,15 +1527,15 @@ getChapterSettings() {
 
     if [[ "${chapterCount}" -gt 0 ]]; then
       chapterEncoding="${chapterEncoding} -map_chapters 0"
-      for chapter in $(seq 0 1 $((${chapterCount} - 1))); do
-        probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((${chapter} + 1)){print;}")"
+      for chapter in $(seq 0 1 $((chapterCount - 1))); do
+        probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((chapter + 1)){print;}")"
         oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 
         trace "Stream ${fileCount}:chapter:${index} title:${oldTitle}"
         if [[ -n "${oldTitle}" ]]; then
           chapterEncoding="${chapterEncoding} -metadata:c:${index} '${metadataTitle}=${oldTitle}'"
         fi
-        index="$(("${index}" + 1))"
+        index="$((index + 1))"
       done
     fi
     echo "${chapterEncoding}"
@@ -1541,6 +1546,7 @@ getAudioEncodingSettings() {
   local baseFile="${1}"
   local outputFile="${2}"
   local mode="${3}"
+  local audioEncoding=''
   local baseName=''
   local allFiles=''
   local fileCount=0
@@ -1556,7 +1562,6 @@ getAudioEncodingSettings() {
   for inputFile in ${allFiles}; do
     local inputFileName=''
     local inputExtras=''
-    local audioEncoding=''
     local streamList=''
     local streamCount=''
     local probeResult=''
@@ -1578,8 +1583,8 @@ getAudioEncodingSettings() {
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams a)"
     streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
 
-    for stream in $(seq 0 1 $((${streamCount} - 1))); do
-      probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
+    for stream in $(seq 0 1 $((streamCount - 1))); do
+      probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((stream + 1)){print;}")"
       newCodec=''
       newChannelCount='2'
       oldCodec="$(getCodecFromStream "${probeResult}")"
@@ -1604,17 +1609,20 @@ getAudioEncodingSettings() {
         if [[ "${newChannelCount}" != "${oldChannelCount}" ]]; then
           newChannelCount="${oldChannelCount}"
         fi
-        newBitRate="$((${newChannelCount} * ${bitratePerAudioChannel}))"
+        newBitRate="$((newChannelCount * bitratePerAudioChannel))"
 
         if [[ -n "${oldBitRate}" && "${newBitRate}" -gt "${oldBitRate}" ]]; then
           newBitRate="${oldBitRate}"
+        elif [[ -z "${oldBitRate}" ]]; then
+          oldBitRate='-1'
         fi
 
         trace "Stream ${fileCount}:audio:${stream} codec:${newCodec} channels:${newChannelCount} rate:${newBitRate} title:${oldTitle} language:${oldLanguage}"
-        if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] || ([[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]] && [[ -z "${oldBitRate}" || "${oldBitRate}" -le "${newBitRate}" ]]); then
+        if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] ||
+          [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldBitRate}" -le "${newBitRate}" ]]; then
           audioEncoding="${audioEncoding} -map ${fileCount}:a:${stream}"
           audioEncoding="${audioEncoding} -codec:a:${index} copy -metadata:s:a:${index} '${metadataCodecName}=${oldCodec}'"
-          if [[ -n "${oldBitRate}" ]]; then
+          if [[ -n "${oldBitRate}" && ${oldBitRate} -gt 0 ]]; then
             audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataAudioBitRate}=${oldBitRate}'"
           fi
         else
@@ -1632,14 +1640,14 @@ getAudioEncodingSettings() {
           audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataLanguage}=${oldLanguage}'"
         fi
         if [[ "${mode}" == 'convert' ]]; then
-          index="$(("${index}" + 1))"
+          index="$((index + 1))"
         elif [[ "${mode}" == 'export' ]]; then
           trace "Stream ${fileCount}:audio:${stream} '${outputFile}'"
           audioEncoding="${audioEncoding} '$(regex "s/'/'\"'\"'/g" "${outputFile}")'"
         fi
       fi
     done
-    fileCount="$(("${fileCount}" + 1))"
+    fileCount="$((fileCount + 1))"
   done
   echo "${audioEncoding}"
 }
@@ -1648,6 +1656,7 @@ getVideoEncodingSettings() {
   local baseFile="${1}"
   local outputFile="${2}"
   local mode="${3}"
+  local videoEncoding=''
   local baseName=''
   local fileCount='0'
   local index='0'
@@ -1660,7 +1669,6 @@ getVideoEncodingSettings() {
 
   local inputFileName=''
   local inputExtras=''
-  local videoEncoding=''
   local streamList=''
   local streamCount=''
   local probeResult=''
@@ -1700,8 +1708,8 @@ getVideoEncodingSettings() {
   streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams v)"
   streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
 
-  for stream in $(seq 0 1 $((${streamCount} - 1))); do
-    probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
+  for stream in $(seq 0 1 $((streamCount - 1))); do
+    probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((stream + 1)){print;}")"
     newCodec=''
     newLevel="$(normalizeVideoLevel "${videoLevel}")"
     newPixelFormat="${videoPixelFormat}"
@@ -1850,7 +1858,7 @@ getVideoEncodingSettings() {
         fi
       fi
       if [[ "${mode}" == 'convert' ]]; then
-        index="$(("${index}" + 1))"
+        index="$((index + 1))"
       elif [[ "${mode}" == 'export' ]]; then
         trace "Stream ${fileCount}:video:${stream} '${outputFile}'"
         videoEncoding="${videoEncoding} '$(regex "s/'/'\"'\"'/g" "${outputFile}")'"
@@ -1864,6 +1872,7 @@ getSubtitleEncodingSettings() {
   local baseFile="${1}"
   local outputFile="${2}"
   local mode="${3}"
+  local subtitleEncoding=''
   local baseName=''
   local allFiles=''
   local fileCount='0'
@@ -1879,7 +1888,6 @@ getSubtitleEncodingSettings() {
   for inputFile in ${allFiles}; do
     local inputFileName=''
     local inputExtras=''
-    local subtitleEncoding=''
     local streamList=''
     local streamCount=''
     local probeResult=''
@@ -1897,8 +1905,8 @@ getSubtitleEncodingSettings() {
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams -select_streams s)"
     streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
 
-    for stream in $(seq 0 1 $((${streamCount} - 1))); do
-      probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((${stream} + 1)){print;}")"
+    for stream in $(seq 0 1 $((streamCount - 1))); do
+      probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((stream + 1)){print;}")"
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
       oldTitle="$(determineTitle "${inputExtras}" "${probeResult}")"
@@ -1928,7 +1936,7 @@ getSubtitleEncodingSettings() {
           subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
         fi
         if [[ "${mode}" == 'convert' ]]; then
-          index="$(("${index}" + 1))"
+          index="$((index + 1))"
         elif [[ "${mode}" == 'export' ]]; then
           trace "Stream ${fileCount}:subtitles:${stream} '${outputFile}'"
           subtitleEncoding="${subtitleEncoding} '$(regex "s/'/'\"'\"'/g" "${outputFile}")'"
@@ -1936,7 +1944,7 @@ getSubtitleEncodingSettings() {
       fi
     done
 
-    fileCount="$(("${fileCount}" + 1))"
+    fileCount="$((fileCount + 1))"
   done
 
   echo "${subtitleEncoding}"
@@ -2085,12 +2093,14 @@ convertFile() {
     else
       debug "No Changes detected; Will not convert"
     fi
-    if [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
+    if [[ "${deleteInputFiles}" == 'true' ]]; then
       local fileFromList=''
       IFS=$'\n'
       for fileFromList in $(getInputFiles "${inputFile}"); do
-        debug "rm ${fileFromList}"
+        debug "rm \"${fileFromList}\""
       done
+    elif [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
+      debug "rm \"${inputFile}\""
     fi
     debug "mv \"${tmpFile}\" \"${outputFile}\""
     debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
@@ -2098,7 +2108,7 @@ convertFile() {
     debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
     debug "chown \"${owner}:${group}\" -v \"${outputFile}\""
     debug "chmod \"${mod}\" -v \"${outputFile}\""
-    debug "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
+    debug "File '${inputFile}' reduced to $((finalSize / (1024 * 1024) ))MiB from original size $((originalSize / (1024 * 1024) ))MiB"
   else
     convert "${inputFile}" "${tmpFile}" "${pid}"
     finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
@@ -2106,13 +2116,15 @@ convertFile() {
       trace "Not processing file '${inputFile}', as no changes would be made."
     elif [[ "${hasCodecChanges}" == 'conflict' ]]; then
       info "Cannot achieve lock on file '${inputFile}', Skipping."
-    elif [[ -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((${originalSize} / ${finalSize}))" -lt 1000 ]]; then
-      if [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
+    elif [[ -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((originalSize / finalSize))" -lt 1000 ]]; then
+      if [[ "${deleteInputFiles}" == 'true' ]]; then
         local fileFromList=''
         IFS=$'\n'
         for fileFromList in $(getInputFiles "${inputFile}"); do
           rm "${fileFromList}"
         done
+      elif [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
+        rm "${inputFile}"
       fi
       mv "${tmpFile}" "${outputFile}"
       find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
@@ -2120,7 +2132,7 @@ convertFile() {
       find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
       chown "${owner}:${group}" "${outputFile}"
       chmod "${mod}" "${outputFile}"
-      trace "File '${inputFile}' reduced to $((${finalSize} / 1024 / 1204))MiB from original size $((${originalSize} / 1024 / 1204))MiB"
+      trace "File '${inputFile}' reduced to $((finalSize / 1024 / 1204))MiB from original size $((originalSize / 1024 / 1204))MiB"
       info "Completed '${inputFile}'"
     else
       warn "Failed to compress '${inputFile}'. Exit Code '${convertErrorCode}' Final Size '${finalSize}' Original Size '${originalSize}'"
@@ -2151,37 +2163,42 @@ convertAll() {
   outputDirectory="$(normalizeDirectory "${outputDirectory}")"
   inputDirectoryLength="$(("${#inputDirectory}" + 1))"
   sortingType="$(if [[ "${sortBy^^}" =~ ^.*'DATE'$ ]]; then echo '%T@ %p\n'; else echo '%s %p\n'; fi)"
-  sortingOrder="$(if [[ "${sortBy^^}" =~ ^'REVERSE'.*$ ]]; then echo ' -n'; else echo '-rn'; fi)"
-  allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort ${sortingOrder} | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
+  sortingOrder="$(if [[ "${sortBy^^}" =~ ^'REVERSE'.*$ ]]; then echo '-n'; else echo '-rn'; fi)"
+  allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort "${sortingOrder}" | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
   fileCount="$(echo "${allInputFiles}" | wc -l)"
 
   info "Processing ${fileCount} file"
   IFS=$'\n'
+  # shellcheck disable=SC2068
   for inputFile in ${allInputFiles[@]}; do
     if [[ -n "${pidLocation}" && "${pid}" != "$(cat "${pidLocation}")" ]]; then
       info "PID mismatch; Stopping"
       break
     fi
 
-    currentDirectory="$(getDirectory "${inputFile}")"
-    currentFileName="$(getFileName "${inputFile}")"
-    currentExt="$(getExtension "${inputFile}")"
-    if [[ "${currentExt}" != "part" ]]; then
-      tmpFile="${tmpDirectory}/${currentFileName}${outputExtension}"
-      if [[ -f "${tmpFile}" ]]; then
-        rm -f "${tmpFile}"
+    if [[ -z "${fileIgnoreRegex}" || "$(regexCount "${fileIgnoreRegex}" "${inputFile}")" -eq 0 ]]; then
+      currentDirectory="$(getDirectory "${inputFile}")"
+      currentFileName="$(getFileName "${inputFile}")"
+      currentExt="$(getExtension "${inputFile}")"
+      if [[ "${currentExt}" != "part" ]]; then
+        tmpFile="${tmpDirectory}/${currentFileName}${outputExtension}"
+        if [[ -f "${tmpFile}" ]]; then
+          rm -f "${tmpFile}"
+        fi
+        if [[ -z "${outputDirectory}" ]]; then
+          outputFile="${currentDirectory}/${currentFileName}${outputExtension}"
+        else
+          outputFile="${outputDirectory}${currentDirectory:${inputDirectoryLength}}/${currentFileName}${outputExtension}"
+        fi
+        if [[ -f "${outputFile}" && "${inputFile}" != "${outputFile}" ]]; then
+          warn "Cannot convert '${inputFile}' as it would overwrite '${outputFile}'"
+        else
+          trace "Converting '${inputFile}' to '${outputFile}'"
+          convertFile "${inputFile}" "${tmpFile}" "${outputFile}" "${pid}"
+        fi
       fi
-      if [[ -z "${outputDirectory}" ]]; then
-        outputFile="${currentDirectory}/${currentFileName}${outputExtension}"
-      else
-        outputFile="${outputDirectory}${currentDirectory:${inputDirectoryLength}}/${currentFileName}${outputExtension}"
-      fi
-      if [[ -f "${outputFile}" && "${inputFile}" != "${outputFile}" ]]; then
-        warn "Cannot convert '${inputFile}' as it would overwrite '${outputFile}'"
-      else
-        trace "Converting '${inputFile}' to '${outputFile}'"
-        convertFile "${inputFile}" "${tmpFile}" "${outputFile}" "${pid}"
-      fi
+    else
+      trace "Skipping '${inputFile}' due to --ignore parameter"
     fi
   done
   rm -rf "${tmpDirectory}"
@@ -2276,29 +2293,29 @@ runCommand() {
   fi
 
   if [[ "${command}" == "active" ]]; then
-    echo "$(isRunning)"
+    isRunning
   elif [[ "${command}" == "start-local" ]]; then
-    echo "$(getCommand "${command}")"
+    getCommand "${command}"
     startLocal
   elif [[ "${command}" == "start" ]]; then
-    echo "$(getCommand "${command}")"
+    getCommand "${command}"
     startDaemon
   elif [[ "${command::6}" == "output" ]]; then
     local level="${command:6}"
     case "${level}" in
-      -error) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR)\].*' | tail -n 1000)" ;;
-      -warn) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN)\].*'| tail -n 1000)" ;;
-      -info) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO)\].*' | tail -n 1000)" ;;
-      -debug) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO|DEBUG)\].*' | tail -n 1000)" ;;
-      -trace) echo "$(cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' | tail -n 1000)" ;;
-      -all) echo "$(tail -n 1000 "${logFile}")" ;;
+      -error) cat "${logFile}" | regexFind '.*\[(ERROR)\].*' | tail -n 1000 ;;
+      -warn) cat "${logFile}" | regexFind '.*\[(ERROR|WARN)\].*'| tail -n 1000 ;;
+      -info) cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO)\].*' | tail -n 1000 ;;
+      -debug) cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO|DEBUG)\].*' | tail -n 1000 ;;
+      -trace) cat "${logFile}" | regexFind '.*\[(ERROR|WARN|INFO|DEBUG|TRACE)\].*' | tail -n 1000 ;;
+      -all) tail -n 1000 "${logFile}" ;;
     esac
   elif [[ "${command}" == "stop" ]]; then
-    echo "$(getCommand "${command}")"
-    echo "$(stopProcess)"
+    getCommand "${command}"
+    stopProcess
   else
-    echo "$(getCommand "${1}")"
-    echo "$(getUsage)"
+    getCommand "${1}"
+    getUsage
     exit 1
   fi
 
