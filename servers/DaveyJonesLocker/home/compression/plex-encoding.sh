@@ -702,7 +702,7 @@ normalizeVideoLevel() {
   if [[ -n "${level}" ]]; then
     if [[ "${level}" == '1b' ]]; then
       level='10'
-    elif [[ "$(regexCount '\.' "${frameRate}")" -gt 0 ]]; then
+    elif [[ "$(regexCount '\.' "${level}")" -gt 0 ]]; then
       level="$(regex 's/\.//' "${level}")"
     elif [[ "${level}" -lt 10 ]]; then
       level="$(("${level}" * 10))"
@@ -1748,7 +1748,7 @@ getVideoEncodingSettings() {
       fi
       if [[ -z "${newPixelFormat}" || "${newPixelFormat}" == 'copy' ]]; then
         newPixelFormat="${oldPixelFormat}"
-      elif echo [[ "$(regexCount ',' "${newPixelFormat}")" -gt 0 ]]; then
+      elif [[ "$(regexCount ',' "${newPixelFormat}")" -gt 0 ]]; then
         newPixelFormat="$(findPixelFormat "${oldPixelFormat}" "${newPixelFormat}")"
       fi
       if [[ -z "${oldQuality}" ]]; then
@@ -1960,14 +1960,22 @@ assembleArguments() {
   subtitleConvertArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'convert')"
 
   chapterExportArguments="$(getChapterSettings "${inputFile}" "${outputFile}" 'export')"
-  videoExportArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'export')"
-  audioExportArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'export')"
-  subtitleExportArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+  if [[ "${videoUpdateMethod}" == 'export' ]]; then
+    videoExportArguments="$(getVideoEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+  fi
+  if [[ "${audioUpdateMethod}" == 'export' ]]; then
+    audioExportArguments="$(getAudioEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+  fi
+  if [[ "${subtitlesUpdateMethod}" == 'export' ]]; then
+    subtitleExportArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'export')"
+  fi
 
-  if [[ -z "${videoConvertArguments// }" && -z "${videoExportArguments// }" ]]; then
+  if [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" ))" -gt 1 ]]; then
+    warn "${inputFile} has multiple supported Video files"
+  elif [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" ))" -eq 0 ]]; then
     error "${inputFile} has no supported Video files"
   fi
-  if [[ -z "${audioConvertArguments// }" && -z "${audioExportArguments// }" ]]; then
+  if [[ "$(( "$(regexCount '\s-codec:a:[0-9]*\s' "${audioConvertArguments}")" + "$(regexCount '\s-codec:a:[0-9]*\s' "${audioExportArguments}")" ))" -gt 1 ]]; then
     warn "${inputFile} has no supported Audio files"
   fi
 
