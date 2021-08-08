@@ -1972,12 +1972,12 @@ assembleArguments() {
     subtitleExportArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'export')"
   fi
 
-  if [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" ))" -gt 1 ]]; then
+  if [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoExportArguments}")" ))" -gt 1 ]]; then
     warn "${inputFile} has multiple supported Video files"
-  elif [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" ))" -eq 0 ]]; then
+  elif [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoExportArguments}")" ))" -eq 0 ]]; then
     error "${inputFile} has no supported Video files"
   fi
-  if [[ "$(( "$(regexCount '\s-codec:a:[0-9]*\s' "${audioConvertArguments}")" + "$(regexCount '\s-codec:a:[0-9]*\s' "${audioExportArguments}")" ))" -gt 1 ]]; then
+  if [[ "$(( "$(regexCount '\s-codec:a:[0-9]*\s' "${audioConvertArguments}")" + "$(regexCount '\s-codec:a:[0-9]*\s' "${audioExportArguments}")" ))" -eq 0 ]]; then
     warn "${inputFile} has no supported Audio files"
   fi
 
