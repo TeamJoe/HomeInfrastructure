@@ -1505,34 +1505,36 @@ getInputFiles() {
 #-----------------
 
 getChapterSettings() {
-  local fileCount=0
-  local index=0
-  local inputFile="${1}"
-  local mode="${2}"
-  local chapterEncoding=''
-  local chapterList=''
-  local chapterCount=''
-  local probeResult=''
-  local chapter=0
-  local oldTitle=''
+  if [[ "${mode}" == 'convert' ]]; then
+    local fileCount=0
+    local index=0
+    local inputFile="${1}"
+    local mode="${2}"
+    local chapterEncoding=''
+    local chapterList=''
+    local chapterCount=''
+    local probeResult=''
+    local chapter=0
+    local oldTitle=''
 
-  chapterList="$(ffprobe "${inputFile}" -loglevel error -show_chapters)"
-  chapterCount="$(regexCount '\[CHAPTER\]' "${chapterList}")"
+    chapterList="$(ffprobe "${inputFile}" -loglevel error -show_chapters)"
+    chapterCount="$(regexCount '\[CHAPTER\]' "${chapterList}")"
 
-  if [[ "${mode}" == 'convert' && "${chapterCount}" -gt 0 ]]; then
-    chapterEncoding="${chapterEncoding} -map_chapters 0"
-    for chapter in $(seq 0 1 $((${chapterCount} - 1))); do
-      probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((${chapter} + 1)){print;}")"
-      oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
+    if [[ "${chapterCount}" -gt 0 ]]; then
+      chapterEncoding="${chapterEncoding} -map_chapters 0"
+      for chapter in $(seq 0 1 $((${chapterCount} - 1))); do
+        probeResult="$(echo "${chapterList}" | awk "/\[CHAPTER\]/{f=f+1} f==$((${chapter} + 1)){print;}")"
+        oldTitle="$(getMetadata "${metadataTitle}" "${probeResult}")"
 
-      trace "Stream ${fileCount}:chapter:${index} title:${oldTitle}"
-      if [[ -n "${oldTitle}" ]]; then
-        chapterEncoding="${chapterEncoding} -metadata:c:${index} '${metadataTitle}=${oldTitle}'"
-      fi
-      index="$(("${index}" + 1))"
-    done
+        trace "Stream ${fileCount}:chapter:${index} title:${oldTitle}"
+        if [[ -n "${oldTitle}" ]]; then
+          chapterEncoding="${chapterEncoding} -metadata:c:${index} '${metadataTitle}=${oldTitle}'"
+        fi
+        index="$(("${index}" + 1))"
+      done
+    fi
+    echo "${chapterEncoding}"
   fi
-  echo "${chapterEncoding}"
 }
 
 getAudioEncodingSettings() {
