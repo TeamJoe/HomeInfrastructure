@@ -2095,11 +2095,11 @@ startLocal() {
     if [[ -n "${pidLocation}" ]]; then
       echo "${pid}" >"${pidLocation}"
     fi
-    info "$(getCommand "$command")"
+    info "$(getCommand "${command}")"
     mkdir -p "${tmpDirectory}/${pid}"
 
     if [[ -n "${logFile}" ]]; then
-      convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" 2>"${logFile}"
+      convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" 2>>"${logFile}"
     else
       convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}"
     fi
@@ -2107,12 +2107,13 @@ startLocal() {
 }
 
 startDaemon() {
+  local vars=''
   if [[ "$(isRunning)" == "true" ]]; then
     echo "Daemon is already running"
   else
     echo "Starting Daemon"
     vars="$(getCommand "start-local")"
-    eval "nohup $vars >/dev/null 2>&1 &"
+    eval "nohup ${vars} >/dev/null 2>&1 &"
   fi
 }
 
