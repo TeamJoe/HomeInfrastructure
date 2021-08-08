@@ -662,7 +662,7 @@ normalizeFrameRate() {
   elif [[ "${frameRate: -2}" == '/1' || "${frameRate: -2}" == '.0' ]]; then
     echo "${frameRate::-2}"
   elif [[ "$(regexCount '/' "${frameRate}")" -eq 1 ]]; then
-    fraction="$(divide "$(regex 's/.*\///' "${frameRate}")" "$(regex 's/\.*///' "${frameRate}")" '2' 'floor')"
+    fraction="$(divide "$(regex 's/\/.*//' "${frameRate}")" "$(regex 's/.*\///' "${frameRate}")" '2' 'floor')"
     if [[ "${fraction}" == '29.96' || "${fraction}" == '29.97' || "${fraction}" == '29.98' ]]; then
       echo "ntsc"
     elif [[ "${fraction}" == '23.96' || "${fraction}" == '23.97' || "${fraction}" == '23.98' ]]; then
