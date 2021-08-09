@@ -74,7 +74,7 @@ passedParameters=''
 additionalParameters=''
 while true; do
   case "${1}" in
-    --audio) audioCodec="${2}" shift 2 ;;
+    --audio) audioCodec="${2}"; shift 2 ;;
     --audio-bitrate) bitratePerAudioChannel="${2}"; shift 2 ;;
     --audio-export-extension) audioExportExtension="${2}"; shift 2 ;;
     --audio-import-extension) audioImportExtension="${2}"; shift 2 ;;
@@ -109,14 +109,7 @@ while true; do
     --video-tune) videoTune="${2}"; shift 2 ;;
     --video-update) videoUpdateMethod="${2}"; shift 2 ;;
     --) shift; passedParameters="${*}"; break ;;
-    *)
-      if [[ "${#@}" -le 1 ]]; then
-        break
-      else
-        additionalParameters="${additionalParameters} ${1}"
-        shift
-      fi
-      ;;
+    *) if [[ "${#@}" -le 1 ]]; then break; else additionalParameters="${additionalParameters} ${1}"; shift; fi ;;
   esac
 done
 
@@ -613,12 +606,30 @@ normalizeAudioCodec() {
   esac
 }
 
+getCodecAudioExtension() {
+  local codecName="${1,,}"
+  case "$(normalizeVideoCodec "${codecName}")" in
+    aac ) echo '.aac' ;;
+    ac3 ) echo '.ac3' ;;
+    mp3 ) echo '.mp3' ;;
+    *) echo '.aac' ;;
+  esac
+}
+
 normalizeVideoCodec() {
   local codecName="${1,,}"
   case "${codecName}" in
     libx265 | h265 | x265 | hevc | hevc_v4l2m2m | hevc_vaapi) echo 'hevc' ;;
     libx264 | h264 | x264 | libx264rgb | h264_v4l2m2m | h264_vaapi | h264_omx) echo 'h264' ;;
     *) echo "${codecName}" ;;
+  esac
+}
+
+getCodecVideoExtension() {
+  local codecName="${1,,}"
+  case "$(normalizeVideoCodec "${codecName}")" in
+    hevc | h264 ) echo '.mkv' ;;
+    *) echo '.mkv' ;;
   esac
 }
 
@@ -633,6 +644,20 @@ normalizeSubtitleCodec() {
     libzvbi_teletextdec | dvb_teletext) echo 'libzvbi_teletextdec' ;;
     ssa | ass) echo 'ass' ;;
     *) echo "${codecName}" ;;
+  esac
+}
+
+getCodecSubtitleExtension() {
+  local codecName="${1,,}"
+  case "$(normalizeSubtitleCodec "${codecName}")" in
+    subrip ) echo '.srt' ;;
+    dvbsub ) echo '.sub' ;;
+    dvdsub ) echo '.sub' ;;
+    pgssub ) echo '.sub' ;;
+    cc_dec ) echo '.sub' ;;
+    libzvbi_teletextdec) echo '.sub' ;;
+    ass) echo 'ass' ;;
+    *) echo '.sub' ;;
   esac
 }
 
@@ -1596,14 +1621,18 @@ getAudioEncodingSettings() {
       oldTitle="$(determineTitle "${inputExtras}" "${probeResult}" "${oldChannelCount}")"
       oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
       oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
-      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${audioExportExtension}"
+      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${audioExportExtension}$(getCodecAudioExtension "${oldCodec}")"
 
       trace "Stream ${fileCount}:audio:${stream} codec:${oldCodec} duration:${duration} channels:${oldChannelCount} rate:${oldBitRate} title:${oldTitle} language:${oldLanguage}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${audioUpdateMethod}" "${oldCodec}" 'normalizeAudioCodec' "${audioCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeAudioCodec "${oldCodec}")"
-        newCodec="$(getListFirstValue "${audioCodec}" ',')"
-        newCodec="$(getListFirstMatch "${oldCodec}" "${audioCodec}" ',' 'normalizeAudioCodec' "${newCodec}")"
+        if [[ "${mode}" == 'convert' ]]; then
+          newCodec="$(getListFirstValue "${audioCodec}" ',')"
+          newCodec="$(getListFirstMatch "${oldCodec}" "${audioCodec}" ',' 'normalizeAudioCodec' "${newCodec}")"
+        else
+          newCodec='copy'
+        fi
         normalizedNewCodecName="$(normalizeAudioCodec "${newCodec}")"
 
         if [[ "${newChannelCount}" != "${oldChannelCount}" ]]; then
@@ -1729,7 +1758,7 @@ getVideoEncodingSettings() {
     oldProfile="$(getVideoProfileFromStream "${probeResult}")"
     oldQuality="$(getMetadata "${metadataVideoQuality}" "${probeResult}")"
     oldTune="$(getMetadata "${metadataVideoTune}" "${probeResult}")"
-    outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${videoExportExtension}"
+    outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${videoExportExtension}$(getCodecVideoExtension "${oldCodec}")"
 
     # Calculated Values
     normalizedOldFrameRate="$(normalizeFrameRate "${oldFrameRate}")"
@@ -1741,8 +1770,12 @@ getVideoEncodingSettings() {
     if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
      "$(isSupported "${mode}" "${videoUpdateMethod}" "${oldCodec}" 'normalizeVideoCodec' "${videoCodec}")" == 'true' ]]; then
       normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
-      newCodec="$(getListFirstValue "${videoCodec}" ',')"
-      newCodec="$(getListFirstMatch "${oldCodec}" "${videoCodec}" ',' 'normalizeVideoCodec' "${newCodec}")"
+      if [[ "${mode}" == 'convert' ]]; then
+        newCodec="$(getListFirstValue "${videoCodec}" ',')"
+        newCodec="$(getListFirstMatch "${oldCodec}" "${videoCodec}" ',' 'normalizeVideoCodec' "${newCodec}")"
+      else
+        newCodec='copy'
+      fi
       normalizedNewCodecName="$(normalizeVideoCodec "${newCodec}")"
 
       if [[ -z "${newProfile}" || "${newProfile,,}" == "copy" ]]; then
@@ -1911,14 +1944,18 @@ getSubtitleEncodingSettings() {
       duration="$(getMetadata 'DURATION' "${probeResult}")"
       oldTitle="$(determineTitle "${inputExtras}" "${probeResult}")"
       oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
-      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${subtitleExportExtension}"
+      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${subtitleExportExtension}$(getCodecSubtitleExtension "${oldCodec}")"
 
       trace "Stream ${fileCount}:subtitles:${stream} codec:${oldCodec} duration:${duration} title:${oldTitle} language:${oldLanguage}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${subtitlesUpdateMethod}" "${oldCodec}" 'normalizeSubtitleCodec' "${subtitleCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
-        newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'getSubtitleEncodingType' 'copy')"
-        newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'normalizeSubtitleCodec' "${newCodec}")"
+        if [[ "${mode}" == 'convert' ]]; then
+          newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'getSubtitleEncodingType' 'copy')"
+          newCodec="$(getListFirstMatch "${oldCodec}" "${subtitleCodec}" ',' 'normalizeSubtitleCodec' "${newCodec}")"
+        else
+          newCodec='copy'
+        fi
         normalizedNewCodecName="$(normalizeSubtitleCodec "${newCodec}")"
 
         trace "Stream ${fileCount}:subtitles:${stream} codec:${newCodec}"
@@ -2086,7 +2123,7 @@ convertFile() {
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
     debug "convert \"${inputFile}\" \"${tmpFile}\" \"${pid}\""
-    arguments="ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
+    arguments="ffmpeg $(assembleArguments "${inputFile}" "${tmpDirectory}/${outputBaseName}${outputExtension}")"
     debug "${arguments}"
     if [[ "$(hasChanges "${arguments}" "${inputFile}")" == 'true' ]]; then
       debug "Has Changes; Will Convert"
@@ -2103,9 +2140,9 @@ convertFile() {
       debug "rm \"${inputFile}\""
     fi
     debug "mv \"${tmpFile}\" \"${outputFile}\""
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${videoExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}\" -exec mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${videoExportExtension}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
     debug "chown \"${owner}:${group}\" -v \"${outputFile}\""
     debug "chmod \"${mod}\" -v \"${outputFile}\""
     debug "File '${inputFile}' reduced to $((finalSize / (1024 * 1024) ))MiB from original size $((originalSize / (1024 * 1024) ))MiB"
@@ -2127,9 +2164,9 @@ convertFile() {
         rm "${inputFile}"
       fi
       mv "${tmpFile}" "${outputFile}"
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${videoExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}" -exec mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}.*" -exec mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${videoExportExtension}.*" -exec mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}.*" -exec mv '{}' "/${outputDirectory}/" \;
       chown "${owner}:${group}" "${outputFile}"
       chmod "${mod}" "${outputFile}"
       trace "File '${inputFile}' reduced to $((finalSize / 1024 / 1204))MiB from original size $((originalSize / 1024 / 1204))MiB"
