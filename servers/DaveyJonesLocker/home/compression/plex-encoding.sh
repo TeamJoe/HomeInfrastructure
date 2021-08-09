@@ -2017,12 +2017,12 @@ assembleArguments() {
     subtitleExportArguments="$(getSubtitleEncodingSettings "${inputFile}" "${outputFile}" 'export')"
   fi
 
-  if [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoExportArguments}")" ))" -gt 1 ]]; then
+  if [[ "$(( "$(regexCount '\s-codec:v:[0-9]+\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]+\s' "${videoExportArguments}")" ))" -gt 1 ]]; then
     warn "${inputFile} has multiple supported Video files"
-  elif [[ "$(( "$(regexCount '\s-codec:v:[0-9]*\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]*\s' "${videoExportArguments}")" ))" -eq 0 ]]; then
+  elif [[ "$(( "$(regexCount '\s-codec:v:[0-9]+\s' "${videoConvertArguments}")" + "$(regexCount '\s-codec:v:[0-9]+\s' "${videoExportArguments}")" ))" -eq 0 ]]; then
     error "${inputFile} has no supported Video files"
   fi
-  if [[ "$(( "$(regexCount '\s-codec:a:[0-9]*\s' "${audioConvertArguments}")" + "$(regexCount '\s-codec:a:[0-9]*\s' "${audioExportArguments}")" ))" -eq 0 ]]; then
+  if [[ "$(( "$(regexCount '\s-codec:a:[0-9]+\s' "${audioConvertArguments}")" + "$(regexCount '\s-codec:a:[0-9]+\s' "${audioExportArguments}")" ))" -eq 0 ]]; then
     warn "${inputFile} has no supported Audio files"
   fi
 
@@ -2043,14 +2043,14 @@ hasChanges() {
   local streamCount=''
 
 
-  if [[ -n "$(regexCount '\s-codec:[vas]:[0-9]+\s*([^c]|c[^o]|co[^p]|cop[^y]|copy[^\s])' "${runnable}")" ]]; then
+  if [[ "$(regexCount '\s-codec:[vas]:[0-9]+\s+([^c]|c[^o]|co[^p]|cop[^y])' "${runnable}")" -gt 0 ]]; then
     echo 'true'
   elif [[ "$(regexCount "\\s*-i\\s*'[^']*'" "${runnable}")" -gt 1 ]]; then
     echo 'true'
   else
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams)"
     streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
-    if [[ "$(regexCount '\s-codec:[vas]:[0-9]*\s' "${runnable}")" -ne "${streamCount}" ]]; then
+    if [[ "$(regexCount '\s-codec:[vas]:[0-9]+\s+' "${runnable}")" -ne "${streamCount}" ]]; then
       echo 'true'
     else
       echo 'false'
@@ -2068,7 +2068,7 @@ convert() {
   local pid="${3}"
   local runnable=''
 
-  runnable="ffmpeg $(assembleArguments "${inputFile}" "${outputFile}")"
+  runnable="ffmpeg -loglevel warning $(assembleArguments "${inputFile}" "${outputFile}")"
 
   debug "${runnable}"
   if [[ "${runnable}" =~ .*-codec:v:0.* ]]; then
