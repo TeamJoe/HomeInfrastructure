@@ -159,7 +159,7 @@ getCommand() {
 
 getUsage() {
   echo "Usage \"$0 [active|start|start-local|output-[error|warn|info|debug|trace|all]|stop]" \
-    "[--audio Codec to use when processing audio aac]" \
+    "[--audio List of allowed audio codecs {aac,mp3}}]" \
     "[--audio-bitrate Bit rate per an audio channel {98304}]" \
     "[--audio-export-extension Audio extension to export to when run in export mode {.audio}]" \
     "[--audio-import-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
@@ -175,13 +175,13 @@ getUsage() {
     "[--metadata Will allow convert files to update metadata]" \
     "[--pid Location of pid file {~/plex-encoding.pid}]" \
     "[--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
-    "[--subtitle List of allowed subtitle formats {srt,ass}]" \
+    "[--subtitle List of allowed subtitle codecs {srt,ass}]" \
     "[--subtitle-export-extension Subtitle extension to export to when run in export mode {.subtitles}]" \
     "[--subtitle-import-extension List of subtitle extensions to read {.srt,.ass}]" \
     "[--subtitle-update Method to use for updating subtitles {convert|export|delete}]" \
     "[--thread Thread to use while processing {3}]" \
     "[--tmp tmpDirectory Temporary directory to store processing video files {/tmp}]" \
-    "[--video videoCodec Video codecs to use {libx264|libx265}]" \
+    "[--video videoCodec List of allowed video codecs {libx264,libx265}]" \
     "[--video-export-extension Video extension to export to when run in export mode {.video}]" \
     "[--video-level Maximum Allowed Video Level {4.1}]" \
     "[--video-pixel List of allowed pixel formats {yuv420p,yuv420p10le}]" \
