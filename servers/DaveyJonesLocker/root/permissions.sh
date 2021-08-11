@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# sudo crontab -u root -e
-# 0 * * * * /root/permissions.sh
-
 chown bazarr:media -R /home/bazarr
 chmod 700 -R /home/bazarr
 chmod 000 /home/bazarr/cred*

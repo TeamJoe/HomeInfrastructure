@@ -1,11 +1,6 @@
 #!/bin/bash
 # /home/compression/compression.sh
 
-# sudo crontab -u compression -e
-# 0 2 * * * /home/compression/compression.sh start --speed ultrafast --video libx264 -- --thread 1 --sort date
-# 0 2 * * 1,5 /home/compression/compression.sh start --speed fast --video libx265 -- --thread 1 --sort reverse-size
-# 0 2 1,15 * * /home/compression/compression.sh start --speed slow --video libx265 -- --thread 1 --sort reverse-date
-
 path="${0}"
 command="${1}"; shift
 options="${@}"

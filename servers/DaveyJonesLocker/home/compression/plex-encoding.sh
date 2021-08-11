@@ -619,8 +619,8 @@ getCodecAudioExtension() {
 normalizeVideoCodec() {
   local codecName="${1,,}"
   case "${codecName}" in
-    libx265 | h265 | x265 | hevc | hevc_v4l2m2m | hevc_vaapi) echo 'hevc' ;;
-    libx264 | h264 | x264 | libx264rgb | h264_v4l2m2m | h264_vaapi | h264_omx) echo 'h264' ;;
+    libx265 | h265 | x265 | hevc | hevc_v4l2m2m | hevc_vaapi | hevc_nvenc) echo 'hevc' ;;
+    libx264 | h264 | x264 | libx264rgb | h264_v4l2m2m | h264_vaapi | h264_omx | h264_nvenc) echo 'h264' ;;
     *) echo "${codecName}" ;;
   esac
 }
@@ -709,10 +709,24 @@ normalizeLanguageFullName() {
   local language="${1,,}"
   language="$(echo "${language}" | awk '{print $1}')"
   case "${language}" in
-    en | eng | english) echo 'English' ;;
+    ar | ara | arb | arabic) echo 'Arabic' ;;
+    bn | ben | bengali) echo 'Bengali' ;;
+    cmn | zho-cmn | mandarin) echo 'Mandarin' ;;
+    de | ger | deu | german) echo 'German' ;;
+    en | eng | english | american) echo 'English' ;;
+    es | spa | spanish) echo 'Spanish' ;;
+    fr | fre | fra | french) echo 'French' ;;
+    hi | hin | hindi) echo 'Hindi' ;;
+    hr | hrv | croatian) echo 'Croatian' ;;
+    in | ind | indonesian) echo 'Indonesian' ;;
+    it | ita | italian) echo 'Italian' ;;
     jp | jpn | japanese) echo 'Japanese' ;;
+    ko | kor | korean) echo 'Korean' ;;
+    pt | por | portuguese) echo 'Portuguese' ;;
     ru | rus | russian) echo 'Russian' ;;
-    *) echo 'unknown' ;;
+    ro | ron | rum | romanian) echo 'Romanian' ;;
+    zh | chi | zho | chinese) echo 'Chinese' ;;
+    *) echo 'Undetermined' ;;
   esac
 }
 
@@ -720,10 +734,24 @@ normalizeLanguage() {
   local language="${1,,}"
   language="$(echo "${language}" | awk '{print $1}')"
   case "${language}" in
-    en | eng | english) echo 'eng' ;;
+    ar | ara | arb | arabic) echo 'ara' ;;
+    bn | ben | bengali) echo 'ben' ;;
+    cmn | zho-cmn | mandarin) echo 'cmn' ;;
+    de | ger | deu | german) echo 'deu' ;;
+    en | eng | english | american) echo 'eng' ;;
+    es | spa | spanish) echo 'spa' ;;
+    fr | fre | fra | french) echo 'fra' ;;
+    hi | hin | hindi) echo 'hin' ;;
+    hr | hrv | croatian) echo 'hrv' ;;
+    in | ind | indonesian) echo 'ind' ;;
+    it | ita | italian) echo 'ita' ;;
     jp | jpn | japanese) echo 'jpn' ;;
+    ko | kor | korean) echo 'kor' ;;
+    pt | por | portuguese) echo 'por' ;;
     ru | rus | russian) echo 'rus' ;;
-    *) echo 'unknown' ;;
+    ro | ron | rum | romanian) echo 'ron' ;;
+    zh | chi | zho | chinese) echo 'zho' ;;
+    *) echo 'und' ;;
   esac
 }
 
@@ -1421,7 +1449,7 @@ getTitle() {
   if [[ -z "${title}" ]]; then
     IFS=$'\n'
     for title in $(regex 's/\./\n/g' "${extras}"); do
-      if [[ "$(normalizeLanguage "${title}")" == 'unknown' ]]; then
+      if [[ "$(normalizeLanguage "${title}")" != 'und' ]]; then
         break
       fi
     done
@@ -1440,7 +1468,7 @@ getLanguage() {
     IFS=$'\n'
     for language in $(regex 's/\./\n/g' "${extras}"); do
       language="$(normalizeLanguage "${language}")"
-      if [[ "${language}" != 'unknown' ]]; then
+      if [[ "${language}" != 'und' ]]; then
         break
       fi
     done
@@ -1462,11 +1490,11 @@ determineTitle() {
     audioChannelCount="$(getChannelNaming "${audioChannelCount}")"
   fi
 
-  if [[ -n "${title}" && "${title}" != "$(normalizeLanguageFullName "${title}")" ]]; then
+  if [[ -n "${title}" && "${title}" != 'und' && "${title}" != 'Undetermined' && "${title}" != "$(normalizeLanguageFullName "${title}")" ]]; then
     echo "${title}"
-  elif [[ -n "${audioChannelCount}" && "${language}" != 'unknown' ]]; then
+  elif [[ -n "${audioChannelCount}" && "${language}" != 'und' && "${language}" != 'Undetermined' ]]; then
     echo "${language} ${audioChannelCount}"
-  elif [[ "${language}" != 'unknown' ]]; then
+  elif [[ "${language}" != 'und' && "${language}" != 'Undetermined' ]]; then
     echo "${language}"
   fi
 }
@@ -1480,9 +1508,9 @@ determineLanguage() {
   title="$(normalizeLanguage "$(getTitle "${extras}" "${stream}")")"
   language="$(normalizeLanguage "$(getLanguage "${extras}" "${stream}")")"
 
-  if [[ -n "${language}" ]]; then
+  if [[ -n "${language}" && "${language}" != 'und' ]]; then
     echo "${language}"
-  elif [[ "${title}" != 'unknown' ]]; then
+  elif [[ "${title}" != 'und' ]]; then
     echo "${title}"
   fi
 }
@@ -2225,7 +2253,7 @@ convertAll() {
         if [[ -z "${outputDirectory}" ]]; then
           outputFile="${currentDirectory}/${currentFileName}${outputExtension}"
         else
-          outputFile="${outputDirectory}${currentDirectory:${inputDirectoryLength}}/${currentFileName}${outputExtension}"
+          outputFile="${outputDirectory}/${currentDirectory:${inputDirectoryLength}}/${currentFileName}${outputExtension}"
         fi
         if [[ -f "${outputFile}" && "${inputFile}" != "${outputFile}" ]]; then
           warn "Cannot convert '${inputFile}' as it would overwrite '${outputFile}'"
