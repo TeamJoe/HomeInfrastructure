@@ -583,13 +583,13 @@ regexMultiline() {
 }
 
 trim() {
-  local trimChar="${1:-\s}"
-  local value="${2}"
+  local value="${1}"
+  local trimChar="${2:-\s}"
 
   if [[ -p /dev/stdin ]]; then
     cat - | regexMultiline "${regex}"
   else
-    regexMultiline "s/(^${trimChar}*|${trimChar}*$)//g" "${value}"
+    regexMultiline "s/(^${trimChar}+|${trimChar}+$)//g" "${value}"
   fi
 }
 
@@ -1449,13 +1449,17 @@ getTitle() {
   if [[ -z "${title}" ]]; then
     IFS=$'\n'
     for title in $(regex 's/\./\n/g' "${extras}"); do
-      if [[ "$(normalizeLanguage "${title}")" != 'und' ]]; then
+      if [[ "$(normalizeLanguage "${title}")" == 'und' && -n "$(trim "${title}")" ]]; then
         break
       fi
     done
   fi
 
-  echo "${title}"
+  if [[ -n "${title}" ]]; then
+    trim "${title}"
+  else
+    echo "Undetermined"
+  fi
 }
 
 getLanguage() {
@@ -1473,7 +1477,12 @@ getLanguage() {
       fi
     done
   fi
-  echo "${language}"
+
+  if [[ -n "${language}" ]]; then
+    trim "${language}"
+  else
+    echo "und"
+  fi
 }
 
 determineTitle() {
@@ -1490,12 +1499,14 @@ determineTitle() {
     audioChannelCount="$(getChannelNaming "${audioChannelCount}")"
   fi
 
-  if [[ -n "${title}" && "${title}" != 'und' && "${title}" != 'Undetermined' && "${title}" != "$(normalizeLanguageFullName "${title}")" ]]; then
+  if [[ -n "${title}" && "${title}" != 'und' && "${title}" != 'Undetermined' && "$(normalizeLanguage "${title}")" == "und" ]]; then
     echo "${title}"
-  elif [[ -n "${audioChannelCount}" && "${language}" != 'und' && "${language}" != 'Undetermined' ]]; then
-    echo "${language} ${audioChannelCount}"
   elif [[ "${language}" != 'und' && "${language}" != 'Undetermined' ]]; then
-    echo "${language}"
+    if [[ -n "${audioChannelCount}" ]]; then
+      echo "${language} (${audioChannelCount})"
+    else
+      echo "${language}"
+    fi
   fi
 }
 
