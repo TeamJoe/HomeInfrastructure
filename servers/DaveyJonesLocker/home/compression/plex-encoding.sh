@@ -7,16 +7,19 @@
 inputDirectory="${HOME}/Videos" #/home/public/Videos/TV/Sonarr
 outputDirectory=''        #/home/public/Videos/TV/Sonarr
 tmpDirectory='/tmp'
+logLevel='ALL'
 logFile="${HOME}/encoding.results"
 dryRun='false'
 forceRun='false'
 metadataRun='false'
+deleteMetadata='false'
 pidLocation="${HOME}/plex-encoding.pid"
 threadCount=4 # 0 is unlimited
 audioCodec='aac'
 audioUpdateMethod='convert'     # convert, export, delete
 audioImportExtension='.mp3,.aac,.ac3' # comma list of audio extensions
-audioExportExtension='.audio'
+# shellcheck disable=SC2016
+audioExportExtension='.${title}.${stream}.${language}'
 deleteInputFiles='false'
 fileIgnoreRegex='.*\/(Downloads?|Uploads?|Imports?|To Import|Music)\/.*'
 videoCodec='libx265'        # libx264, libx265
@@ -30,14 +33,16 @@ videoQuality=20               # 1-50, lower is better quailty
 videoLevel='4.1'              # 1.0 to 6.1
 videoFrameRate='copy'         # Any Fraction, copy, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, zerolatency
-videoExportExtension='.video'
+# shellcheck disable=SC2016
+videoExportExtension='.${title}.${stream}.${language}'
 subtitlesUpdateMethod='export' # convert, export, delete
 subtitleCodec='srt'           # Comma list of allowed formats
 subtitleImportExtension='.srt'      # Comma list of subtitle extensions
-subtitleExportExtension='.subtitles'
+# shellcheck disable=SC2016
+subtitleExportExtension='.${title}.${stream}.${language}'
 bitratePerAudioChannel=98304  # 65536 is default
-outputExtension='.mkv'
-sortBy='size' # date, size, reverse-date, reverse-size
+videoOutputExtension='.mkv'
+sortBy='size' # date, name, size, reverse-date, reverse-name, reverse-size
 
 #-----------------
 # Input Values
@@ -80,12 +85,14 @@ while true; do
     --audio-import-extension) audioImportExtension="${2}"; shift 2 ;;
     --audio-update) audioUpdateMethod="${2}"; shift 2 ;;
     --delete-input) deleteInputFiles='true'; shift ;;
+    --delete-metadata) deleteMetadata='true'; shift ;;
     --dry) dryRun='true'; shift ;;
-    --ext) outputExtension="${2}"; shift 2 ;;
+    --ext) videoOutputExtension="${2}"; shift 2 ;;
     --force) forceRun='true'; shift ;;
     --ignore) fileIgnoreRegex="${2}"; shift 2 ;;
     --input) inputDirectory="${2}"; shift 2 ;;
     --log) logFile="${2}"; shift 2 ;;
+    --log-level) logLevel="${2}"; shift 2 ;;
     --metadata) metadataRun='true'; shift ;;
     --output) outputDirectory="${2}"; shift 2 ;;
     --pid) pidLocation="${2}"; shift 2 ;;
@@ -117,6 +124,25 @@ if [[ "${outputDirectory}" == "${inputDirectory}" ]]; then
   outputDirectory=''
 fi
 
+case "${logLevel^^}" in
+  NONE) logLevelValue=0 ;;
+  ERROR) logLevelValue=1 ;;
+  WARN) logLevelValue=2 ;;
+  INFO) logLevelValue=3 ;;
+  DEBUG) logLevelValue=4 ;;
+  TRACE) logLevelValue=5 ;;
+  ALL) logLevelValue=6 ;;
+  *) logLevelValue=6 ;;
+esac
+
+shopt -s expand_aliases
+# shellcheck disable=SC2139
+alias getSubtitleExportExtension="echo \"${subtitleExportExtension}\" | regex 's/\//|/g'"
+# shellcheck disable=SC2139
+alias getVideoExportExtension="echo \"${videoExportExtension}\" | regex 's/\//|/g'"
+# shellcheck disable=SC2139
+alias getAudioExportExtension="echo \"${audioExportExtension}\" | regex 's/\//|/g'"
+
 getCommand() {
   local command="${1^^}"
   echo "'${path}' '${command}'" \
@@ -126,12 +152,14 @@ getCommand() {
     "--audio-import-extension '${audioImportExtension}'" \
     "--audio-update '${audioUpdateMethod}'" \
     "$(if [ "${deleteInputFiles}" = true ]; then echo '--delete-input'; fi)" \
+    "$(if [ "${deleteMetadata}" = true ]; then echo '--delete-metadata'; fi)" \
     "$(if [ "${dryRun}" = true ]; then echo '--dry'; fi)" \
-    "--ext '${outputExtension}'" \
+    "--ext '${videoOutputExtension}'" \
     "$(if [ "${forceRun}" = true ]; then echo '--force'; fi)" \
     "--ignore '${fileIgnoreRegex}'" \
     "--input '${inputDirectory}'" \
     "--log '${logFile}'" \
+    "--log-level '${logLevel}'" \
     "$(if [ "${metadataRun}" = true ]; then echo '--metadata'; fi)" \
     "--output '${outputDirectory}'" \
     "--pid '${pidLocation}'" \
@@ -165,14 +193,16 @@ getUsage() {
     "[--audio-import-extension List of audio extensions to read {.mp3,.acc,.ac3}]" \
     "[--audio-update Method to use for updating audio {convert|export|delete}]" \
     "[--delete-input Will delete input files after convert. Note video file always deletes if input and output are the same location]" \
-    "[--dry Will out what commands it will execute without modifying anything]" \
-    "[--ext The extension of the output file {.mkv}]" \
+    "[--delete-metadata Will remove old metadata from the files]" \
+    "[--dry Will output what commands it will execute without modifying anything]" \
+    "[--ext The extension of the output file {copy|.mp4|.mkv}]" \
     "[--force Will always convert, even if codecs matches]" \
     "[--ignore Regex match of file names with directory to ignore {.*\/(Downloads?|Uploads?|Imports?|To Import|Music)\/.*}]" \
     "[--input Directory of files to process {~/Video}]" \
     "[--output Output directory of the processed files, blank will cause replacement {~/ProcessedVideo}]" \
     "[--log Location of where to output the logs {~/encoding.results}]" \
-    "[--metadata Will allow convert files to update metadata]" \
+    "[--log-level The level which to log {ALL|TRACE|DEBUG|INFO|WARN|ERROR|NONE}]" \
+    "[--metadata Will always update files in order to update metadata]" \
     "[--pid Location of pid file {~/plex-encoding.pid}]" \
     "[--sort What order to process the files in {date|size|reverse-date|reverse-size}]" \
     "[--subtitle List of allowed subtitle codecs {srt,ass}]" \
@@ -200,23 +230,33 @@ getUsage() {
 #-----------------
 
 error() {
-  log "[ERROR] ${*}"
+  if [[ "${logLevelValue}" -ge 1 ]]; then
+    log "[ERROR] ${*}"
+  fi
 }
 
 warn() {
-  log "[WARN] ${*}"
+  if [[ "${logLevelValue}" -ge 2 ]]; then
+    log "[WARN] ${*}"
+  fi
 }
 
 info() {
-  log "[INFO] ${*}"
+  if [[ "${logLevelValue}" -ge 3 ]]; then
+    log "[INFO] ${*}"
+  fi
 }
 
 debug() {
-  log "[DEBUG] ${*}"
+  if [[ "${logLevelValue}" -ge 4 ]]; then
+    log "[DEBUG] ${*}"
+  fi
 }
 
 trace() {
-  log "[TRACE] ${*}"
+  if [[ "${logLevelValue}" -ge 5 ]]; then
+    log "[TRACE] ${*}"
+  fi
 }
 
 log() {
@@ -1631,8 +1671,8 @@ getAudioEncodingSettings() {
     local probeResult=''
     local stream=0
     local duration=''
-    local oldTitle=''
-    local oldLanguage=''
+    local title=''
+    local language=''
     local oldCodec=''
     local oldChannelCount=''
     local oldBitRate=''
@@ -1657,12 +1697,12 @@ getAudioEncodingSettings() {
       if [[ -z "${oldChannelCount}" ]]; then
         oldChannelCount='2'
       fi
-      oldTitle="$(determineTitle "${inputExtras}" "${probeResult}" "${oldChannelCount}")"
-      oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
+      title="$(determineTitle "${inputExtras}" "${probeResult}" "${oldChannelCount}")"
+      language="$(determineLanguage "${inputExtras}" "${probeResult}")"
       oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
-      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${audioExportExtension}$(getCodecAudioExtension "${oldCodec}")"
+      outputFile="${outputDirectory}/${baseName}$(getAudioExportExtension)$(getCodecAudioExtension "${oldCodec}")"
 
-      trace "Stream ${fileCount}:audio:${stream} codec:${oldCodec} duration:${duration} channels:${oldChannelCount} rate:${oldBitRate} title:${oldTitle} language:${oldLanguage}"
+      trace "Stream ${fileCount}:audio:${stream} codec:${oldCodec} duration:${duration} channels:${oldChannelCount} rate:${oldBitRate} title:${title} language:${language}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${audioUpdateMethod}" "${oldCodec}" 'normalizeAudioCodec' "${audioCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeAudioCodec "${oldCodec}")"
@@ -1685,7 +1725,7 @@ getAudioEncodingSettings() {
           oldBitRate='-1'
         fi
 
-        trace "Stream ${fileCount}:audio:${stream} codec:${newCodec} channels:${newChannelCount} rate:${newBitRate} title:${oldTitle} language:${oldLanguage}"
+        trace "Stream ${fileCount}:audio:${stream} codec:${newCodec} channels:${newChannelCount} rate:${newBitRate}"
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] ||
           [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldBitRate}" -le "${newBitRate}" ]]; then
           audioEncoding="${audioEncoding} -map ${fileCount}:a:${stream}"
@@ -1701,11 +1741,11 @@ getAudioEncodingSettings() {
           fi
         fi
 
-        if [[ -n "${oldTitle}" ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=${oldTitle}'"
+        if [[ -n "${title}" ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=${title}'"
         fi
-        if [[ -n "${oldLanguage}" ]]; then
-          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataLanguage}=${oldLanguage}'"
+        if [[ -n "${language}" ]]; then
+          audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataLanguage}=${language}'"
         fi
         if [[ "${mode}" == 'convert' ]]; then
           index="$((index + 1))"
@@ -1751,8 +1791,8 @@ getVideoEncodingSettings() {
   local newTune=''
   local newPresetComplexity=''
   local duration=''
-  local oldTitle=''
-  local oldLanguage=''
+  local title=''
+  local language=''
   local oldCodec=''
   local oldLevel=''
   local oldPixelFormat=''
@@ -1788,8 +1828,8 @@ getVideoEncodingSettings() {
     newTune="${videoTune}"
     oldCodec="$(getCodecFromStream "${probeResult}")"
     duration="$(getMetadata 'DURATION' "${probeResult}")"
-    oldTitle="$(determineTitle "${inputExtras}" "${probeResult}")"
-    oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
+    title="$(determineTitle "${inputExtras}" "${probeResult}")"
+    language="$(determineLanguage "${inputExtras}" "${probeResult}")"
     oldLevel="$(getVideoLevelFromStream "${probeResult}")"
     oldPixelFormat="$(getVideoPixelFormatFromStream "${probeResult}")"
     oldFrameRate="$(getVideoFrameRateFromStream "${probeResult}")"
@@ -1797,7 +1837,7 @@ getVideoEncodingSettings() {
     oldProfile="$(getVideoProfileFromStream "${probeResult}")"
     oldQuality="$(getMetadata "${metadataVideoQuality}" "${probeResult}")"
     oldTune="$(getMetadata "${metadataVideoTune}" "${probeResult}")"
-    outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${videoExportExtension}$(getCodecVideoExtension "${oldCodec}")"
+    outputFile="${outputDirectory}/${baseName}$(getVideoExportExtension)$(getCodecVideoExtension "${oldCodec}")"
 
     # Calculated Values
     normalizedOldFrameRate="$(normalizeFrameRate "${oldFrameRate}")"
@@ -1805,7 +1845,7 @@ getVideoEncodingSettings() {
     oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
     newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
 
-    trace "Stream ${fileCount}:video:${stream} codec:${oldCodec} duration:${duration} level:${oldLevel} format:${oldPixelFormat} rate:${oldFrameRate} preset:${oldPreset} profile:${oldProfile} quality:${oldQuality} tune:${oldTune} title:${oldTitle} language:${oldLanguage}"
+    trace "Stream ${fileCount}:video:${stream} codec:${oldCodec} duration:${duration} level:${oldLevel} format:${oldPixelFormat} rate:${oldFrameRate} preset:${oldPreset} profile:${oldProfile} quality:${oldQuality} tune:${oldTune} title:${title} language:${language}"
     if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
      "$(isSupported "${mode}" "${videoUpdateMethod}" "${oldCodec}" 'normalizeVideoCodec' "${videoCodec}")" == 'true' ]]; then
       normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
@@ -1922,11 +1962,11 @@ getVideoEncodingSettings() {
         fi
       fi
       if [[ "${streamCount}" -gt 1 ]]; then
-        if [[ -n "${oldTitle}" ]]; then
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=${oldTitle}'"
+        if [[ -n "${title}" ]]; then
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=${title}'"
         fi
-        if [[ -n "${oldLanguage}" ]]; then
-          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataLanguage}=${oldLanguage}'"
+        if [[ -n "${language}" ]]; then
+          videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataLanguage}=${language}'"
         fi
       fi
       if [[ "${mode}" == 'convert' ]]; then
@@ -1965,8 +2005,8 @@ getSubtitleEncodingSettings() {
     local probeResult=''
     local stream=0
     local duration=''
-    local oldTitle=''
-    local oldLanguage=''
+    local title=''
+    local language=''
     local oldCodec=''
     local newCodec=''
     local normalizedOldCodecName=''
@@ -1981,11 +2021,11 @@ getSubtitleEncodingSettings() {
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((stream + 1)){print;}")"
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
-      oldTitle="$(determineTitle "${inputExtras}" "${probeResult}")"
-      oldLanguage="$(determineLanguage "${inputExtras}" "${probeResult}")"
-      outputFile="${outputDirectory}/${baseName}.${oldTitle}.${stream}.${oldCodec}.${oldLanguage}${subtitleExportExtension}$(getCodecSubtitleExtension "${oldCodec}")"
+      title="$(determineTitle "${inputExtras}" "${probeResult}")"
+      language="$(determineLanguage "${inputExtras}" "${probeResult}")"
+      outputFile="${outputDirectory}/${baseName}$(getSubtitleExportExtension)$(getCodecSubtitleExtension "${oldCodec}")"
 
-      trace "Stream ${fileCount}:subtitles:${stream} codec:${oldCodec} duration:${duration} title:${oldTitle} language:${oldLanguage}"
+      trace "Stream ${fileCount}:subtitles:${stream} codec:${oldCodec} duration:${duration} title:${title} language:${language}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${subtitlesUpdateMethod}" "${oldCodec}" 'normalizeSubtitleCodec' "${subtitleCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
@@ -2005,11 +2045,11 @@ getSubtitleEncodingSettings() {
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
         fi
-        if [[ -n "${oldTitle}" ]]; then
-          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${oldTitle}'"
+        if [[ -n "${title}" ]]; then
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${title}'"
         fi
-        if [[ -n "${oldLanguage}" ]]; then
-          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${oldLanguage}'"
+        if [[ -n "${language}" ]]; then
+          subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataLanguage}=${language}'"
         fi
         if [[ "${mode}" == 'convert' ]]; then
           index="$((index + 1))"
@@ -2070,7 +2110,7 @@ assembleArguments() {
     arguments="${arguments} -i '$(regex "s/'/'\"'\"'/g" "${fileFromList}")'"
   done
 
-  arguments="${arguments} -map_metadata -1 ${chapterConvertArguments} ${videoConvertArguments} ${audioConvertArguments} ${subtitleConvertArguments} -threads ${threadCount} '$(regex "s/'/'\"'\"'/g" "${outputFile}")' ${chapterExportArguments} ${videoExportArguments} ${audioExportArguments} ${subtitleExportArguments}"
+  arguments="${arguments}$(if [ "${deleteMetadata}" = true ]; then echo ' -map_metadata -1'; fi) ${chapterConvertArguments} ${videoConvertArguments} ${audioConvertArguments} ${subtitleConvertArguments} -threads ${threadCount} '$(regex "s/'/'\"'\"'/g" "${outputFile}")' ${chapterExportArguments} ${videoExportArguments} ${audioExportArguments} ${subtitleExportArguments}"
 
   echo "${arguments}"
 }
@@ -2117,8 +2157,13 @@ convert() {
         convertErrorCode=0
       else
         hasCodecChanges='true'
-        eval "${runnable}"
-        convertErrorCode=$?
+        if [[ "${logLevelValue}" -ge 6 ]]; then
+          eval "${runnable}"
+          convertErrorCode=$?
+        else
+          eval "${runnable}" > /dev/null 2>&1
+          convertErrorCode=$?
+        fi
       fi
       unlockFile "${inputFile}" "${pid}"
     else
@@ -2142,6 +2187,7 @@ convertFile() {
   local tmpDirectory=''
   local outputBaseName=''
   local outputDirectory=''
+  local outputExtension=''
   local mod=''
   local owner=''
   local group=''
@@ -2158,6 +2204,7 @@ convertFile() {
   tmpDirectory="$(getDirectory "${tmpFile}")"
   outputBaseName="$(getFileName "${outputFile}")"
   outputDirectory="$(getDirectory "${outputFile}")"
+  outputExtension="$(getExtension "${outputFile}")"
 
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
@@ -2179,9 +2226,7 @@ convertFile() {
       debug "rm \"${inputFile}\""
     fi
     debug "mv \"${tmpFile}\" \"${outputFile}\""
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${audioExportExtension}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${videoExportExtension}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
-    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}*${subtitleExportExtension}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
+    debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
     debug "chown \"${owner}:${group}\" -v \"${outputFile}\""
     debug "chmod \"${mod}\" -v \"${outputFile}\""
     debug "File '${inputFile}' reduced to $((finalSize / (1024 * 1024) ))MiB from original size $((originalSize / (1024 * 1024) ))MiB"
@@ -2203,9 +2248,7 @@ convertFile() {
         rm "${inputFile}"
       fi
       mv "${tmpFile}" "${outputFile}"
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${audioExportExtension}.*" -exec mv '{}' "/${outputDirectory}/" \;
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${videoExportExtension}.*" -exec mv '{}' "/${outputDirectory}/" \;
-      find "${tmpDirectory}" -type f -name "${outputBaseName}*${subtitleExportExtension}.*" -exec mv '{}' "/${outputDirectory}/" \;
+      find "${tmpDirectory}" -type f -name "${outputBaseName}.*" -exec mv '{}' "/${outputDirectory}/" \;
       chown "${owner}:${group}" "${outputFile}"
       chmod "${mod}" "${outputFile}"
       trace "File '${inputFile}' reduced to $((finalSize / 1024 / 1204))MiB from original size $((originalSize / 1024 / 1204))MiB"
@@ -2228,6 +2271,7 @@ convertAll() {
   local currentExt=''
   local tmpFile=''
   local outputFile=''
+  local outputExtension=''
   local inputFile=''
   local sortingType=''
   local sortingOrder=''
@@ -2238,9 +2282,31 @@ convertAll() {
   tmpDirectory="$(normalizeDirectory "${tmpDirectory}")"
   outputDirectory="$(normalizeDirectory "${outputDirectory}")"
   inputDirectoryLength="$(("${#inputDirectory}" + 1))"
-  sortingType="$(if [[ "${sortBy^^}" =~ ^.*'DATE'$ ]]; then echo '%T@ %p\n'; else echo '%s %p\n'; fi)"
-  sortingOrder="$(if [[ "${sortBy^^}" =~ ^'REVERSE'.*$ ]]; then echo '-n'; else echo '-rn'; fi)"
-  allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort "${sortingOrder}" | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
+  if [[ "${sortBy^^}" =~ ^.*'DATE'$ ]]; then
+    sortingType='%T@ %p\n'
+  elif [[ "${sortBy^^}" =~ ^.*'NAME'$ ]]; then
+    sortingType='%p\n'
+  else
+    sortingType='%s %p\n'
+  fi
+  if [[ "${sortBy^^}" =~ ^'REVERSE'.*$ ]]; then
+    if [[ "${sortBy^^}" =~ ^.*'NAME'$ ]]; then
+      sortingOrder='-rn'
+    else
+      sortingOrder='-n'
+    fi
+  else
+    if [[ "${sortBy^^}" =~ ^.*'NAME'$ ]]; then
+      sortingOrder='-n'
+    else
+      sortingOrder='-rn'
+    fi
+  fi
+  if [[ "${sortBy^^}" =~ ^.*'NAME'$ ]]; then
+    allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort "${sortingOrder}" | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
+  else
+    allInputFiles="$(find "${inputDirectory}" -type f -printf "${sortingType}" | sort "${sortingOrder}" | awk '!($1="")' | sed 's/^ *//g' | xargs -d "\n" file -N -i | sed -n 's!: video/[^:]*$!!p')"
+  fi
   fileCount="$(echo "${allInputFiles}" | wc -l)"
 
   info "Processing ${fileCount} file"
@@ -2256,8 +2322,15 @@ convertAll() {
       currentDirectory="$(getDirectory "${inputFile}")"
       currentFileName="$(getFileName "${inputFile}")"
       currentExt="$(getExtension "${inputFile}")"
+
+      if [[ -z "${videoOutputExtension}" || "${videoOutputExtension}" == copy ]]; then
+        outputExtension="${currentExt}"
+      else
+        outputExtension="${videoOutputExtension}"
+      fi
+
       if [[ "${currentExt}" != "part" ]]; then
-        tmpFile="${tmpDirectory}/${currentFileName}${outputExtension}"
+        tmpFile="${tmpDirectory}/${currentFileName}/${currentFileName}${outputExtension}"
         if [[ -f "${tmpFile}" ]]; then
           rm -f "${tmpFile}"
         fi

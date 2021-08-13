@@ -66,9 +66,9 @@ chmod 700 -R /root
 
 #~Add Compression cron jobs
 sudo crontab -u compression -e
-# 0 2 * * * /home/compression/compression.sh start --speed ultrafast --video libx264 -- --thread 1 --sort date --delete-input
-# 0 2 * * 1,5 /home/compression/compression.sh start --speed fast --video libx265 -- --thread 3 --sort reverse-size --delete-input
-# 0 2 1,15 * * /home/compression/compression.sh start --speed slow --video libx265 -- --thread 2 --sort reverse-date --delete-input
+# 0 2 * * * /home/compression/compression.sh start --speed ultrafast --video libx264 -- --thread 1 --sort date --delete-input --delete-metadata
+# 0 2 * * 1,5 /home/compression/compression.sh start --speed fast --video libx265 -- --thread 3 --sort reverse-size --delete-input --delete-metadata
+# 0 2 1,15 * * /home/compression/compression.sh start --speed slow --video libx265 -- --thread 2 --sort reverse-date --delete-input --delete-metadata
 
 #~Add Permission cron job
 sudo crontab -u root -e
