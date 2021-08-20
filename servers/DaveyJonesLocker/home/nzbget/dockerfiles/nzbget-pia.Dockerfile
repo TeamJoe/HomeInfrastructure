@@ -88,7 +88,10 @@ RUN mkdir build && \
         "trap '{ echo \"Abort Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGABRT\n" \
         "trap '{ echo \"Interrupt Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGINT\n" \
         "trap '{ echo \"Terminate Signal Received\" ; kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') ; }' SIGTERM\n" \
-        "while [[ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u nzbget | awk 'NR!=1{print \$1}')\" ]]; do sleep .5 ; done\n" \
+        'while true; do'"\n" \
+            "if [[ -z \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" || -z \"\$(ps -u nzbget | awk 'NR!=1{print \$1}')\" ]]; then break; fi\n" \
+            'sleep 1'"\n" \
+        'done'"\n" \
         "kill -9 \$(ps -u nzbget | awk 'NR!=1{print \$1}') \$(ps ax | grep nzbget| awk '{print \$1}')\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 
