@@ -76,14 +76,14 @@ RUN mkdir build && \
 		'mkdir -p /home/jackett/logs'"\n" \
 		'/init > /home/jackett/logs/init.out &'"\n" \
         'for i in {1..1000}; do'"\n" \
-            "if [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u abc | awk 'NR!=1{print \$1}')\" ]; then break; fi\n" \
+            "if [[ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u abc | awk 'NR!=1{print \$1}')\" ]]; then break; fi\n" \
             'sleep 1'"\n" \
         'done'"\n" \
         "trap '{ echo \"Quit Signal Received\" ; kill -9 \$(ps -u abc | awk 'NR!=1{print \$1}') ; }' SIGQUIT\n" \
         "trap '{ echo \"Abort Signal Received\" ; kill -9 \$(ps -u abc | awk 'NR!=1{print \$1}') ; }' SIGABRT\n" \
         "trap '{ echo \"Interrupt Signal Received\" ; kill -9 \$(ps -u abc | awk 'NR!=1{print \$1}') ; }' SIGINT\n" \
         "trap '{ echo \"Terminate Signal Received\" ; kill -9 \$(ps -u abc | awk 'NR!=1{print \$1}') ; }' SIGTERM\n" \
-        "while [ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u abc | awk 'NR!=1{print \$1}')\" ]; do sleep .5 ; done\n" \
+        "while [[ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u abc | awk 'NR!=1{print \$1}')\" ]]; do sleep .5 ; done\n" \
         "kill -9 \$(ps -u abc | awk 'NR!=1{print \$1}') \$(ps ax | grep jackett | awk '{print \$1}')\n" > /build/start.sh && \
 	chmod 555 /build/start.sh
 

@@ -73,6 +73,7 @@ sudo crontab -u compression -e
 #~Add Permission cron job
 sudo crontab -u root -e
 # 0 * * * * /root/permissions.sh
+# 0 0 * * 1 systemctl restart transmission
 
 #~Setup Users & Groups
 groupadd media
