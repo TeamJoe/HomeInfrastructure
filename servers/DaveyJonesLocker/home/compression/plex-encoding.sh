@@ -696,7 +696,7 @@ getCodecSubtitleExtension() {
     pgssub ) echo '.sub' ;;
     cc_dec ) echo '.sub' ;;
     libzvbi_teletextdec) echo '.sub' ;;
-    ass) echo 'ass' ;;
+    ass) echo '.ass' ;;
     *) echo '.sub' ;;
   esac
 }
@@ -2208,7 +2208,7 @@ convertFile() {
 
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
-    debug "mkdir -p \"${inputDirectory}\""
+    debug "mkdir -p \"${tmpDirectory}\""
     debug "convert \"${inputFile}\" \"${tmpFile}\" \"${pid}\""
     arguments="ffmpeg $(assembleArguments "${inputFile}" "${tmpDirectory}/${outputBaseName}${outputExtension}")"
     debug "${arguments}"
@@ -2226,13 +2226,14 @@ convertFile() {
     elif [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
       debug "rm \"${inputFile}\""
     fi
+    debug "mkdir -p \"${outputDirectory}\""
     debug "mv \"${tmpFile}\" \"${outputFile}\""
     debug "find \"${tmpDirectory}\" -type f -name \"${outputBaseName}.*\" -exec mv '{}' \"${outputDirectory}/.\" \;"
     debug "chown \"${owner}:${group}\" -v \"${outputFile}\""
     debug "chmod \"${mod}\" -v \"${outputFile}\""
     debug "File '${inputFile}' reduced to $((finalSize / (1024 * 1024) ))MiB from original size $((originalSize / (1024 * 1024) ))MiB"
   else
-    mkdir -p "${inputDirectory}"
+    mkdir -p "${tmpDirectory}"
     convert "${inputFile}" "${tmpFile}" "${pid}"
     finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
     if [[ "${hasCodecChanges}" == 'false' ]]; then
@@ -2249,6 +2250,7 @@ convertFile() {
       elif [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
         rm "${inputFile}"
       fi
+      mkdir -p "${outputDirectory}"
       mv "${tmpFile}" "${outputFile}"
       find "${tmpDirectory}" -type f -name "${outputBaseName}.*" -exec mv '{}' "/${outputDirectory}/" \;
       chown "${owner}:${group}" "${outputFile}"
