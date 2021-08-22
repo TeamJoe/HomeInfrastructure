@@ -1415,7 +1415,7 @@ getVideoLevelFromStream() {
   if [[ -z "${oldLevel}" ]]; then
     codec="$(normalizeVideoCodec "$(getCodecFromStream "${stream}")")"
     oldLevel="$(getValue 'level' "${stream}")"
-    if [[ -z "${oldLevel}" ]]; then
+    if [[ -n "${oldLevel}" ]]; then
       if [[ "${codec}" == 'hevc' ]]; then
         if [[ "${oldLevel}" -ge 241 && "$((oldLevel % 6))" -eq 1 ]]; then
           oldLevel="$(((oldLevel - 1) / 6))"
