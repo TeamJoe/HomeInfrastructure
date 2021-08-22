@@ -19,7 +19,7 @@ audioCodec='aac'
 audioUpdateMethod='convert'     # convert, export, delete
 audioImportExtension='.mp3,.aac,.ac3' # comma list of audio extensions
 # shellcheck disable=SC2016
-audioExportExtension='.${title}.${stream}.${language}'
+audioExportExtension='.${stream}.${title}.${disposition}.${language}'
 deleteInputFiles='false'
 fileIgnoreRegex='.*\/(Downloads?|Uploads?|Imports?|To Import|Music)\/.*'
 videoCodec='libx265'        # libx264, libx265
@@ -34,12 +34,12 @@ videoLevel='4.1'              # 1.0 to 6.1
 videoFrameRate='copy'         # Any Fraction, copy, NTSC (29.97), PAL (25), FILM (24), NTSC_FILM (23.97)
 videoTune='fastdecode'        # animation, fastdecode, film, grain, stillimage, zerolatency
 # shellcheck disable=SC2016
-videoExportExtension='.${title}.${stream}.${language}'
+videoExportExtension='.${stream}.${title}.${disposition}.${language}'
 subtitlesUpdateMethod='export' # convert, export, delete
 subtitleCodec='srt'           # Comma list of allowed formats
 subtitleImportExtension='.srt'      # Comma list of subtitle extensions
 # shellcheck disable=SC2016
-subtitleExportExtension='.${title}.${stream}.${language}'
+subtitleExportExtension='.${stream}.${title}.${disposition}.${language}'
 bitratePerAudioChannel=98304  # 65536 is default
 videoOutputExtension='.mkv'
 sortBy='size' # date, name, size, reverse-date, reverse-name, reverse-size
@@ -57,6 +57,7 @@ options="${*}"
 #-----------------
 
 additionalParameters=''
+dispositionList='default,dub,original,comment,lyrics,karaoke,forced,hearing_impaired,visual_impaired,clean_effects,attached_pic,captions,descriptions,dependent,metadata'
 metadataTitle='title'
 metadataLanguage='language'
 metadataCodecName='ENCODER-CODEC'
@@ -1405,6 +1406,41 @@ getMetadata() {
   getValue "TAG:${id}" "${stream}"
 }
 
+getDisposition() {
+  local extras="${1}"
+  local stream="${2}"
+  local title=''
+  local disposition=''
+
+  for disposition in $(regex 's/,/\n/g' "${dispositionList}"); do
+    if [[ "$(getValue "DISPOSITION:${disposition}" "${stream}")" == 1 ]]; then
+      break
+    fi
+  done
+
+  if [[ "$(getValue "DISPOSITION:${disposition}" "${stream}")" != 1 ]]; then
+    for title in $(regex 's/\./\n/g' "${extras}"); do
+      for disposition in $(regex 's/,/\n/g' "${dispositionList}"); do
+        if [[ "${disposition,,}" == "${title,,}" ]]; then
+          break
+        fi
+      done
+    done
+
+    if [[ "${disposition,,}" != "${title,,}" ]]; then
+      if [[ "$(regexCount '((forced)|(sign)|(song))' "${extras,,}")" -gt 0 ]]; then
+        disposition='forced'
+      elif [[ "$(regexCount 'default' "${extras,,}")" -gt 0 ]]; then
+        disposition='default'
+      else
+        disposition='none'
+      fi
+    fi
+  fi
+
+  echo "${disposition}"
+}
+
 getCodecFromStream() {
   local stream="${1}"
   local oldCodec=''
@@ -1705,6 +1741,7 @@ getAudioEncodingSettings() {
     local probeResult=''
     local stream=0
     local duration=''
+    local disposition=''
     local title=''
     local language=''
     local oldCodec=''
@@ -1731,12 +1768,13 @@ getAudioEncodingSettings() {
       if [[ -z "${oldChannelCount}" ]]; then
         oldChannelCount='2'
       fi
+      disposition="$(getDisposition "${inputExtras}" "${probeResult}")"
       title="$(determineTitle "${inputExtras}" "${probeResult}" "${oldChannelCount}")"
       language="$(determineLanguage "${inputExtras}" "${probeResult}")"
       oldBitRate="$(getAudioBitRateFromStream "${probeResult}")"
       outputFile="${outputDirectory}/${baseName}$(getAudioExportExtension)$(getCodecAudioExtension "${oldCodec}")"
 
-      trace "Stream ${fileCount}:audio:${stream} codec:${oldCodec} duration:${duration} channels:${oldChannelCount} rate:${oldBitRate} title:${title} language:${language}"
+      trace "Stream ${fileCount}:audio:${stream} codec:${oldCodec} duration:${duration} channels:${oldChannelCount} rate:${oldBitRate} disposition:${disposition} title:${title} language:${language}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${audioUpdateMethod}" "${oldCodec}" 'normalizeAudioCodec' "${audioCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeAudioCodec "${oldCodec}")"
@@ -1775,6 +1813,11 @@ getAudioEncodingSettings() {
           fi
         fi
 
+        if [[ -z "${disposition}" || "${disposition}" == 'none' ]]; then
+          audioEncoding="${audioEncoding} -disposition:a:${index} 0"
+        else
+          audioEncoding="${audioEncoding} -disposition:a:${index} ${disposition}"
+        fi
         if [[ -n "${title}" ]]; then
           audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataTitle}=${title}'"
         fi
@@ -1825,6 +1868,7 @@ getVideoEncodingSettings() {
   local newTune=''
   local newPresetComplexity=''
   local duration=''
+  local disposition=''
   local title=''
   local language=''
   local oldCodec=''
@@ -1862,6 +1906,7 @@ getVideoEncodingSettings() {
     newTune="${videoTune}"
     oldCodec="$(getCodecFromStream "${probeResult}")"
     duration="$(getMetadata 'DURATION' "${probeResult}")"
+    disposition="$(getDisposition "${inputExtras}" "${probeResult}")"
     title="$(determineTitle "${inputExtras}" "${probeResult}")"
     language="$(determineLanguage "${inputExtras}" "${probeResult}")"
     oldLevel="$(getVideoLevelFromStream "${probeResult}")"
@@ -1879,7 +1924,7 @@ getVideoEncodingSettings() {
     oldPresetComplexity="$(getPresetComplexityOrder "${oldPreset}")"
     newPresetComplexity="$(getPresetComplexityOrder "${newPreset}")"
 
-    trace "Stream ${fileCount}:video:${stream} codec:${oldCodec} duration:${duration} level:${oldLevel} format:${oldPixelFormat} rate:${oldFrameRate} preset:${oldPreset} profile:${oldProfile} quality:${oldQuality} tune:${oldTune} title:${title} language:${language}"
+    trace "Stream ${fileCount}:video:${stream} codec:${oldCodec} duration:${duration} level:${oldLevel} format:${oldPixelFormat} rate:${oldFrameRate} preset:${oldPreset} profile:${oldProfile} quality:${oldQuality} tune:${oldTune} disposition:${disposition} title:${title} language:${language}"
     if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
      "$(isSupported "${mode}" "${videoUpdateMethod}" "${oldCodec}" 'normalizeVideoCodec' "${videoCodec}")" == 'true' ]]; then
       normalizedOldCodecName="$(normalizeVideoCodec "${oldCodec}")"
@@ -1995,6 +2040,12 @@ getVideoEncodingSettings() {
           fi
         fi
       fi
+
+      if [[ -z "${disposition}" || "${disposition}" == 'none' ]]; then
+        videoEncoding="${videoEncoding} -disposition:v:${index} 0"
+      else
+        videoEncoding="${videoEncoding} -disposition:v:${index} ${disposition}"
+      fi
       if [[ "${streamCount}" -gt 1 ]]; then
         if [[ -n "${title}" ]]; then
           videoEncoding="${videoEncoding} -metadata:s:v:${index} '${metadataTitle}=${title}'"
@@ -2039,6 +2090,7 @@ getSubtitleEncodingSettings() {
     local probeResult=''
     local stream=0
     local duration=''
+    local disposition=''
     local title=''
     local language=''
     local oldCodec=''
@@ -2055,11 +2107,12 @@ getSubtitleEncodingSettings() {
       probeResult="$(echo "${streamList}" | awk "/\[STREAM\]/{f=f+1} f==$((stream + 1)){print;}")"
       oldCodec="$(getCodecFromStream "${probeResult}")"
       duration="$(getMetadata 'DURATION' "${probeResult}")"
+      disposition="$(getDisposition "${inputExtras}" "${probeResult}")"
       title="$(determineTitle "${inputExtras}" "${probeResult}")"
       language="$(determineLanguage "${inputExtras}" "${probeResult}")"
       outputFile="${outputDirectory}/${baseName}$(getSubtitleExportExtension)$(getCodecSubtitleExtension "${oldCodec}")"
 
-      trace "Stream ${fileCount}:subtitles:${stream} codec:${oldCodec} duration:${duration} title:${title} language:${language}"
+      trace "Stream ${fileCount}:subtitles:${stream} codec:${oldCodec} duration:${duration} disposition:${disposition} title:${title} language:${language}"
       if [[ -n "${oldCodec}" && "${duration}" != '00:00:00.000000000' &&
        "$(isSupported "${mode}" "${subtitlesUpdateMethod}" "${oldCodec}" 'normalizeSubtitleCodec' "${subtitleCodec}")" == 'true' ]]; then
         normalizedOldCodecName="$(normalizeSubtitleCodec "${oldCodec}")"
@@ -2078,6 +2131,12 @@ getSubtitleEncodingSettings() {
         else
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
+        fi
+
+        if [[ -z "${disposition}" || "${disposition}" == 'none' ]]; then
+          subtitleEncoding="${subtitleEncoding} -disposition:s:${index} 0"
+        else
+          subtitleEncoding="${subtitleEncoding} -disposition:s:${index} ${disposition}"
         fi
         if [[ -n "${title}" ]]; then
           subtitleEncoding="${subtitleEncoding} -metadata:s:s:${index} '${metadataTitle}=${title}'"
