@@ -2271,12 +2271,12 @@ convertFile() {
   else
     mkdir -p "${tmpDirectory}"
     convert "${inputFile}" "${tmpFile}" "${pid}"
-    finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
     if [[ "${hasCodecChanges}" == 'false' ]]; then
       trace "Not processing file '${inputFile}', as no changes would be made."
     elif [[ "${hasCodecChanges}" == 'conflict' ]]; then
       info "Cannot achieve lock on file '${inputFile}', Skipping."
     elif [[ "${hasCodecChanges}" == 'true' && -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((originalSize / finalSize))" -lt 1000 ]]; then
+      finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
       if [[ "${deleteInputFiles}" == 'true' ]]; then
         local fileFromList=''
         IFS=$'\n'
@@ -2294,6 +2294,7 @@ convertFile() {
       trace "File '${inputFile}' reduced to $((finalSize / 1024 / 1204))MiB from original size $((originalSize / 1024 / 1204))MiB"
       info "Completed '${inputFile}'"
     else
+      finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
       warn "Failed to compress '${inputFile}'. Exit Code '${convertErrorCode}' Final Size '${finalSize}' Original Size '${originalSize}'"
       rm "${tmpFile}"
     fi
