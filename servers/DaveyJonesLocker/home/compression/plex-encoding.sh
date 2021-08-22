@@ -752,19 +752,36 @@ normalizeLanguageFullName() {
     ar | ara | arb | arabic) echo 'Arabic' ;;
     bn | ben | bengali) echo 'Bengali' ;;
     cmn | zho-cmn | mandarin) echo 'Mandarin' ;;
+    cs | ces | cze | czech) echo 'Czech' ;;
+    da | dan | danish) echo 'Danish' ;;
     de | ger | deu | german) echo 'German' ;;
     en | eng | english | american) echo 'English' ;;
-    es | spa | spanish) echo 'Spanish' ;;
+    es | spa | spanish | castilian) echo 'Spanish' ;;
+    fi | fin | finnish) echo 'Finnish' ;;
     fr | fre | fra | french) echo 'French' ;;
+    el | ell | gre | greek) echo 'Greek' ;;
+    he | heb | hebrew) echo 'Hebrew' ;;
     hi | hin | hindi) echo 'Hindi' ;;
+    hu | hun | hungarian) echo 'Hungarian' ;;
     hr | hrv | croatian) echo 'Croatian' ;;
     in | ind | indonesian) echo 'Indonesian' ;;
     it | ita | italian) echo 'Italian' ;;
     jp | jpn | japanese) echo 'Japanese' ;;
     ko | kor | korean) echo 'Korean' ;;
+    ms | may | msa | malay) echo 'Malay' ;;
+    nb | nob | bokmal) echo 'Bokmal' ;;
+    nl | dut | nld | dutch | flemish) echo 'Flemish' ;;
+    nn | nno | nynorsk) echo 'Nynorsk' ;;
+    no | nor | norwegian) echo 'Norwegian' ;;
+    pl | pol | polish) echo 'Polish' ;;
     pt | por | portuguese) echo 'Portuguese' ;;
     ru | rus | russian) echo 'Russian' ;;
     ro | ron | rum | romanian) echo 'Romanian' ;;
+    sv | swe | swedish) echo 'Swedish' ;;
+    th | tha | thai) echo 'Thai' ;;
+    tr | tur | turc | turkish) echo 'Turkish' ;;
+    uk | ukr | ukrainian) echo 'Ukrainian' ;;
+    vi | vie | vietnamese | vietnamien) echo 'Vietnamese' ;;
     zh | chi | zho | chinese) echo 'Chinese' ;;
     *) echo 'Undetermined' ;;
   esac
@@ -777,19 +794,36 @@ normalizeLanguage() {
     ar | ara | arb | arabic) echo 'ara' ;;
     bn | ben | bengali) echo 'ben' ;;
     cmn | zho-cmn | mandarin) echo 'cmn' ;;
+    cs | ces | cze | czech) echo 'ces' ;;
+    da | dan | danish) echo 'dan' ;;
     de | ger | deu | german) echo 'deu' ;;
     en | eng | english | american) echo 'eng' ;;
-    es | spa | spanish) echo 'spa' ;;
+    es | spa | spanish | castilian) echo 'spa' ;;
+    fi | fin | finnish) echo 'fin' ;;
     fr | fre | fra | french) echo 'fra' ;;
+    el | ell | gre | greek) echo 'ell' ;;
+    he | heb | hebrew) echo 'heb' ;;
     hi | hin | hindi) echo 'hin' ;;
+    hu | hun | hungarian) echo 'hun' ;;
     hr | hrv | croatian) echo 'hrv' ;;
     in | ind | indonesian) echo 'ind' ;;
     it | ita | italian) echo 'ita' ;;
     jp | jpn | japanese) echo 'jpn' ;;
     ko | kor | korean) echo 'kor' ;;
+    ms | may | msa | malay) echo 'msa' ;;
+    nb | nob | bokmal) echo 'nob' ;;
+    nl | dut | nld | dutch | flemish) echo 'nld' ;;
+    nn | nno | nynorsk) echo 'nno' ;;
+    no | nor | norwegian) echo 'nor' ;;
+    pl | pol | polish) echo 'pol' ;;
     pt | por | portuguese) echo 'por' ;;
     ru | rus | russian) echo 'rus' ;;
     ro | ron | rum | romanian) echo 'ron' ;;
+    sv | swe | swedish) echo 'swe' ;;
+    th | tha | thai) echo 'tha' ;;
+    tr | tur | turc | turkish) echo 'tur' ;;
+    uk | ukr | ukrainian) echo 'ukr' ;;
+    vi | vie | vietnamese | vietnamien) echo 'vie' ;;
     zh | chi | zho | chinese) echo 'zho' ;;
     *) echo 'und' ;;
   esac
@@ -1539,7 +1573,7 @@ determineTitle() {
     audioChannelCount="$(getChannelNaming "${audioChannelCount}")"
   fi
 
-  if [[ -n "${title}" && "${title}" != 'und' && "${title}" != 'Undetermined' && "$(normalizeLanguage "${title}")" == "und" ]]; then
+  if [[ -n "${title}" && "${title}" != 'und' && "${title}" != 'Undetermined' ]]; then
     echo "${title}"
   elif [[ "${language}" != 'und' && "${language}" != 'Undetermined' ]]; then
     if [[ -n "${audioChannelCount}" ]]; then
@@ -2122,14 +2156,16 @@ hasChanges() {
   local streamCount=''
 
 
-  if [[ "$(regexCount '\s-codec:[vas]:[0-9]+\s+([^c]|c[^o]|co[^p]|cop[^y])' "${runnable}")" -gt 0 ]]; then
+  if [[ "$(regexCount '(^|\s)-codec:[vas]:[0-9]+\s+([^c]|c[^o]|co[^p]|cop[^y])' "${runnable}")" -gt 0 ]]; then
     echo 'true'
-  elif [[ "$(regexCount "\\s*-i\\s*'[^']*'" "${runnable}")" -gt 1 ]]; then
+  elif [[ "$(regexCount "(^|\\s)-i\\s+'([^']|'\"'\"')+'($|\s+)" "${runnable}")" -gt 1 ]]; then
+    echo 'true'
+  elif [[ "$(regexCount "(^|\\s)(([^-][\\S]*)|('([^']|'\"'\"')+'))\\s+'([^']|'\"'\"')+'($|\s+)" "${runnable}")" -gt 1 ]]; then
     echo 'true'
   else
     streamList="$(ffprobe "${inputFile}" -loglevel error -show_streams)"
     streamCount="$(regexCount '\[STREAM\]' "${streamList}")"
-    if [[ "$(regexCount '\s-codec:[vas]:[0-9]+\s+' "${runnable}")" -ne "${streamCount}" ]]; then
+    if [[ "$(regexCount '(^|\s)-codec:[vas]:[0-9]+\s+' "${runnable}")" -ne "${streamCount}" ]]; then
       echo 'true'
     else
       echo 'false'
