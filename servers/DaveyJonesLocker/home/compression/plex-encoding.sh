@@ -2152,7 +2152,7 @@ convert() {
   debug "${runnable}"
   if [[ "${runnable}" =~ .*-codec:v:0.* ]]; then
     if [[ "${metadataRun}" == 'true' || "$(hasChanges "${runnable}" "${inputFile}")" == 'true' ]]; then
-      if [ "$(lockFile "${inputFile}" "${pid}")" = 'false' ]; then
+      if [[ "$(lockFile "${inputFile}" "${pid}")" = 'false' ]]; then
         hasCodecChanges='conflict'
         convertErrorCode=0
       else
@@ -2240,7 +2240,7 @@ convertFile() {
       trace "Not processing file '${inputFile}', as no changes would be made."
     elif [[ "${hasCodecChanges}" == 'conflict' ]]; then
       info "Cannot achieve lock on file '${inputFile}', Skipping."
-    elif [[ -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((originalSize / finalSize))" -lt 1000 ]]; then
+    elif [[ "${hasCodecChanges}" == 'true' && -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((originalSize / finalSize))" -lt 1000 ]]; then
       if [[ "${deleteInputFiles}" == 'true' ]]; then
         local fileFromList=''
         IFS=$'\n'

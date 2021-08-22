@@ -221,12 +221,12 @@ regexMultiline() {
 }
 
 trim() {
-  local trimChar="${1:-\s}"
-  local value="${2}"
+  local value="${1}"
+  local trimChar="${2:-\s}"
 
   if [[ -p /dev/stdin ]]; then
     cat - | regexMultiline "${regex}"
   else
-    regexMultiline "s/(^${trimChar}*|${trimChar}*$)//g" "${value}"
+    regexMultiline "s/(^${trimChar}+|${trimChar}+$)//g" "${value}"
   fi
 }
