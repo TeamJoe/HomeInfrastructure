@@ -1559,7 +1559,12 @@ getTitle() {
   if [[ -z "${title}" ]]; then
     IFS=$'\n'
     for title in $(regex 's/\./\n/g' "${extras}"); do
-      if [[ "$(normalizeLanguage "${title}")" == 'und' && -n "$(trim "${title}")" ]]; then
+      title="$(trim "${title}")"
+      if [[ "${title}" == "$(echo "${title}" | awk '{print $1}')" ]]; then
+        if [[ "$(normalizeLanguageFullName "${title}")" == 'Undetermined' && -n "$(trim "${title/[0-9]*/}")" ]]; then
+          break
+        fi
+      elif [[ -n "$(trim "${title/[0-9]*/}")" ]]; then
         break
       fi
     done
@@ -1607,6 +1612,10 @@ determineTitle() {
 
   if [[ -n "${audioChannelCount}" ]]; then
     audioChannelCount="$(getChannelNaming "${audioChannelCount}")"
+  fi
+
+  if [[ "${title}" == "$(echo "${title}" | awk '{print $1}')" && "$(normalizeLanguageFullName "${title}")" != 'Undetermined' ]]; then
+    title="$(normalizeLanguageFullName "${title}")"
   fi
 
   if [[ -n "${title}" && "${title}" != 'und' && "${title}" != 'Undetermined' ]]; then
