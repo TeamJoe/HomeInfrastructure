@@ -2208,6 +2208,7 @@ convertFile() {
 
   if [[ "$dryRun" == "true" ]]; then
     finalSize="$(ls -al "${inputFile}" | awk '{print $5}')"
+    debug "mkdir -p \"${inputDirectory}\""
     debug "convert \"${inputFile}\" \"${tmpFile}\" \"${pid}\""
     arguments="ffmpeg $(assembleArguments "${inputFile}" "${tmpDirectory}/${outputBaseName}${outputExtension}")"
     debug "${arguments}"
@@ -2231,6 +2232,7 @@ convertFile() {
     debug "chmod \"${mod}\" -v \"${outputFile}\""
     debug "File '${inputFile}' reduced to $((finalSize / (1024 * 1024) ))MiB from original size $((originalSize / (1024 * 1024) ))MiB"
   else
+    mkdir -p "${inputDirectory}"
     convert "${inputFile}" "${tmpFile}" "${pid}"
     finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
     if [[ "${hasCodecChanges}" == 'false' ]]; then
@@ -2370,7 +2372,6 @@ startLocal() {
       echo "${pid}" >"${pidLocation}"
     fi
     info "$(getCommand "${command}")"
-    mkdir -p "${tmpDirectory}/${pid}"
 
     if [[ -n "${logFile}" ]]; then
       convertAll "${inputDirectory}" "${tmpDirectory}/${pid}" "${outputDirectory}" "${pid}" 2>>"${logFile}"
