@@ -2275,7 +2275,6 @@ convert() {
         hasCodecChanges='conflict'
         convertErrorCode=0
       else
-        hasCodecChanges='true'
         if [[ "${logLevelValue}" -ge 6 ]]; then
           eval "${runnable}"
           convertErrorCode=$?
@@ -2283,6 +2282,7 @@ convert() {
           eval "${runnable}" > /dev/null 2>&1
           convertErrorCode=$?
         fi
+        hasCodecChanges='true'
       fi
       unlockFile "${inputFile}" "${pid}"
     else
@@ -2358,27 +2358,31 @@ convertFile() {
       trace "Not processing file '${inputFile}', as no changes would be made."
     elif [[ "${hasCodecChanges}" == 'conflict' ]]; then
       info "Cannot achieve lock on file '${inputFile}', Skipping."
-    elif [[ "${hasCodecChanges}" == 'true' && -f "${tmpFile}" && "${convertErrorCode}" == "0" && -n "${finalSize}" && "${finalSize}" -gt 0 && -n "${originalSize}" && "$((originalSize / finalSize))" -lt 1000 ]]; then
+    elif [[ "${hasCodecChanges}" == 'true' && -f "${tmpFile}" && "${convertErrorCode}" == "0" ]]; then
       finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
-      if [[ "${deleteInputFiles}" == 'true' ]]; then
-        local fileFromList=''
-        IFS=$'\n'
-        for fileFromList in $(getInputFiles "${inputFile}"); do
-          rm "${fileFromList}"
-        done
-      elif [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
-        rm "${inputFile}"
+      if [[ -n "${finalSize}" && -n "${originalSize}" && "${originalSize}" -gt 0 && "${finalSize}" -gt 0 && "$((originalSize / finalSize))" -lt 1000 ]]; then
+        if [[ "${deleteInputFiles}" == 'true' ]]; then
+          local fileFromList=''
+          IFS=$'\n'
+          for fileFromList in $(getInputFiles "${inputFile}"); do
+            rm "${fileFromList}"
+          done
+        elif [[ "${inputDirectory}" == "${outputDirectory}" && "${inputBaseName}" == "${outputBaseName}" ]]; then
+          rm "${inputFile}"
+        fi
+        mkdir -p "${outputDirectory}"
+        mv "${tmpFile}" "${outputFile}"
+        find "${tmpDirectory}" -type f -name "${outputBaseName}.*" -exec mv '{}' "/${outputDirectory}/" \;
+        chown "${owner}:${group}" "${outputFile}"
+        chmod "${mod}" "${outputFile}"
+        trace "File '${inputFile}' reduced to $((finalSize / 1024 / 1204))MiB from original size $((originalSize / 1024 / 1204))MiB"
+        info "Completed '${inputFile}'"
+      else
+        warn "Compressed size seems incorrect '${inputFile}'. Exit Code '${convertErrorCode}' Final Size '${finalSize}' Original Size '${originalSize}'"
+        rm "${tmpFile}"
       fi
-      mkdir -p "${outputDirectory}"
-      mv "${tmpFile}" "${outputFile}"
-      find "${tmpDirectory}" -type f -name "${outputBaseName}.*" -exec mv '{}' "/${outputDirectory}/" \;
-      chown "${owner}:${group}" "${outputFile}"
-      chmod "${mod}" "${outputFile}"
-      trace "File '${inputFile}' reduced to $((finalSize / 1024 / 1204))MiB from original size $((originalSize / 1024 / 1204))MiB"
-      info "Completed '${inputFile}'"
     else
-      finalSize="$(ls -al "${tmpFile}" | awk '{print $5}')"
-      warn "Failed to compress '${inputFile}'. Exit Code '${convertErrorCode}' Final Size '${finalSize}' Original Size '${originalSize}'"
+      warn "Failed to compress '${inputFile}'. Exit Code '${convertErrorCode}' Original Size '${originalSize}'"
       rm "${tmpFile}"
     fi
   fi
