@@ -1561,10 +1561,10 @@ getTitle() {
     for title in $(regex 's/\./\n/g' "${extras}"); do
       title="$(trim "${title}")"
       if [[ "${title}" == "$(echo "${title}" | awk '{print $1}')" ]]; then
-        if [[ "$(normalizeLanguageFullName "${title}")" == 'Undetermined' && -n "$(trim "${title/[0-9]*/}")" ]]; then
+        if [[ "$(normalizeLanguageFullName "${title}")" == 'Undetermined' && -n "$(trim "${title/[0-9]*/}")" && "$(doesListContain "${title,,}" "${dispositionList}" ',')" != 'true' ]]; then
           break
         fi
-      elif [[ -n "$(trim "${title/[0-9]*/}")" ]]; then
+      elif [[ -n "$(trim "${title/[0-9]*/}")" && "$(doesListContain "${title,,}" "${dispositionList}" ',')" != 'true' ]]; then
         break
       fi
     done
@@ -1669,6 +1669,18 @@ isSupported() {
   fi
 }
 
+getFiles() {
+  local inputDirectory="${1}"
+  local inputBaseName="${2}"
+  local extensions="${3}"
+  local fileExt=''
+
+  IFS=$'\n'
+  for fileExt in $(regex 's/,/\n/g' "${extensions}"); do
+    find "${inputDirectory}" -type f -name "${inputBaseName}*${fileExt}"
+  done
+}
+
 getInputFiles() {
   local inputFile="${1}"
   local inputDirectory=''
@@ -1679,13 +1691,8 @@ getInputFiles() {
   inputFileName="$(getFileName "${inputFile}")"
 
   echo "${inputFile}"
-  IFS=$'\n'
-  for fileExt in $(regex 's/,/\n/g' "${audioImportExtension}"); do
-    find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}"
-  done
-  for fileExt in $(regex 's/,/\n/g' "${subtitleImportExtension}"); do
-    find "${inputDirectory}" -type f -name "${inputFileName}*${fileExt}"
-  done
+  getFiles "${inputDirectory}" "${inputFileName}" "${audioImportExtension}" | sort
+  getFiles "${inputDirectory}" "${inputFileName}" "${subtitleImportExtension}" | sort
 }
 
 #-----------------
@@ -1810,7 +1817,11 @@ getAudioEncodingSettings() {
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] ||
           [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldBitRate}" -le "${newBitRate}" ]]; then
           audioEncoding="${audioEncoding} -map ${fileCount}:a:${stream}"
-          audioEncoding="${audioEncoding} -codec:a:${index} copy -metadata:s:a:${index} '${metadataCodecName}=${oldCodec}'"
+          if [[ "${fileCount}" -gt 0 ]]; then
+            audioEncoding="${audioEncoding} -codec:a:${index} ${normalizedOldCodecName} -metadata:s:a:${index} '${metadataCodecName}=${normalizedOldCodecName}'"
+          else
+            audioEncoding="${audioEncoding} -codec:a:${index} copy -metadata:s:a:${index} '${metadataCodecName}=${oldCodec}'"
+          fi
           if [[ -n "${oldBitRate}" && ${oldBitRate} -gt 0 ]]; then
             audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataAudioBitRate}=${oldBitRate}'"
           fi
@@ -2136,7 +2147,11 @@ getSubtitleEncodingSettings() {
         trace "Stream ${fileCount}:subtitles:${stream} codec:${newCodec}"
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] || [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
-          subtitleEncoding="${subtitleEncoding} -codec:s:${index} copy -metadata:s:s:${index} '${metadataCodecName}=${oldCodec}'"
+          if [[ "${fileCount}" -gt 0 ]]; then
+            subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${normalizedOldCodecName} -metadata:s:s:${index} '${metadataCodecName}=${normalizedOldCodecName}'"
+          else
+            subtitleEncoding="${subtitleEncoding} -codec:s:${index} copy -metadata:s:s:${index} '${metadataCodecName}=${oldCodec}'"
+          fi
         else
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
