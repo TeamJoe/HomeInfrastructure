@@ -690,15 +690,11 @@ normalizeSubtitleCodec() {
 
 getCodecSubtitleExtension() {
   local codecName="${1,,}"
+  local type="$(getSubtitleEncodingType "${codecName}")"
   case "$(normalizeSubtitleCodec "${codecName}")" in
     subrip ) echo '.srt' ;;
-    dvbsub ) echo '.sub' ;;
-    dvdsub ) echo '.sub' ;;
-    pgssub ) echo '.sub' ;;
-    cc_dec ) echo '.sub' ;;
-    libzvbi_teletextdec) echo '.sub' ;;
     ass) echo '.ass' ;;
-    *) echo '.sub' ;;
+    *) if [[ "${type}" == 'image' ]]; then echo '.sup'; else echo '.sub'; fi ;;
   esac
 }
 
