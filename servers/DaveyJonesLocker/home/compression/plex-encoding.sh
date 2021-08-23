@@ -1817,11 +1817,7 @@ getAudioEncodingSettings() {
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] ||
           [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" && "${oldBitRate}" -le "${newBitRate}" ]]; then
           audioEncoding="${audioEncoding} -map ${fileCount}:a:${stream}"
-          if [[ "${fileCount}" -gt 0 ]]; then
-            audioEncoding="${audioEncoding} -codec:a:${index} ${normalizedOldCodecName} -metadata:s:a:${index} '${metadataCodecName}=${normalizedOldCodecName}'"
-          else
-            audioEncoding="${audioEncoding} -codec:a:${index} copy -metadata:s:a:${index} '${metadataCodecName}=${oldCodec}'"
-          fi
+          audioEncoding="${audioEncoding} -codec:a:${index} copy -metadata:s:a:${index} '${metadataCodecName}=${oldCodec}'"
           if [[ -n "${oldBitRate}" && ${oldBitRate} -gt 0 ]]; then
             audioEncoding="${audioEncoding} -metadata:s:a:${index} '${metadataAudioBitRate}=${oldBitRate}'"
           fi
@@ -2147,11 +2143,7 @@ getSubtitleEncodingSettings() {
         trace "Stream ${fileCount}:subtitles:${stream} codec:${newCodec}"
         if [[ -z "${newCodec}" || "${newCodec,,}" == "copy" ]] || [[ "${forceRun}" == 'false' && "${normalizedOldCodecName}" == "${normalizedNewCodecName}" ]]; then
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
-          if [[ "${fileCount}" -gt 0 ]]; then
-            subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${normalizedOldCodecName} -metadata:s:s:${index} '${metadataCodecName}=${normalizedOldCodecName}'"
-          else
-            subtitleEncoding="${subtitleEncoding} -codec:s:${index} copy -metadata:s:s:${index} '${metadataCodecName}=${oldCodec}'"
-          fi
+          subtitleEncoding="${subtitleEncoding} -codec:s:${index} copy -metadata:s:s:${index} '${metadataCodecName}=${oldCodec}'"
         else
           subtitleEncoding="${subtitleEncoding} -map ${fileCount}:s:${stream}"
           subtitleEncoding="${subtitleEncoding} -codec:s:${index} ${newCodec} -metadata:s:s:${index} '${metadataCodecName}=${newCodec}'"
