@@ -5,7 +5,7 @@ path="$1"; shift
 description="$1"; shift
 iloApiAddress="$1"; shift
 iloAddress="$1"; shift
-serverInternalAddresss="$1"; shift
+serverInternalAddress="$1"; shift
 serverExternalAddress="$1"; shift
 user="$1"; shift
 password="$1"; shift
@@ -32,7 +32,7 @@ powerOn() {
 }
 
 isBooted() {
-	local status="$(curl "${serverInternalAddresss}/ping" --fail --max-time 1 --silent | grep 'PONG')"
+	local status="$(curl "${serverInternalAddress}/ping" --fail --max-time 1 --silent | grep 'PONG')"
 	if [ -n "${status}" ]; then
 		echo "true"
 	else

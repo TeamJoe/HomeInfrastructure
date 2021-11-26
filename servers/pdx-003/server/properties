@@ -1,0 +1,7 @@
+#/server/properties
+architecture amd64
+timezone America/Vancouver
+satisfactory.address lobythepirate.mooo.com
+satisfactory.port.server  43501
+satisfactory.port.query   43502
+satisfactory.port.beacon  43601

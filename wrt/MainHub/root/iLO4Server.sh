@@ -5,7 +5,7 @@ path="$1"; shift
 description="$1"; shift
 iloApiAddress="$1"; shift
 iloAddress="$1"; shift
-serverInternalAddresss="$1"; shift
+serverInternalAddress="$1"; shift
 serverExternalAddress="$1"; shift
 user="$1"; shift
 password="$1"; shift
@@ -24,7 +24,7 @@ isPoweredOn() {
 powerOn() {
 	
 	local state="$(curl "$iloApiAddress" --max-time 30 --insecure --user "${user}:${password}" --data '{ "Action": "PowerButton", "PushType": "Press", "Target": "/Oem/Hp"}' --header 'Content-Type: application/json' --silent --location)"
-	local result="$(echo "$state" | grep -o 'success')"
+	local result="$(echo "$state" | grep -o 'Success')"
 	if [ -z "${result}" ]; then
 		echo "Failed to Start"
 	else
@@ -33,7 +33,7 @@ powerOn() {
 }
 
 isBooted() {
-	local status="$(curl "${serverInternalAddresss}/ping" --fail --max-time 1 --silent | grep 'PONG')"
+	local status="$(curl "${serverInternalAddress}/ping" --fail --max-time 1 --silent | grep 'PONG')"
 	if [ -n "${status}" ]; then
 		echo "true"
 	else

@@ -23,6 +23,10 @@ vanilla16() {
 	sudo -u minecraft /home/minecraft/Vanilla-1-16.sh "$@"
 }
 
+vanilla17() {
+	sudo -u minecraft /home/minecraft/Vanilla-1-17-1.sh "$@"
+}
+
 rl() {
 	sudo -u minecraft /home/minecraft/RLCraftServer.sh "$@"
 }

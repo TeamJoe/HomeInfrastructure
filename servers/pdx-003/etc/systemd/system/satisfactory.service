@@ -1,0 +1,20 @@
+#/home/satisfactory/satisfactory.service
+[Unit]
+Description=Satisfactory Game Server
+After=docker.service
+
+[Service]
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
+User=satisfactory
+Group=docker
+ExecStart=/home/satisfactory/satisfactory.sh start-monitor
+ExecStop=/home/satisfactory/satisfactory.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
