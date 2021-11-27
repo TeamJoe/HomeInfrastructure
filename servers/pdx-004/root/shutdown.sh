@@ -3,7 +3,7 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
-activeCommands=('sh /home/factorio/FactorioServer.sh active'
+shutdownCommands=('sh /home/factorio/FactorioServer.sh active'
 'sh /home/minecraft/ATM3Server.sh active'
 'sh /home/minecraft/ATM5Server.sh active'
 'sh /home/minecraft/VanillaServer.sh active'
@@ -18,7 +18,7 @@ activeCommands=('sh /home/factorio/FactorioServer.sh active'
 minimum_server_boot_time=3600
 
 isTrue() {
-	if [ "${1}" == "false" ] || [ "${1}" == "0" ]; then
+	if [[ "${1}" == "false" || "${1}" == "0" ]]; then
 		echo "false"
 	else
 		echo "true"
@@ -27,21 +27,23 @@ isTrue() {
 
 isActive() {
 	local index="${1}"
-	local activeCommand="${activeCommands[${index}]}"
-	local active="$(isTrue "$(eval "${activeCommand}")")"
+	local shutdownCommand="${shutdownCommands[${index}]}"
+	local active="$(isTrue "$(eval "${shutdownCommand}")")"
 	
 	echo "${active}"
 }
 
 runCommands() {
-	for i in $(echo ${!activeCommands[@]}); do
-		local active="$(isActive "$i")"
-		if [ "$active" == "true" ]; then
+	local active='false'
+
+	for i in $(echo ${!shutdownCommands[@]}); do
+		active="$(isActive "$i")"
+		if [[ "$active" == "true" ]]; then
 			break
 		fi
 	done
 	
-	if [ "$active" == "true" ]; then
+	if [[ "$active" == "true" ]]; then
 		echo "true"
 	else
 		echo "false"
@@ -49,14 +51,17 @@ runCommands() {
 }
 
 checkActive() {
+	local isActive='false'
 	local timeSinceBoot="$(printf '%.0f\n' "$(awk '{print $1}' /proc/uptime)")"
 	
-	if [ $minimum_server_boot_time -lt $timeSinceBoot ]; then
-		local isActive="$(runCommands)"
-		if [ "$isActive" == "false" ]; then
+	if [[ $minimum_server_boot_time -lt $timeSinceBoot ]]; then
+		isActive="$(runCommands)"
+		
+		if [[ "$isActive" == "false" ]]; then
 			/sbin/shutdown
 		fi
 	fi
 }
 
 checkActive >> /home/joe/shutdown.log 2>&1
+

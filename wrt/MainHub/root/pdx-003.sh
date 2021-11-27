@@ -1,7 +1,7 @@
 #!/bin/sh
 # /root/pdx-003.sh
 
-description="Nothing Installed"
+description="Satisfactory"
 iloApiAddress='https://<REDACTED>/rest/v1/Systems/1'
 iloAddress='<REDACTED>'
 serverInternalAddresss='<REDACTED>'
