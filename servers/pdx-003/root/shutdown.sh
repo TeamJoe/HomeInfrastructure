@@ -8,7 +8,7 @@ shutdownCommands=('sh /home/satisfactory/satisfactory.sh active')
 minimum_server_boot_time=3600
 
 isTrue() {
-	if [ "${1}" == "false" ] || [ "${1}" == "0" ]; then
+	if [[ "${1}" == "false" || "${1}" == "0" ]]; then
 		echo "false"
 	else
 		echo "true"
@@ -26,12 +26,12 @@ isActive() {
 runCommands() {
 	for i in $(echo ${!activeCommands[@]}); do
 		local active="$(isActive "$i")"
-		if [ "$active" == "true" ]; then
+		if [[ "$active" == "true" ]]; then
 			break
 		fi
 	done
 	
-	if [ "$active" == "true" ]; then
+	if [[ "$active" == "true" ]]; then
 		echo "true"
 	else
 		echo "false"
@@ -41,9 +41,9 @@ runCommands() {
 checkActive() {
 	local timeSinceBoot="$(printf '%.0f\n' "$(awk '{print $1}' /proc/uptime)")"
 	
-	if [ $minimum_server_boot_time -lt $timeSinceBoot ]; then
+	if [[ $minimum_server_boot_time -lt $timeSinceBoot ]]; then
 		local isActive="$(runCommands)"
-		if [ "$isActive" == "false" ]; then
+		if [[ "$isActive" == "false" ]]; then
 			/sbin/shutdown
 		fi
 	fi
