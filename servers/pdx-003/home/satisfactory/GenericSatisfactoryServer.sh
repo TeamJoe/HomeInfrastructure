@@ -57,7 +57,7 @@ regExMatch() {
 }
 
 getSimpleLogFile() {
-	echo "${installDirectory}/logs/$(ls -Art "${installDirectory}/logs/simple*" | tail --lines=1)"
+	echo "${installDirectory}/logs/$(ls -Art "${installDirectory}/logs/"simple* | tail --lines=1)"
 }
 
 
@@ -89,23 +89,17 @@ extractLogValue() {
 	echo "$output"
 }
 
-countLogValue() {
-	local regex_pattern="$1"; shift
+regexCount() {
+  local regex="${1}"
+  local value="${2}"
 
-	local match=""
-	local output=0
-	local line=""
-	IFS=$'\n'
-	
-	for line in $(cat "$(getLogFile)"); do
-		match="$(regExMatch "$line" "$regex_pattern" 0)"
-		if [ -n "$match" ]; then
-			output="$(($output + 1))"
-		fi
-	done
-	
-	echo "$output"
+  if [[ -p /dev/stdin ]]; then
+    cat - | grep --count --extended-regexp "${regex}"
+  else
+    echo "${value}" | grep --count --extended-regexp "${regex}"
+  fi
 }
+
 
 callParent() {
 	local command="$1"; shift
@@ -234,24 +228,39 @@ getPlayerCount() {
 	if [ "$(isStarted)" != "true" ]; then
 		echo "0"
 	else
-		local joined="$(countLogValue "$player_join_regex")"
-		local left="$(countLogValue "$player_leave_regex")"
+		local joined="$(cat "$(getLogFile)" | regexCount "$player_join_regex")"
+		local left="$(cat "$(getLogFile)" | regexCount "$player_leave_regex")"
 		echo "$(($joined - $left))"
 	fi
 }
 
 isActive() {
+	local currentTimeStamp=''
+	local startTimeStamp=''
+	local lastActivityTimeStamp=''
+	local timeSinceStart=''
+	local timeSinceActive=''
+	local minimumBootRemaining=''
+	local minimumActiveRemaining=''
+
+	currentTimeStamp="$(date +"%s")"
 	if [ "$(isStarted)" != "true" ]; then
-		echo "0"
+		if [ "$(isBooted)" == "true" ]; then
+			startTimeStamp="$(getBootTime)"
+			timeSinceStart="$((currentTimeStamp-startTimeStamp))"
+			minimumBootRemaining="$((minimum_server_boot_time-timeSinceStart))"
+			if [ "$minimumBootRemaining" -ge "0" ]; then
+				echo "$minimumBootRemaining"
+			else
+				echo "0"
+			fi
+		else
+			echo "0"
+		fi
 	else
-		local currentTimeStamp="$(date +"%s")"
-		local startTimeStamp="$(getStartTime)"
-		local lastActivityTimeStamp="$(getLastActivityTime)"
-		local timeSinceStart="$((currentTimeStamp-startTimeStamp))"
-		local timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
-		
-		local minimumBootRemaining="$((minimum_server_boot_time-timeSinceStart))"
-		local minimumActiveRemaining="$((minimum_disconnect_live_time-timeSinceActive))"
+		startTimeStamp="$(getStartTime)"
+		timeSinceStart="$((currentTimeStamp-startTimeStamp))"
+		minimumBootRemaining="$((minimum_server_boot_time-timeSinceStart))"
 		
 		if [ ! "$(getPlayerCount)" == 0 ]; then
 			if [ "$minimumBootRemaining" -ge "$minimum_disconnect_live_time" ]; then
@@ -260,6 +269,9 @@ isActive() {
 				echo "$minimum_disconnect_live_time"
 			fi
 		else
+			lastActivityTimeStamp="$(getLastActivityTime)"
+			timeSinceActive="$((currentTimeStamp-lastActivityTimeStamp))"
+			minimumActiveRemaining="$((minimum_disconnect_live_time-timeSinceActive))"
 			if [ "$minimumBootRemaining" -ge 0 ] && [ "$minimumBootRemaining" -ge "$minimumActiveRemaining" ]; then
 				echo "$minimumBootRemaining"
 			elif [ "$minimumActiveRemaining" -ge 0 ]; then
@@ -272,30 +284,35 @@ isActive() {
 }
 
 getStatus() {
-	local currentTimeStamp="$(date +"%s")"
-	local bootTimeStamp="$(getBootTime)"
-	local startTimeStamp="$(getStartTime)"
+	local currentTimeStamp=''
+	local bootTimeStamp=''
+	local startTimeStamp=''
+	local serverBootTime=''
+	local bootTime=''
+	local startTime=''
 	
-	local serverBootTime="$(getTimeSinceServerBoot)"
-	local bootTime="$((currentTimeStamp-bootTimeStamp))"
-	local startTime="$((currentTimeStamp-startTimeStamp))"
-	local running="$(isBooted)"
-	local started="$(isStarted)"
-	
-	if [ "${running}" == "true" ]; then
-		if [ "${started}" == "true" ]; then
+	if [ "$(isBooted)" == "true" ]; then
+		if [ "$(isStarted)" == "true" ]; then
 			echo "Running"
 		else
 			echo "Starting"
 		fi
-	elif [ "$bootTime" -lt "$serverBootTime" ]; then
-		if [ "$startTime" -lt "$bootTime" ]; then
-			echo "Down"
-		else
-			echo "Failed to Boot"
-		fi
 	else
-		echo "Not Booted"
+		currentTimeStamp="$(date +"%s")"
+		bootTimeStamp="$(getBootTime)"
+		serverBootTime="$(getTimeSinceServerBoot)"
+		bootTime="$((currentTimeStamp-bootTimeStamp))"
+		if [ "$bootTime" -lt "$serverBootTime" ]; then
+			startTimeStamp="$(getStartTime)"
+			startTime="$((currentTimeStamp-startTimeStamp))"
+			if [ "$startTime" -lt "$bootTime" ]; then
+				echo "Down"
+			else
+				echo "Failed to Boot"
+			fi
+		else
+			echo "Not Booted"
+		fi
 	fi
 }
 

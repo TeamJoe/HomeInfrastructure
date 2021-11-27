@@ -147,9 +147,9 @@ regexFind() {
   local value="${2}"
 
   if [[ -p /dev/stdin ]]; then
-    cat - | grep -oE "${regex}"
+    cat - | grep --only-matching --extended-regexp "${regex}"
   else
-    echo "${value}" | grep -oE "${regex}"
+    echo "${value}" | grep --only-matching --extended-regexp "${regex}"
   fi
 }
 
@@ -158,9 +158,9 @@ regexFindMultiline() {
   local value="${2}"
 
   if [[ -p /dev/stdin ]]; then
-    cat - | tr -d '\r' | tr '\n' '\r' | grep -oE "${regex}" | tr '\r' '\n'
+    cat - | tr -d '\r' | tr '\n' '\r' | grep --only-matching --extended-regexp "${regex}" | tr '\r' '\n'
   else
-    echo "${value}" | tr -d '\r' | tr '\n' '\r' | grep -oE "${regex}" | tr '\r' '\n'
+    echo "${value}" | tr -d '\r' | tr '\n' '\r' | grep --only-matching --extended-regexp "${regex}" | tr '\r' '\n'
   fi
 }
 
