@@ -3,7 +3,8 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
-shutdownCommands=('sh /home/satisfactory/satisfactory.sh active')
+shutdownCommands=('netstat | grep ssh | grep -c ESTABLISHED'
+'sh /home/satisfactory/satisfactory.sh active')
 
 minimum_server_boot_time=3600
 

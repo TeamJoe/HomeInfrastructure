@@ -3,7 +3,7 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
-shutdownCommands=('echo false')
+shutdownCommands=('netstat | grep ssh | grep -c ESTABLISHED')
 
 minimum_server_boot_time=3600
 

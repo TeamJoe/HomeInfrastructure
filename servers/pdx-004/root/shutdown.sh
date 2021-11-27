@@ -3,7 +3,8 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
-shutdownCommands=('sh /home/factorio/FactorioServer.sh active'
+shutdownCommands=('netstat | grep ssh | grep -c ESTABLISHED'
+'sh /home/factorio/FactorioServer.sh active'
 'sh /home/minecraft/ATM3Server.sh active'
 'sh /home/minecraft/ATM5Server.sh active'
 'sh /home/minecraft/VanillaServer.sh active'
