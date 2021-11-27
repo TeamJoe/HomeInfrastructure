@@ -20,13 +20,12 @@ startParameters=$(echo \
                 "--env PORT_SERVER_QUERY=${queryport}" \
                 "--env PORT_BEACON=${beaconport}" \
                 "--env PORT_SERVER=${serverport}" \
-                "--env LOGGING=true" \
                 "--env AUTO_UPDATE=true" \
                 "--env PUID=$(id -u ${user})" \
                 "--env PGID=$(id -g ${user})" \
                 "--env TZ=${timezone}" \
-                "--mount type=bind,source=${installDirectory}/logs,target=/logs" \
-                "--mount type=bind,source=${installDirectory}/config,target=/home/satisfactory/FactoryGame/Saved/Config/LinuxServer/" \
+                "--mount type=bind,source=${installDirectory}/logs,target=/home/satisfactory/FactoryGame/Saved/Logs" \
+                "--mount type=bind,source=${installDirectory}/config,target=/home/satisfactory/FactoryGame/Saved/Config/LinuxServer" \
                 "--mount type=bind,source=${installDirectory}/saves,target=/home/satisfactory/.config/Epic/FactoryGame/Saved/SaveGames" \
                 "--mount type=bind,source=${installDirectory}/GUID.ini,target=/home/satisfactory/.config/Epic/FactoryGame/GUID.ini" \
                 "--restart unless-stopped ${tag}" \
@@ -57,9 +56,13 @@ regExMatch() {
 	fi
 }
 
+getSimpleLogFile() {
+	echo "${installDirectory}/logs/$(ls -Art "${installDirectory}/logs/simple*" | tail --lines=1)"
+}
+
 
 getLogFile() {
-	echo "${installDirectory}/logs/$(ls -Art "${installDirectory}/logs" | tail --lines=1)"
+	echo "${installDirectory}/logs/FactoryGame.log"
 }
 
 extractLogValue() {
@@ -147,7 +150,7 @@ getBootTime() {
 	local fileNameMatcher='log-([^\.]+).log'
 	local rawDate=''
 	
-	rawDate="$(regExMatch "$(getLogFile)" "$fileNameMatcher" 1)"
+	rawDate="$(regExMatch "$(getSimpleLogFile)" "$fileNameMatcher" 1)"
 	echo "$(processDate "$rawDate")"
 }
 
