@@ -1,7 +1,7 @@
 #!/bin/bash
 # /home/satisfactory/satisfactory.sh
 
-tag='satisfactory:latest'
+tag='pacificengine/satisfactory:early-access'
 service='satisfactory'
 user='satisfactory'
 description='Satisfactory Game Server'
