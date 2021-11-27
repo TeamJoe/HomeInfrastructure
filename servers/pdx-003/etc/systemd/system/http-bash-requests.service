@@ -13,8 +13,7 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5
 	/ping "echo 'PONG'" \
 	/status "cat /home/joe/status.out" \
 	/satisfactory/start "systemctl start satisfactory.service; sleep 5; echo 'Starting Up'" \
-	/satisfactory/logs "/home/satisfactory/satisfactory.sh logs" \
-	/satisfactory/simple "/home/satisfactory/satisfactory.sh simple" \
+	/satisfactory/logs "/home/satisfactory/satisfactory.sh logs"
 
 [Install]
 WantedBy=multi-user.target

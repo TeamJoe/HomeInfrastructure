@@ -3,11 +3,11 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/inactiveService.sh
 
-runningCommands=('echo false')
+runningCommands=('sh /home/satisfactory/satisfactory.sh started')
 
-activeCommands=('echo false')
+activeCommands=('sh /home/satisfactory/satisfactory.sh active')
 
-shutdownCommands=('echo No-Action')
+shutdownCommands=('systemctl stop satisfactory.service; sh /home/satisfactory/satisfactory.sh stop')
 
 isTrue() {
 	if [ "${1}" == "false" ] || [ "${1}" == "0" ]; then

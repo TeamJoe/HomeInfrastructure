@@ -5,3 +5,4 @@ satisfactory.address lobythepirate.mooo.com
 satisfactory.port.server  43501
 satisfactory.port.query   43502
 satisfactory.port.beacon  43601
+satisfactory.dir.install  /home/satisfactory/data/Update5/EarlyAccess/1

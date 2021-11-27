@@ -3,7 +3,7 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
-shutdownCommands=('echo false')
+shutdownCommands=('sh /home/satisfactory/satisfactory.sh active')
 
 minimum_server_boot_time=3600
 
@@ -44,7 +44,7 @@ checkActive() {
 	if [ $minimum_server_boot_time -lt $timeSinceBoot ]; then
 		local isActive="$(runCommands)"
 		if [ "$isActive" == "false" ]; then
-			/usr/sbin/shutdown
+			/sbin/shutdown
 		fi
 	fi
 }

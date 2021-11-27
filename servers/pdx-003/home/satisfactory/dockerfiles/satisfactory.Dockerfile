@@ -45,6 +45,11 @@ ARG LOGGING=
 ARG AUTO_UPDATE=
 RUN mkdir --parents /build && \
 	echo '#!/bin/bash' $'\n' \
+			'DATE=$(date "+%F-%H:%M:%S")' $'\n' \
+			'LOG_FILE=log-${DATE}.log' $'\n' \
+			'if [ "${LOGGING}" = "true" ]; then' $'\n' \
+			'  echo "Starting Server" > "$LOG_FILE"' $'\n' \
+			'fi' $'\n' \
 			'if [ -n "${PUID}" ]; then usermod -u "${PUID}" '"${USERNAME}"'; fi ' $'\n' \
 			'if [ -n "${PGID}" ]; then groupmod -g "${PGID}" '"${USERGROUP}"'; fi ' $'\n' \
 			'chown '"${USERNAME}"':'"${USERGROUP}"' -R '"${LOG_DIRECTORY}"' ' $'\n' \
@@ -54,18 +59,17 @@ RUN mkdir --parents /build && \
 			'PORT_SERVER="${PORT_SERVER:-'"${PORT_SERVER:-7777}"'}"' $'\n' \
 			'LOGGING="${LOGGING:-'"${LOGGING:-false}"'}"' $'\n' \
 			'AUTO_UPDATE="${AUTO_UPDATE:-'"${AUTO_UPDATE:-true}"'}"' $'\n' \
-			'DATE=$(date "+%F-%H%M%S")' $'\n' \
 			'cd ~' $'\n' \
 			'if [ "${AUTO_UPDATE}" = "true" ]; then' $'\n' \
 			'  chmod 777 -R /tmp' $'\n' \
 			'  if [ "${LOGGING}" = "true" ]; then' $'\n' \
-			'    su --login '"${USERNAME}"' --shell /bin/bash --command "steamcmd +runscript '"${INSTALL_DIRECTORY}"'/update.script" | tee --ignore-interrupts '"${LOG_DIRECTORY}"'/log-${DATE}.log' $'\n' \
+			'    su --login '"${USERNAME}"' --shell /bin/bash --command "steamcmd +runscript '"${INSTALL_DIRECTORY}"'/update.script" | tee --append --ignore-interrupts "'"${LOG_DIRECTORY}"'/${LOG_FILE}"' $'\n' \
 			'  else' $'\n' \
 			'    su --login '"${USERNAME}"' --shell /bin/bash --command "steamcmd +runscript '"${INSTALL_DIRECTORY}"'/update.script"' $'\n' \
 			'  fi' $'\n' \
 			'fi' $'\n' \
 			'if [ "${LOGGING}" = "true" ]; then' $'\n' \
-			'  (su --login '"${USERNAME}"' --shell /bin/bash --command "'"${INSTALL_DIRECTORY}"'/FactoryServer.sh -ServerQueryPort=${PORT_SERVER_QUERY} -BeaconPort=${PORT_BEACON} -Port=${PORT_SERVER} -log -unattended") | tee --append --ignore-interrupts '"${LOG_DIRECTORY}"'/log-${DATE}.log' $'\n' \
+			'  (su --login '"${USERNAME}"' --shell /bin/bash --command "'"${INSTALL_DIRECTORY}"'/FactoryServer.sh -ServerQueryPort=${PORT_SERVER_QUERY} -BeaconPort=${PORT_BEACON} -Port=${PORT_SERVER} -log -unattended") | tee --append --ignore-interrupts "'"${LOG_DIRECTORY}"'/${LOG_FILE}"' $'\n' \
 			'else' $'\n' \
 			'  su --login '"${USERNAME}"' --shell /bin/bash --command "'"${INSTALL_DIRECTORY}"'/FactoryServer.sh -ServerQueryPort=${PORT_SERVER_QUERY} -BeaconPort=${PORT_BEACON} -Port=${PORT_SERVER} -log -unattended"' $'\n' \
 			'fi' $'\n' \
