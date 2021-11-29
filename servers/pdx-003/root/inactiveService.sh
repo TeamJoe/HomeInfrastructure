@@ -3,11 +3,14 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/inactiveService.sh
 
-runningCommands=('sh /home/satisfactory/satisfactory.sh started')
+runningCommands=('sh /home/satisfactory/satisfactory.sh started'
+'sh /home/satisfactory/satisfactory2.sh started')
 
-activeCommands=('sh /home/satisfactory/satisfactory.sh active')
+activeCommands=('sh /home/satisfactory/satisfactory.sh active'
+'sh /home/satisfactory/satisfactory2.sh active')
 
-shutdownCommands=('systemctl stop satisfactory.service; sh /home/satisfactory/satisfactory.sh stop')
+shutdownCommands=('systemctl stop satisfactory.service; sh /home/satisfactory/satisfactory.sh stop'
+'systemctl stop satisfactory2.service; sh /home/satisfactory/satisfactory2.sh stop')
 
 isTrue() {
 	if [ "${1}" == "false" ] || [ "${1}" == "0" ]; then

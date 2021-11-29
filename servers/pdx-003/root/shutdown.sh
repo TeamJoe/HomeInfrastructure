@@ -4,7 +4,8 @@
 # */5 * * * * /root/shutdown.sh
 
 shutdownCommands=('netstat | grep ssh | grep -c ESTABLISHED'
-'sh /home/satisfactory/satisfactory.sh active')
+'sh /home/satisfactory/satisfactory.sh active'
+'sh /home/satisfactory/satisfactory2.sh active')
 
 minimum_server_boot_time=3600
 

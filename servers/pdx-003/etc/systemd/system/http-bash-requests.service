@@ -1,4 +1,4 @@
-#/etc/systemd/system
+#/etc/systemd/system/http-bash-requests.service
 [Unit]
 Description=Gets http requests and responses to them
 
@@ -12,8 +12,10 @@ User=root
 ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5 -port=80 \
 	/ping "echo 'PONG'" \
 	/status "cat /home/joe/status.out" \
-	/satisfactory/start "systemctl start satisfactory.service; sleep 5; echo 'Starting Up'" \
-	/satisfactory/logs "/home/satisfactory/satisfactory.sh logs"
+	/satisfactory/1/start "systemctl start satisfactory.service; sleep 5; echo 'Starting Up'" \
+	/satisfactory/1/logs "/home/satisfactory/satisfactory.sh logs" \
+	/satisfactory/2/start "systemctl start satisfactory2.service; sleep 5; echo 'Starting Up'" \
+	/satisfactory/2/logs "/home/satisfactory/satisfactory2.sh logs"
 
 [Install]
 WantedBy=multi-user.target

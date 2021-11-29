@@ -1,4 +1,4 @@
-#/etc/systemd/system/satisfactory.service
+#/etc/systemd/system/satisfactory2.service
 [Unit]
 Description=Satisfactory Game Server
 After=docker.service
@@ -11,8 +11,8 @@ Restart=always
 RestartSec=5
 User=satisfactory
 Group=docker
-ExecStart=/home/satisfactory/satisfactory.sh start-monitor
-ExecStop=/home/satisfactory/satisfactory.sh stop
+ExecStart=/home/satisfactory/satisfactory2.sh start-monitor
+ExecStop=/home/satisfactory/satisfactory2.sh stop
 StandardOutput=syslog
 StandardError=syslog
 
