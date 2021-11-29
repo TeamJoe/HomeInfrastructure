@@ -12,7 +12,6 @@ beaconport="$1"; shift
 queryport="$1"; shift
 installDirectory="$1"; shift
 command="$1"; shift
-externalAddress="${address}:${queryport}"
 startParameters=$(echo \
                 "--publish ${serverport}:${serverport}/udp" \
                 "--publish ${beaconport}:${beaconport}/udp" \
@@ -103,7 +102,7 @@ regexCount() {
 
 callParent() {
 	local command="$1"; shift
-	/server/DockerService.sh "$path" "$service" "$description" "$externalAddress" "$startParameters" "$command"
+	/server/DockerService.sh "$path" "$service" "$description" "${address}:${queryport}" "$startParameters" "$command"
 }
 
 processDate()
@@ -335,7 +334,7 @@ runCommand() {
 	local command="$1"; shift
 	
 	if [[ "$command" == "info" ]]; then
-		echo "Address: ${externalAddress}"
+		echo "Address: ${address} Port: ${queryport}"
 	elif [[ "$command" == "logs" ]]; then
 		tail --lines=1000 "$(getLogFile)"
 	elif [[ "$command" == "status" ]]; then
