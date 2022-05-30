@@ -32,8 +32,6 @@ settings:
   book-size:
     page-max: 2560
     total-multiplier: 0.98
-  unsupported-settings:
-    allow-piston-duplication: false
 messages:
   kick:
     authentication-servers-down: ''

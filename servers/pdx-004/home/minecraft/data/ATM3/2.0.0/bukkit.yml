@@ -33,5 +33,5 @@ chunk-gc:
 ticks-per:
   animal-spawns: 400
   monster-spawns: 1
-  autosave: 18000
+  autosave: 36000
 aliases: now-in-commands.yml
