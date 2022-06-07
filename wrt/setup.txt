@@ -57,3 +57,8 @@ uci set wireless.radio1.noscan=1
 uci set wireless.radio2.noscan=1
 uci commit
 
+~Remove mwlwifi (It is buggy as heck)
+opkg remove kmod-mwifiex-sdio
+
+~Remove dnsmasq for downstream routers
+/etc/init.d/dnsmasq disable
