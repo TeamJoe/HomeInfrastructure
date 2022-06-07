@@ -1,5 +1,5 @@
 #!/bin/sh
-# /root/serverhub.sh
+# /root/daveyjoneslocker.sh
 
 serverInternalAddresss='<REDACTED>'
 serverExternalAddress='<REDACTED>'

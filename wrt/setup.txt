@@ -1,22 +1,15 @@
-~Install sftp
-opkg update && opkg install openssh-sftp-server
+~Install sftp & sensors & curl & certs & vmstat & bash
+opkg update \
+	&& opkg install openssh-sftp-server \
+	&& opkg install lm-sensors \
+	&& opkg install curl \
+	&& opkg install ca-bundle \
+	&& opkg upgrade ca-bundle \
+	&& opkg install luci-ssl \
+	&& opkg install procps-ng-vmstat \
+	&& opkg install bash
 
 ~Upload /wrt/* to /*
-
-~Update /root/host-update.sh
-~Update /root/domain.sh
-
-~ Install Sensors
-opkg update && opkg install lm-sensors
-
-~Add Cron
-crontab -e
-0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/checkspeed.sh
-*/5 * * * * /root/domain.sh
-*/5 * * * * /root/host-update.sh
-
-~Install curl
-opkg update && opkg install curl
 
 ~Update permissions
 chmod +x /usr/sbin/shell2http /usr/sbin/speedtest
@@ -24,21 +17,8 @@ chmod +x /etc/init.d/http-service
 chmod +x /etc/init.d/server-status
 chmod +x /root/*.sh
 
-~Fix http warnings
-opkg update; opkg install ca-bundle; opkg upgrade ca-bundle
-
 ~Accept speedtest license
 speedtest
-
-~Enable https
-opkg update && opkg install luci-ssl
-/etc/init.d/uhttpd restart
-
-~Install vmstat
-opkg update && opkg install procps-ng-vmstat
-
-~Install bash
-opkg update && opkg install bash
 
 ~Enable http-service
 /etc/init.d/http-service enable
@@ -46,11 +26,21 @@ opkg update && opkg install bash
 /etc/init.d/server-status enable
 /etc/init.d/server-status start
 
+~Update /root/host-update.sh
+~Update /root/domain.sh
+
+~Add Cron
+crontab -e
+0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/checkspeed.sh
+*/5 * * * * /root/domain.sh
+*/5 * * * * /root/host-update.sh
+
 ~Update Additional Host files
 Network -> DHCP and DNS -> Additional Host files -> /tmp/generated_hosts
 
 ~Static Lease Addresses
 Network -> Static Routes
+
 
 ~Increase Download Speed
 ~~ Put following in /etc/rc.local
@@ -67,52 +57,3 @@ uci set wireless.radio1.noscan=1
 uci set wireless.radio2.noscan=1
 uci commit
 
-~Setup Mounted Drive
-opkg update && opkg install block-mount e2fsprogs kmod-fs-ext4 kmod-usb-storage kmod-usb2 kmod-usb3
-ls -al /dev/sd*
-mkfs.ext4 /dev/sda1
-block detect | uci import fstab
-uci set fstab.@mount[0].enabled='1' && uci set fstab.@global[0].anon_mount='1' && uci commit fstab
-/etc/init.d/fstab boot
-
-~Setup ftp
-opkg update && opkg install vsftpd-tls
-openssl req -x509 -nodes -days 10000 -newkey rsa:2048 -keyout /etc/vsftpd/vsftpd_privkey.pem -out /etc/vsftpd/vsftpd_cert.pem -subj /C="US"/ST="Oregon"/L="Portland"/CN="MainHub"
-
-~Setup Samba
-opkg update && opkg install samba36-server kmod-fs-ext4 kmod-usb-storage kmod-usb2 kmod-usb3 luci-app-samba
-/etc/init.d/samba disable
-smbd -D
-nmbd -D
-
-~Setup Users
-vi /etc/passwd
-joe:x:1000:55::/mnt/sda1:/bin/false
-passwd joe
-smbpasswd -a joe
-
-
-
-~Setup Port Forwarding
-Network -> Firewall - > Port Forwards
-Router HTTP -> 8080:192.168.1.1:20000
-
-PORESX001 HTTP -> 41080:192.168.1.51:80
-PORESX001 HTTPS -> 41443:192.168.1.51:443
-PORESX001 Gaming -> 41500-41999:192.168.1.51:41500-41999
-PORESX001-ILO HTTPS -> 41000:192.168.1.61:443
-
-PORESX002 HTTP -> 42080:192.168.1.52:80
-PORESX002 HTTPS -> 42443:192.168.1.52:443
-PORESX002 Gaming -> 42500-42999:192.168.1.52:42500-42999
-PORESX002-ILO HTTPS -> 42000:192.168.1.62:443
-
-PORESX003 HTTP -> 43080:192.168.1.53:80
-PORESX003 HTTPS -> 43443:192.168.1.53:443
-PORESX003 Gaming -> 43500-43999:192.168.1.53:43500-43999
-PORESX003-ILO HTTPS -> 43000:192.168.1.63:443
-
-PORESX004 HTTP -> 44080:192.168.1.54:80
-PORESX004 HTTPS -> 44443:192.168.1.54:443
-PORESX004 Gaming -> 44500-44999:192.168.1.54:44500-44999
-PORESX004-ILO HTTPS -> 44000:192.168.1.64:443
