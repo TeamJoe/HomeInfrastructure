@@ -15,10 +15,6 @@ config interface 'lan'
 	option ip6assign '60'
 	option ipaddr '192.168.1.1'
 
-config device
-	option name 'wan'
-	option macaddr '62:38:e0:bb:ce:38'
-
 config interface 'wan'
 	option proto 'pppoe'
 	option password '<REDACTED>'
@@ -30,6 +26,7 @@ config interface 'wan'
 	list dns '2001:4860:4860::8888'
 	list dns '2001:4860:4860::8844'
 	option delegate '0'
+	option keepalive '5 5'
 	option device 'wan.201'
 
 config device
@@ -40,9 +37,27 @@ config device
 	list ports 'lan3'
 	list ports 'lan4'
 
+config switch
+	option name 'switch0'
+	option reset '1'
+	option enable_vlan '1'
+
+config switch_vlan
+	option device 'switch0'
+	option vlan '1'
+	option ports '0 1 2 3 5t'
+	option vid '1'
+
+config switch_vlan
+	option device 'switch 0'
+	option vlan '2'
+	option ports '4 6t'
+	option vid '201'
+
 config device
 	option type '8021q'
 	option ifname 'wan'
 	option vid '201'
 	option name 'wan.201'
+	option ipv6 '0'
 
