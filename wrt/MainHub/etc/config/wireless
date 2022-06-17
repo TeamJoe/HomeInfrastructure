@@ -47,6 +47,7 @@ config wifi-device 'radio2'
 	option txpower '23'
 	option htmode 'VHT20'
 	option channel '34'
+	option disabled '1'
 
 config wifi-iface 'default_radio2'
 	option device 'radio2'
@@ -55,4 +56,5 @@ config wifi-iface 'default_radio2'
 	option ssid 'I_Am_Not_Stealing_Nothing'
 	option encryption 'psk2'
 	option key '<REDACTED>'
+	option disabled '1'
 
