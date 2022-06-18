@@ -8,4 +8,7 @@ if [ ! -f "$SPEED_FILE" ]; then
 	echo '"date","server name","server id","latency","jitter","packet loss","download","upload","download bytes","upload bytes","share url"' > "$SPEED_FILE"
 fi
 
-echo "\"$(date '+%F %T')\",$(speedtest -f csv)" >> "$SPEED_FILE"
+RESULT="$(speedtest -f csv)"
+if [ -n "$RESULT" ]; then
+	echo "\"$(date '+%F %T')\",$(speedtest -f csv)" >> "$SPEED_FILE"
+fi

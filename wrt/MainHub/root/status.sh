@@ -44,8 +44,8 @@ getInternetUptime() {
 }
 
 getLatestSpeedResults() {
-  local download="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $7}')"
-  local upload="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $8}')"
+  local download="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $8}')"
+  local upload="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $9}')"
   if [[ -n "${download}" ]]; then
     echo "Download $((download / 125000))Mb, Upload $((upload / 125000))Mb"
   else
@@ -172,4 +172,3 @@ while true; do
 	mv "$tmpStatusFile" "$statusFile"
 	sleep "$sleepTimeInSeconds"
 done
-
