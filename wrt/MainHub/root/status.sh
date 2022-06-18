@@ -47,7 +47,7 @@ getLatestSpeedResults() {
   local download="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $7}')"
   local upload="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $8}')"
   if [[ -n "${download}" ]]; then
-    echo "Download $((download / 1024 / 1024))Mb, Upload $((upload / 1024 / 1024))Mb"
+    echo "Download $((download / 125000))Mb, Upload $((upload / 125000))Mb"
   else
     echo "No Latest Result"
   fi
