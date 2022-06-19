@@ -12,6 +12,8 @@ start_service() {
 	procd_set_param command \
 		/usr/sbin/shell2http -no-index -add-exit -one-thread -timeout=5 -port=20000 \
 			/ping "echo 'PONG'" \
-			/status "cat /root/status.out"
+			/status "cat /root/status.out" \
+			/internet-status.csv "cat /root/internet-status.csv" \
+			/speed-results.csv "cat /root/speed-results.csv"
 	procd_close_instance
 }

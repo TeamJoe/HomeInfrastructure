@@ -1,9 +1,11 @@
 #!/bin/bash
 # /root/status.sh
 
-tmpStatusFile=/tmp/status.out
-statusFile=/root/status.out
+tmpStatusFile='/tmp/status.out'
+statusFile='/root/status.out'
 sleepTimeInSeconds=60
+internetStatusFile='/root/internet-status.csv'
+speedResultFile='/root/speed-results.csv'
 
 getHostname() {
 	echo "$(cat /proc/sys/kernel/hostname)"
@@ -16,6 +18,39 @@ getDate() {
 getUptime() {
 	local uptime="$(awk '{print $1}' /proc/uptime)"
 	echo "$(($(date -d@$(printf '%.0f\n' "${uptime}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${uptime}") -u +'%-H Hours %-M Minutes %-S Seconds')"
+}
+
+getInternetUptime() {
+  local status="$(tail -n 1 "${internetStatusFile}" | awk -F "\"*,\"*" '{print $2}')"
+  if [[ "${status}" == "up" ]]; then
+    local time="$(grep -A1 "down" "${internetStatusFile}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
+    if [[ -n "${time}" ]]; then
+      time="$(date -d"${time:1:-1}" +"%s")"
+      time="$(($(date +"%s") - time))"
+    else
+      time="$(awk '{print $1}' /proc/uptime)"
+    fi
+	  echo "Up For $(($(date -d@$(printf '%.0f\n' "${time}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${time}") -u +'%-H Hours %-M Minutes %-S Seconds')"
+  elif [[ "${status}" == "down" ]]; then
+    local time="$(date -d"$(grep -A1 "up" "${internetStatusFile}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')" +"%s")"
+    if [[ -n "${time}" ]]; then
+      time="$(date -d"${time:1:-1}" +"%s")"
+      time="$(($(date +"%s") - time))"
+    else
+      time="$(awk '{print $1}' /proc/uptime)"
+    fi
+	  echo "Down For $(($(date -d@$(printf '%.0f\n' "${time}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${time}") -u +'%-H Hours %-M Minutes %-S Seconds')"
+  fi
+}
+
+getLatestSpeedResults() {
+  local download="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $8}')"
+  local upload="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $9}')"
+  if [[ -n "${download}" ]]; then
+    echo "Download $((download / 125000))Mb, Upload $((upload / 125000))Mb"
+  else
+    echo "No Latest Result"
+  fi
 }
 
 getCPU() {
@@ -60,6 +95,8 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Host: $(getHostname)"'
 'echo "&nbsp;&nbsp;Date: $(getDate)"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
+'echo "&nbsp;&nbsp;Internet Status: $(getInternetUptime) <a href='"'"'/internet-status.csv'"'"'>History</a>"'
+'echo "&nbsp;&nbsp;Speed Status: $(getLatestSpeedResults) <a href='"'"'/speed-results.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;SSID 1: $(getSsid 0)"'
 'echo "&nbsp;&nbsp;SSID 2: $(getSsid 1)"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'

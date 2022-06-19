@@ -1,0 +1,5 @@
+# mamba fan script runs every 5 minutes
+*/5 * * * * /sbin/fan_ctrl.sh
+0 0 * * 0 sleep "$(awk 'BEGIN{srand();print int(rand()*7*24*60)}')m" ; /root/checkspeed.sh
+* * * * * /root/internet-status.sh
+0 0 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*24*60)}')m" ; /root/internet-status.sh true

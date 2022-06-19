@@ -1,6 +1,6 @@
 #!/bin/sh
 # /root/checkspeed.sh
-# 0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/checkspeed.sh
+# 0 0 * * 0 sleep "$(awk 'BEGIN{srand();print int(rand()*7*24*60)}')m" ; /root/checkspeed.sh
 
 SPEED_FILE='/root/speed-results.csv'
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # /root/internet-status.sh
 # * * * * * /root/internet-status.sh
-# 0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/internet-status.sh true
+# 0 0 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*24*60)}')m" ; /root/internet-status.sh true
 
 CHECK_PING='8.8.8.8'
 STATUS_FILE='/root/internet-status.csv'
