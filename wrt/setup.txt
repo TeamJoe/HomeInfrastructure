@@ -62,3 +62,7 @@ opkg remove kmod-mwifiex-sdio
 
 ~Remove dnsmasq for downstream routers
 /etc/init.d/dnsmasq disable
+
+~Enable cron
+/etc/init.d/cron enable
+/etc/init.d/cron restart

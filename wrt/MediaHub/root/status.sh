@@ -32,7 +32,7 @@ getInternetUptime() {
     fi
 	  echo "Up For $(($(date -d@$(printf '%.0f\n' "${time}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${time}") -u +'%-H Hours %-M Minutes %-S Seconds')"
   elif [[ "${status}" == "down" ]]; then
-    local time="$(date -d"$(grep -A1 "up" "${internetStatusFile}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')" +"%s")"
+    local time="$(grep -A1 "down" "${internetStatusFile}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
     if [[ -n "${time}" ]]; then
       time="$(date -d"${time:1:-1}" +"%s")"
       time="$(($(date +"%s") - time))"
@@ -42,6 +42,7 @@ getInternetUptime() {
 	  echo "Down For $(($(date -d@$(printf '%.0f\n' "${time}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${time}") -u +'%-H Hours %-M Minutes %-S Seconds')"
   fi
 }
+
 
 getLatestSpeedResults() {
   local download="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $8}')"
