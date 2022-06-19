@@ -1,12 +1,9 @@
 #!/bin/bash
 # /root/internet-status.sh
-# * * * * * /root/internet-status.sh
-# 0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/internet-status.sh true
 
-CHECK_PING='8.8.8.8'
-STATUS_FILE='/root/internet-status.csv'
-
-ALWAYS_LOG="$1"; shift
+CHECK_PING="${1:-8.8.8.8}"
+ALWAYS_LOG="${2:-false}"
+STATUS_FILE="${3:-/root/internet-status.csv}"
 
 getResult() {
   echo "$(ping -q -w 5 -W 5 $CHECK_PING)"

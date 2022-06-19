@@ -1,5 +1,8 @@
-0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/checkspeed.sh
+0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/checkspeed.sh '/root/speed-results.csv'
 */5 * * * * /root/domain.sh
 #*/5 * * * * /root/host-update.sh
-* * * * * /root/internet-status.sh
-0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/internet-status.sh true
+* * * * * /root/internet-status.sh '8.8.8.8' 'false' '/root/internet-status.csv'
+* * * * * /root/internet-status.sh '192.168.0.1' 'false' '/root/network-status.csv'
+0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/internet-status.sh '8.8.8.8' 'true' '/root/internet-status.csv'
+0 */6 * * * sleep "$(awk 'BEGIN{srand();print int(rand()*6*60)}')m" ; /root/internet-status.sh '192.168.0.1' 'true' '/root/network-status.csv'
+

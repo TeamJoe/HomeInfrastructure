@@ -5,6 +5,7 @@ tmpStatusFile='/tmp/status.out'
 statusFile='/root/status.out'
 sleepTimeInSeconds=60
 internetStatusFile='/root/internet-status.csv'
+networkStatusFile='/root/network-status.csv'
 speedResultFile='/root/speed-results.csv'
 
 getHostname() {
@@ -21,9 +22,9 @@ getUptime() {
 }
 
 getInternetUptime() {
-  local status="$(tail -n 1 "${internetStatusFile}" | awk -F "\"*,\"*" '{print $2}')"
+  local status="$(tail -n 1 "${1}" | awk -F "\"*,\"*" '{print $2}')"
   if [[ "${status}" == "up" ]]; then
-    local time="$(grep -A1 "down" "${internetStatusFile}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
+    local time="$(grep -A1 "down" "${1}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
     if [[ -n "${time}" ]]; then
       time="$(date -d"${time:1:-1}" +"%s")"
       time="$(($(date +"%s") - time))"
@@ -32,7 +33,7 @@ getInternetUptime() {
     fi
 	  echo "Up For $(($(date -d@$(printf '%.0f\n' "${time}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${time}") -u +'%-H Hours %-M Minutes %-S Seconds')"
   elif [[ "${status}" == "down" ]]; then
-    local time="$(grep -A1 "down" "${internetStatusFile}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
+    local time="$(grep -A1 "down" "${1}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
     if [[ -n "${time}" ]]; then
       time="$(date -d"${time:1:-1}" +"%s")"
       time="$(($(date +"%s") - time))"
@@ -96,7 +97,8 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Host: $(getHostname)"'
 'echo "&nbsp;&nbsp;Date: $(getDate)"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
-'echo "&nbsp;&nbsp;Internet Status: $(getInternetUptime) <a href='"'"'/internet-status.csv'"'"'>History</a>"'
+'echo "&nbsp;&nbsp;Network Status: $(getInternetUptime "$networkStatusFile") <a href='"'"'/network-status.csv'"'"'>History</a>"'
+'echo "&nbsp;&nbsp;Internet Status: $(getInternetUptime "$internetStatusFile") <a href='"'"'/internet-status.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;Speed Status: $(getLatestSpeedResults) <a href='"'"'/speed-results.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;SSID 1: $(getSsid 0)"'
 'echo "&nbsp;&nbsp;SSID 2: $(getSsid 1)"'
