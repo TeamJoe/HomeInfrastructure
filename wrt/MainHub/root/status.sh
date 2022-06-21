@@ -158,7 +158,7 @@ runAllCommands() {
 }
 
 getResults() {
-	echo '<html><head><meta http-equiv="refresh" content="5"></head><body><p>'
+	echo '<html><head><meta http-equiv="refresh" content="15"></head><body><p>'
 	for i in $(echo ${!stats[@]}); do
 		echo "$(cat "/tmp/status-${i}.result")"
 		rm "/tmp/status-${i}.result"
@@ -167,10 +167,13 @@ getResults() {
 	echo '</p></body></html>'
 }
 
-
-while true; do
+createResultFile() {
 	runAllCommands
 	getResults > "$tmpStatusFile"
 	mv "$tmpStatusFile" "$statusFile"
+}
+
+while true; do
+	createResultFile
 	sleep "$sleepTimeInSeconds"
 done

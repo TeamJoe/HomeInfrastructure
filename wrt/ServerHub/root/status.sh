@@ -44,7 +44,6 @@ getInternetUptime() {
   fi
 }
 
-
 getLatestSpeedResults() {
   local download="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $8}')"
   local upload="$(tail -n 1 "${speedResultFile}" | awk -F "\"*,\"*" '{print $9}')"
@@ -64,7 +63,10 @@ getMemory() {
 }
 
 getDisk() {
-	echo "$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')Mb/$(df -m | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')Mb"
+	local totalUsed="$(df | awk 'NR>2 && /^\/dev\//{sum+=$3}END{print sum}')"
+	local totalAvailable="$(df | awk 'NR>2 && /^\/dev\//{sum+=$2}END{print sum}')"
+
+	echo "$((totalUsed))kB/$((totalAvailable))kB"
 }
 
 getTemperature() {
@@ -102,6 +104,7 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Speed Status: $(getLatestSpeedResults) <a href='"'"'/speed-results.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;SSID 1: $(getSsid 0)"'
 'echo "&nbsp;&nbsp;SSID 2: $(getSsid 1)"'
+'echo "&nbsp;&nbsp;SSID 3: $(getSsid 2)"'
 'echo "&nbsp;&nbsp;CPU: $(getCPU)"'
 'echo "&nbsp;&nbsp;Temperature: $(getTemperature)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
@@ -119,7 +122,7 @@ runAllCommands() {
 }
 
 getResults() {
-	echo '<html><head><meta http-equiv="refresh" content="5"></head><body><p>'
+	echo '<html><head><meta http-equiv="refresh" content="15"></head><body><p>'
 	for i in $(echo ${!stats[@]}); do
 		echo "$(cat "/tmp/status-${i}.result")"
 		rm "/tmp/status-${i}.result"
@@ -135,9 +138,6 @@ createResultFile() {
 }
 
 while true; do
-	runAllCommands
-	getResults > "$tmpStatusFile"
-	mv "$tmpStatusFile" "$statusFile"
+	createResultFile
 	sleep "$sleepTimeInSeconds"
 done
-
