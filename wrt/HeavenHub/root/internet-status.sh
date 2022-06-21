@@ -14,7 +14,10 @@ getDate() {
 }
 
 getStatus() {
-  if [[ 100 -eq "$(getPacketLoss "$1")" ]]; then
+  local loss="$(getPacketLoss "$1")"
+  if [[ -z "${loss}" ]]; then
+    echo "down"
+  elif [[ 100 -eq "${loss}" ]]; then
     echo "down"
   else
     echo "up"
