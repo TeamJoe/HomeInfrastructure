@@ -33,7 +33,7 @@ getInternetUptime() {
     fi
 	  echo "Up For $(($(date -d@$(printf '%.0f\n' "${time}") -u +%-j) - 1)) Days $(date -d@$(printf '%.0f\n' "${time}") -u +'%-H Hours %-M Minutes %-S Seconds')"
   elif [[ "${status}" == "down" ]]; then
-    local time="$(grep -A1 "down" "${1}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
+    local time="$(grep -A1 "up" "${1}" | tail -n 1 | awk -F "\"*,\"*" '{print $1}')"
     if [[ -n "${time}" ]]; then
       time="$(date -d"${time:1:-1}" +"%s")"
       time="$(($(date +"%s") - time))"
