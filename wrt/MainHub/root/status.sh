@@ -5,7 +5,6 @@ tmpStatusFile='/tmp/status.out'
 statusFile='/root/status.out'
 sleepTimeInSeconds=60
 internetStatusFile='/root/internet-status.csv'
-networkStatusFile='/root/network-status.csv'
 speedResultFile='/root/speed-results.csv'
 
 getHostname() {
@@ -99,7 +98,6 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Host: $(getHostname)"'
 'echo "&nbsp;&nbsp;Date: $(getDate)"'
 'echo "&nbsp;&nbsp;Uptime: $(getUptime)"'
-'echo "&nbsp;&nbsp;Network Status: $(getInternetUptime "$networkStatusFile") <a href='"'"'/network-status.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;Internet Status: $(getInternetUptime "$internetStatusFile") <a href='"'"'/internet-status.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;Speed Status: $(getLatestSpeedResults) <a href='"'"'/speed-results.csv'"'"'>History</a>"'
 'echo "&nbsp;&nbsp;SSID 1: $(getSsid 0)"'

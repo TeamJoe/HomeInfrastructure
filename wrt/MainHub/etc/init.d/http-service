@@ -14,7 +14,6 @@ start_service() {
 			/ping "echo 'PONG'" \
 			/status "cat /root/status.out" \
 			/internet-status.csv "cat /root/internet-status.csv" \
-			/network-status.csv "cat /root/network-status.csv" \
 			/speed-results.csv "cat /root/speed-results.csv" \
 			/mediahub/status "/root/mediahub.sh status" \
 			/heavenhub/status "/root/heavenhub.sh status" \
