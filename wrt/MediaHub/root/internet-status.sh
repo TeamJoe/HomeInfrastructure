@@ -16,11 +16,11 @@ getDate() {
 getStatus() {
   local loss="$(getPacketLoss "$1")"
   if [[ -z "${loss}" ]]; then
-    echo "down"
+    echo 'down'
   elif [[ 100 -eq "${loss}" ]]; then
-    echo "down"
+    echo 'down'
   else
-    echo "up"
+    echo 'up'
   fi
 }
 
@@ -29,35 +29,35 @@ getLastStatus() {
 }
 
 getHost() {
-  echo "$1" | grep -oE "PING [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} " | grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
+  echo "$1" | grep -oE 'PING [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
 }
 
 getHostIP() {
-  echo "$1" | grep -oE "\([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})" | grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
+  echo "$1" | grep -oE '\([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
 }
 
 getPacketsTransmitted() {
-  echo "$1" | grep -oE "[0-9]* packets transmitted" | grep -o "\d*"
+  echo "$1" | grep -oE '[0-9]* packets transmitted' | grep -o '\d*'
 }
 
 getPacketsRecieved() {
-  echo "$1" | grep -oE "[0-9]* packets received" | grep -o "\d*"
+  echo "$1" | grep -oE '[0-9]* packets received' | grep -o '\d*'
 }
 
 getPacketLoss() {
-  echo "$1" | grep -oE "[0-9]{1,3}%" | grep -o "\d*"
+  echo "$1" | grep -oE '[0-9]{1,3}%' | grep -o '\d*'
 }
 
 getLatencyMinimum() {
-  echo "$1" | grep -oE " [0-9]\.[0-9]{1,4}\/" | grep -oE "[0-9]\.[0-9]{1,4}"
+  echo "$1" | grep -oE ' [0-9]\.[0-9]{1,4}\/' | grep -oE '[0-9]\.[0-9]{1,4}'
 }
 
 getLatencyAverage() {
-  echo "$1" | grep -oE "\/[0-9]\.[0-9]{1,4}\/" | grep -oE "[0-9]\.[0-9]{1,4}"
+  echo "$1" | grep -oE '\/[0-9]\.[0-9]{1,4}\/' | grep -oE '[0-9]\.[0-9]{1,4}'
 }
 
 getLatencyMaximum() {
-  echo "$1" | grep -oE "\/[0-9]\.[0-9]{1,4} " | grep -oE "[0-9]\.[0-9]{1,4}"
+  echo "$1" | grep -oE '\/[0-9]\.[0-9]{1,4} ' | grep -oE '[0-9]\.[0-9]{1,4}'
 }
 
 logHeader() {
@@ -72,8 +72,10 @@ logResult() {
 
 logHeader
 result="$(getResult)"
-if [[ "${ALWAYS_LOG}" == "true" ]]; then
+if [[ "${ALWAYS_LOG}" == 'true' ]]; then
   logResult "${result}"
 elif [[ "$(getStatus "${result}")" != "$(getLastStatus)" ]]; then
+  logResult "${result}"
+elif [[ "$(getStatus "${result}")" == 'up' && "$(getPacketLoss "${result}")" != '0' ]]; then
   logResult "${result}"
 fi
