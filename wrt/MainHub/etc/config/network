@@ -50,3 +50,8 @@ config device
 	option mtu '1492'
 	option ipv6 '0'
 
+config device
+	option name 'pppoe-wan'
+	option mtu '1492'
+	option ipv6 '0'
+
