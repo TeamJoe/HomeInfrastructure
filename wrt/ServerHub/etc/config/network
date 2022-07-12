@@ -29,5 +29,5 @@ config interface 'lan'
 
 config device
 	option name 'wan'
-	option macaddr '26:f5:a2:c6:47:f0'
+	option macaddr '62:38:e0:bb:ce:38'
 
