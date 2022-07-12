@@ -3,15 +3,15 @@ config defaults
 	option input 'ACCEPT'
 	option output 'ACCEPT'
 	option forward 'REJECT'
-	option flow_offloading '1'
 	option synflood_protect '1'
+	option flow_offloading '1'
 
 config zone
 	option name 'lan'
 	option input 'ACCEPT'
 	option output 'ACCEPT'
 	option forward 'ACCEPT'
-	option network 'lan'
+	list network 'lan'
 
 config zone
 	option name 'wan'
@@ -20,7 +20,7 @@ config zone
 	option forward 'REJECT'
 	option masq '1'
 	option mtu_fix '1'
-	option network 'wan'
+	list network 'wan'
 
 config forwarding
 	option src 'lan'
