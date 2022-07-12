@@ -1,9 +1,10 @@
 
 config defaults
-	option syn_flood '1'
 	option input 'ACCEPT'
 	option output 'ACCEPT'
 	option forward 'REJECT'
+	option synflood_protect '1'
+	option flow_offloading '1'
 
 config zone
 	option name 'lan'
