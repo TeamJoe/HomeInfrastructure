@@ -2,7 +2,7 @@
 # /root/daveyjoneslocker.sh
 
 serverInternalAddresss='http://DaveyJonesLocker.lan'
-serverExternalPort='50080'
+serverExternalAddress='http://%24address:50080/status'
 command="$1"; shift
 
-/root/GenericServer.sh "$0" "$serverInternalAddresss" "$serverExternalPort" "$command"
+/root/GenericServer.sh "$0" "$serverInternalAddresss" "$serverExternalAddress" "$command"

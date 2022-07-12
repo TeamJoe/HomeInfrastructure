@@ -3,7 +3,7 @@
 
 path="$1"; shift
 serverInternalAddresss="$1"; shift
-serverExternalPort="$1"; shift
+serverExternalAddress="$1"; shift
 command="$1"; shift
 
 isBooted() {
@@ -29,10 +29,10 @@ runCommand() {
 	
 	if [ "$command" == "status" ]; then
 		currentStatus
-	elif [ "$command" == "port" ]; then
-		echo "$serverExternalPort"
+	elif [ "$command" == "address" ]; then
+		echo "$serverExternalAddress"
 	else
-		echo "Usage: $runPath [status|port]"
+		echo "Usage: $runPath [status|address]"
 		exit 1
 	fi
 }

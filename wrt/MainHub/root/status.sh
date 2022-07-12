@@ -110,39 +110,39 @@ stats=('echo "<b>Server Stats</b>"'
 'echo ""'
 'echo "<b>MediaHub</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/mediahub.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'http://%24address:$(/root/mediahub.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/mediahub.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>HeavenHub</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/heavenhub.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'http://%24address:$(/root/heavenhub.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/heavenhub.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>ServerHub</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/serverhub.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'http://%24address:$(/root/serverhub.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/serverhub.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>Portland 001</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/pdx-001.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/root/pdx-001.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-001/start'"'"'>Start</a> | <a href='"'"'https://%24address:$(/root/pdx-001.sh ilo)'"'"'>iLO</a> | <a href='"'"'http://%24address:$(/root/pdx-001.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-001/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-001.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-001.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>Portland 002</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/pdx-002.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/root/pdx-002.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-002/start'"'"'>Start</a> | <a href='"'"'https://%24address:$(/root/pdx-002.sh ilo)'"'"'>iLO</a> | <a href='"'"'http://%24address:$(/root/pdx-002.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-002/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-002.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-002.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>Portland 003</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/pdx-003.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/root/pdx-003.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-003/start'"'"'>Start</a> | <a href='"'"'https://%24address:$(/root/pdx-003.sh ilo)'"'"'>iLO</a> | <a href='"'"'http://%24address:$(/root/pdx-003.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-003/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-003.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-003.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>Portland 004</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/pdx-004.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/root/pdx-004.sh description)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-004/start'"'"'>Start</a> | <a href='"'"'https://%24address:$(/root/pdx-004.sh ilo)'"'"'>iLO</a> | <a href='"'"'http://%24address:$(/root/pdx-004.sh port)/status'"'"'>Status</a>"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/pdx-004/start'"'"'>Start</a> | <a href='"'"'$(/root/pdx-004.sh ilo)'"'"'>iLO</a> | <a href='"'"'$(/root/pdx-004.sh address)'"'"'>Status</a>"'
 'echo ""'
 'echo "<b>Davey Jones Locker</b>"'
 'echo "&nbsp;&nbsp;Status: $(/root/daveyjoneslocker.sh status)"'
-'echo "&nbsp;&nbsp;Links: <a href='"'"'http://%24address:$(/root/daveyjoneslocker.sh port)/status'"'"'>Status</a>"')
+'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/root/daveyjoneslocker.sh address)'"'"'>Status</a>"')
 
 runAllCommands() {
 	local pids
@@ -158,14 +158,15 @@ runAllCommands() {
 getResults() {
 	echo '<html><head>'
 	echo '<meta http-equiv="refresh" content="15">'
-	echo '<script>for (const link of document.querySelectorAll("a")) { link.setAttribute("href", link.getAttribute("href").replaceAll("%24address", window.location.hostname));  }</script>'
 	echo '</head><body><p>'
 	for i in $(echo ${!stats[@]}); do
 		echo "$(cat "/tmp/status-${i}.result")"
 		rm "/tmp/status-${i}.result"
 		echo '</br>'
 	done
-	echo '</p></body></html>'
+	echo '</p>'
+	echo '<script>for (const link of document.querySelectorAll("a")) { link.setAttribute("href", link.getAttribute("href").replaceAll("%24address", window.location.hostname));  }</script>'
+	echo '</body></html>'
 }
 
 createResultFile() {

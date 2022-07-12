@@ -4,9 +4,9 @@
 path="$1"; shift
 description="$1"; shift
 iloApiAddress="$1"; shift
-iloPort="$1"; shift
+iloAddress="$1"; shift
 serverInternalAddress="$1"; shift
-serverExternalPort="$1"; shift
+serverExternalAddress="$1"; shift
 user="$1"; shift
 password="$1"; shift
 command="$1"; shift
@@ -75,11 +75,11 @@ runCommand() {
 	elif [ "$command" == "description" ]; then
 		getDescription
 	elif [ "$command" == "ilo" ]; then
-		echo "$iloPort"
-	elif [ "$command" == "port" ]; then
-		echo "$serverExternalPort"
+		echo "$iloAddress"
+	elif [ "$command" == "address" ]; then
+		echo "$serverExternalAddress"
 	else
-		echo "Usage: $runPath [start|status|description|ilo|port]"
+		echo "Usage: $runPath [start|status|description|ilo|address]"
 		exit 1
 	fi
 }

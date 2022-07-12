@@ -2,7 +2,8 @@
 # /root/heavenhub.sh
 
 serverInternalAddresss='http://HeavenHub.lan:20000'
-serverExternalPort='30080'
+serverExternalAddress='http://%24address:30080/status'
 command="$1"; shift
 
-/root/GenericServer.sh "$0" "$serverInternalAddresss" "$serverExternalPort" "$command"
+/root/GenericServer.sh "$0" "$serverInternalAddresss" "$serverExternalAddress" "$command"
+

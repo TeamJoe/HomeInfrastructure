@@ -3,11 +3,11 @@
 
 description="Nothing Installed"
 iloApiAddress='https://192.168.1.62/ribcl'
-iloPort='42000'
+iloAddress='https://%24address:42000'
 serverInternalAddresss='http://192.168.1.52/'
-serverExternalPort='42080'
+serverExternalAddress='http://%24address:42080/status'
 user='<REDACTED>'
 password='<REDACTED>'
 command="$1"; shift
 
-/root/iLO3Server.sh "$0" "$description" "$iloApiAddress" "$iloPort" "$serverInternalAddresss" "$serverExternalPort" "$user" "$password" "$command"
+/root/iLO3Server.sh "$0" "$description" "$iloApiAddress" "$iloAddress" "$serverInternalAddresss" "$serverExternalAddress" "$user" "$password" "$command"
