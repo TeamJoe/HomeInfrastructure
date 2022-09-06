@@ -1,4 +1,5 @@
 #!/bin/bash
+source /server/discord.sh
 
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
@@ -60,6 +61,7 @@ checkActive() {
 		isActive="$(runCommands)"
 		
 		if [[ "$isActive" == "false" ]]; then
+		  sendMessage "Shutting Down"
 			/sbin/shutdown
 		fi
 	fi

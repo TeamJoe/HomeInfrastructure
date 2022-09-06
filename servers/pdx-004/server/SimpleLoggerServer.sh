@@ -1,4 +1,5 @@
 #!/bin/bash
+source /server/discord.sh
 
 path="$1"; shift
 simple_output_file="$1"; shift
@@ -23,6 +24,7 @@ isRunning() {
 #++++++++++++++++++++
 log() {
 	echo "[$(date +"%D %T")] $1" >> "$simple_output_file"
+	sendMessage "${path}: ${1}"
 }
 
 getStatus() {
