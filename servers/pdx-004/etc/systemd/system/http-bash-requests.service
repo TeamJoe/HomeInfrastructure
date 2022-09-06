@@ -30,6 +30,9 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=6
 	/vanilla-1-17-1/start "systemctl start minecraft-vanilla-1-17-1.service; sleep 10; echo 'Starting Up'" \
 	/vanilla-1-17-1/logs "/home/minecraft/Vanilla-1-17-1.sh logs" \
 	/vanilla-1-17-1/simple "/home/minecraft/Vanilla-1-17-1.sh simple" \
+	/vanilla-1-19-2/start "systemctl start minecraft-vanilla-1-19-2.service; sleep 10; echo 'Starting Up'" \
+	/vanilla-1-19-2/logs "/home/minecraft/Vanilla-1-19-2.sh logs" \
+	/vanilla-1-19-2/simple "/home/minecraft/Vanilla-1-19-2.sh simple" \
 	/rlcraft/start "systemctl start minecraft-rlcraft-1-5-0.service; sleep 10; echo 'Starting Up'" \
 	/rlcraft/logs "/home/minecraft/RLCraftServer.sh logs" \
 	/rlcraft/simple "/home/minecraft/RLCraftServer.sh simple" \
