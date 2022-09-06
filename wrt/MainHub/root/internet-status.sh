@@ -1,5 +1,6 @@
 #!/bin/bash
 # /root/internet-status.sh
+source /server/discord.sh
 
 CHECK_PING="${1:-8.8.8.8}"
 ALWAYS_LOG="${2:-false}"
@@ -72,9 +73,10 @@ logResult() {
 
 logHeader
 result="$(getResult)"
-if [[ "${ALWAYS_LOG}" == 'true' ]]; then
+if [[ "$(getStatus "${result}")" != "$(getLastStatus)" ]]; then
   logResult "${result}"
-elif [[ "$(getStatus "${result}")" != "$(getLastStatus)" ]]; then
+  sendMessage "Main Hub: ${result}"
+elif [[ "${ALWAYS_LOG}" == 'true' ]]; then
   logResult "${result}"
 elif [[ "$(getStatus "${result}")" == 'up' && "$(getPacketLoss "${result}")" != '0' ]]; then
   logResult "${result}"

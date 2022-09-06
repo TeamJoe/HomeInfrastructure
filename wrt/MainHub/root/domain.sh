@@ -1,13 +1,18 @@
 #!/bin/sh
 # /root/domain.sh
 # /etc/crontabs/root: "*/5 * * * * /root/domain.sh"
+source /server/properties.sh
 
 IPV4_FILE_LOCATION='/root/ipv4.txt'
 IPV6_FILE_LOCATION='/root/ipv6.txt'
 LOG_LOCATION='/root/ip-logs.txt'
+ADDRESS="$(getProperty 'hostname.claim')"
 
 updateDomainsIP() {
-	#curl -s -f $@ <REDACTED:http://freedns.afraid.org/dynamic/> >> "${LOG_LOCATION}" 2>&1
+  local host=""
+  for host in ${ADDRESS}; do
+    curl --silent --fail $@ "${host}" >> "${LOG_LOCATION}" 2>&1
+  done
 }
 
 isIPv4() {
