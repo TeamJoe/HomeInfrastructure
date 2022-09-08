@@ -128,7 +128,7 @@ config rule
 	option proto 'udp'
 	option family 'ipv4'
 	option target 'REJECT'
-	option enabled 'false'
+	option enabled '0'
 
 config include
 	option path '/etc/firewall.user'
@@ -377,11 +377,11 @@ config redirect
 	option dest 'lan'
 
 config zone
-	option input 'ACCEPT'
 	option output 'ACCEPT'
 	option forward 'ACCEPT'
 	list network 'WORK'
 	option name 'work'
+	option input 'REJECT'
 
 config forwarding
 	option dest 'wan'
@@ -390,4 +390,50 @@ config forwarding
 config forwarding
 	option src 'lan'
 	option dest 'work'
+
+config rule
+	option name 'Allow-DNS-Work'
+	option src 'work'
+	option src_port '53'
+	option target 'ACCEPT'
+	list proto 'tcp'
+	list proto 'udp'
+
+config rule
+	option name 'Allow-DHCP-Work'
+	list proto 'udp'
+	option src 'work'
+	option src_port '67-68'
+	option target 'ACCEPT'
+	option family 'ipv4'
+
+config rule
+	option name 'Allow-Ping-Work'
+	list proto 'icmp'
+	option src 'work'
+	option target 'ACCEPT'
+	option family 'ipv4'
+
+config rule
+	option name 'Allow-DHCPv6-Work'
+	option family 'ipv6'
+	list proto 'udp'
+	option src 'work'
+	option src_port '546-547'
+	option target 'ACCEPT'
+
+config rule
+	option name 'Allow-IPSec-ESP-Work'
+	list proto 'esp'
+	option src 'wan'
+	option dest 'work'
+	option target 'ACCEPT'
+
+config rule
+	option name 'Allow-ISAKMP-Work'
+	list proto 'udp'
+	option src 'wan'
+	option src_port '500'
+	option dest 'work'
+	option target 'ACCEPT'
 
