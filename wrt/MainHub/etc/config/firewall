@@ -376,3 +376,18 @@ config redirect
 	option dest_ip '192.168.1.54'
 	option dest 'lan'
 
+config zone
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+	list network 'WORK'
+	option name 'work'
+
+config forwarding
+	option dest 'wan'
+	option src 'work'
+
+config forwarding
+	option src 'lan'
+	option dest 'work'
+

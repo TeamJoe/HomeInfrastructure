@@ -6,7 +6,7 @@ config interface 'loopback'
 	option netmask '255.0.0.0'
 
 config globals 'globals'
-	option ula_prefix '<REDACTED>'
+	option ula_prefix 'fd9e:cb52:057e::/48'
 
 config device
 	option name 'br-lan'
@@ -15,17 +15,18 @@ config device
 	list ports 'lan2'
 	list ports 'lan3'
 	list ports 'lan4'
+	list ports 'wlan0'
+	list ports 'wlan1'
 
 config interface 'lan'
-	option device 'br-lan'
 	option proto 'static'
 	option ipaddr '192.168.1.1'
 	option netmask '255.255.255.0'
 	option ip6assign '60'
+	option device 'br-lan.10'
 
 config device
 	option name 'wan'
-	option macaddr '26:f5:a2:c6:47:f0'
 
 config interface 'wan'
 	option proto 'pppoe'
@@ -45,4 +46,26 @@ config device
 	option ifname 'wan'
 	option vid '201'
 	option name 'wan.201'
+
+config bridge-vlan
+	option device 'br-lan'
+	option vlan '10'
+	list ports 'lan1:u*'
+	list ports 'lan2:u*'
+	list ports 'lan3:u*'
+	list ports 'lan4:u*'
+	list ports 'wlan0:u*'
+	list ports 'wlan1:u*'
+
+config bridge-vlan
+	option device 'br-lan'
+	option vlan '20'
+	list ports 'lan1:t'
+	list ports 'lan2:t'
+
+config interface 'WORK'
+	option proto 'static'
+	option device 'br-lan.20'
+	option ipaddr '192.168.2.1'
+	option netmask '255.255.255.0'
 

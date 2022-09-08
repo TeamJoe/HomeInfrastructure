@@ -168,3 +168,22 @@ config redirect
 	option name 'ServerHub Web'
 	option dest_port '20000'
 
+config zone
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+	list network 'work'
+	option name 'work'
+
+config forwarding
+	option dest 'wan'
+	option src 'work'
+
+config forwarding
+	option src 'lan'
+	option dest 'work'
+
+config forwarding
+	option dest 'lan'
+	option src 'work'
+
