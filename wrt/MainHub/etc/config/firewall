@@ -394,18 +394,18 @@ config forwarding
 config rule
 	option name 'Allow-DNS-Work'
 	option src 'work'
-	option src_port '53'
 	option target 'ACCEPT'
 	list proto 'tcp'
 	list proto 'udp'
+	option dest_port '53'
 
 config rule
 	option name 'Allow-DHCP-Work'
 	list proto 'udp'
 	option src 'work'
-	option src_port '67-68'
 	option target 'ACCEPT'
 	option family 'ipv4'
+	option dest_port '67-68'
 
 config rule
 	option name 'Allow-Ping-Work'
@@ -415,12 +415,19 @@ config rule
 	option family 'ipv4'
 
 config rule
+	option name 'Allow-IGMP-Work'
+	list proto 'igmp'
+	option src 'work'
+	option target 'ACCEPT'
+	option family 'ipv4'
+
+config rule
 	option name 'Allow-DHCPv6-Work'
 	option family 'ipv6'
 	list proto 'udp'
 	option src 'work'
-	option src_port '546-547'
 	option target 'ACCEPT'
+	option dest_port '546-547'
 
 config rule
 	option name 'Allow-IPSec-ESP-Work'
@@ -433,7 +440,7 @@ config rule
 	option name 'Allow-ISAKMP-Work'
 	list proto 'udp'
 	option src 'wan'
-	option src_port '500'
 	option dest 'work'
 	option target 'ACCEPT'
+	option dest_port '500'
 
