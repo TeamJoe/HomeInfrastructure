@@ -197,7 +197,7 @@ getUptime() {
 #++++++++++++++++++++
 
 isBooted() {
-	if [ "$(currentStatus)" != "Powered On" ]; then
+	if [ "$(currentStatus "${service}")" != "Powered On" ]; then
 		echo "false"
 	else
 		echo "true"
@@ -331,6 +331,8 @@ runCommand() {
 		echo "Address: ${address} Port: ${queryport}"
 	elif [[ "${command}" == "logs" ]]; then
 		tail --lines=1000 "$(getLogFile)"
+	elif [[ "${command}" == "simple" ]]; then
+		tail --lines=1000 "$(getSimpleLogFile)"
 	elif [[ "${command}" == "status" ]]; then
 		getStatus
 	elif [ "${command}" == 'uptime' ]; then
@@ -361,7 +363,7 @@ runCommand() {
 	elif [[ "${command}" == "stop" ]]; then
 		stopService "${service}"
 	else
-		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|description|address|stop]"
+		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"
 		exit 1
 	fi
 }
