@@ -10,3 +10,7 @@ satisfactory1() {
 satisfactory2() {
 	sudo -u satisfactory /home/satisfactory/satisfactory2.sh "$@"
 }
+
+satisfactory3() {
+	sudo -u satisfactory /home/satisfactory/satisfactory3.sh "$@"
+}

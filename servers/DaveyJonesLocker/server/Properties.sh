@@ -1,5 +1,5 @@
 #!/bin/bash
-# /server/Properties.sh
+# /server/properties.sh
 
 propertyFile=/server/properties
 

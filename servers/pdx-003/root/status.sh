@@ -78,6 +78,14 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Remaining: $(getUptime "$(/home/satisfactory/satisfactory2.sh active)")"'
 'echo "&nbsp;&nbsp;Count: $(/home/satisfactory/satisfactory2.sh list)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'/satisfactory/2/start'"'"'>Start</a> | <a href='"'"'/satisfactory/2/logs'"'"'>Logs</a>"'
+'echo ""'
+'echo "<b>$(/home/satisfactory/satisfactory3.sh description)</b>"'
+'echo "&nbsp;&nbsp;$(/home/satisfactory/satisfactory3.sh info)"'
+'echo "&nbsp;&nbsp;Status: $(/home/satisfactory/satisfactory3.sh status)"'
+'echo "&nbsp;&nbsp;Uptime: $(getUptime "$(/home/satisfactory/satisfactory3.sh uptime)")"'
+'echo "&nbsp;&nbsp;Remaining: $(getUptime "$(/home/satisfactory/satisfactory3.sh active)")"'
+'echo "&nbsp;&nbsp;Count: $(/home/satisfactory/satisfactory3.sh list)"'
+'echo "&nbsp;&nbsp;Links: <a href='"'"'/satisfactory/3/start'"'"'>Start</a> | <a href='"'"'/satisfactory/3/logs'"'"'>Logs</a>"'
 'echo ""')
 
 

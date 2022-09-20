@@ -1,19 +1,17 @@
 #!/bin/bash
 # /server/DockerService.sh
-
-path="$1"; shift
-service="$1"; shift
-description="$1"; shift
-externalAddress="$1"; shift
-startParameters="$1"; shift
-command="$1"; shift
+source /server/discord.sh
 
 getId() {
+  local service="${1}"; shift
+
 	echo "$(docker ps --filter name=${service} --filter status=running -q --all)"
 }
 
 isActive() {
-	if [[ -n "$(getId)" ]]; then
+  local service="${1}"; shift
+
+	if [[ -n "$(getId "${service}")" ]]; then
 		echo 'true'
 	else
 		echo 'false'
@@ -21,50 +19,65 @@ isActive() {
 }
 
 powerOn() {
+  local service="${1}"; shift
+  local startParameters="${1}"; shift
+
 	docker rm "$(docker ps --filter name=${service} -q --all)"
 	docker run -d --name ${service} ${startParameters[@]}
 	echo "Service Started"
+	sendMessage "${service} is Started"
 }
 
 getIP() {
-	if [[ "$(isActive)" == "true" ]]; then
-		echo "$(docker exec "$(getId)" curl --location --silent ipconfig.me)"
+  local service="${1}"
+
+	if [[ "$(isActive "${service}")" == "true" ]]; then
+		echo "$(docker exec "$(getId "${service}")" curl --location --silent ipconfig.me)"
 	else
 		echo "Cannot get ip from terminated instance"
 	fi
 }
 
 openBash() {
-	if [[ "$(isActive)" == "true" ]]; then
-		docker exec -it "$(getId)" /bin/bash
+  local service="${1}"; shift
+
+	if [[ "$(isActive "${service}")" == "true" ]]; then
+		docker exec -it "$(getId "${service}")" /bin/bash
 	else
 		echo "Cannot start bash session in terminated instance"
 	fi
 }
 
 startUp() {
-	if [[ "$(isActive)" == "true" ]]; then
+  local service="${1}"; shift
+  local startParameters="${1}"; shift
+
+	if [[ "$(isActive "${service}")" == "true" ]]; then
 		echo "Already On"
 	else
-		echo "$(powerOn)"
+		echo "$(powerOn "${service}" "${startParameters}")"
 	fi
 }
 
 monitor() {
+  local service="${1}"; shift
+
 	trap "{ echo 'Quit Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGQUIT
 	trap "{ echo 'Abort Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGABRT
 	trap "{ echo 'Interrupt Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGINT
 	trap "{ echo 'Terminate Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGTERM
-	if [[ "$(isActive)" != "true" ]]; then
+	if [[ "$(isActive "${service}")" != "true" ]]; then
 		sleep 10
 	fi
-	while [[ "$(isActive)" == "true" ]]; do
+	while [[ "$(isActive "${service}")" == "true" ]]; do
 		sleep 5
 	done
 }
 
 currentStatus() {
-	if [[ "$(isActive)" == "true" ]]; then
+  local service="${1}"; shift
+
+	if [[ "$(isActive "${service}")" == "true" ]]; then
 		echo "Powered On"
 	else
 		echo "Powered Off"
@@ -72,40 +85,12 @@ currentStatus() {
 }
 
 stopService() {
-	if [[ "$(isActive)" == "true" ]]; then
-		docker stop "$(getId)"
+  local service="${1}"; shift
+
+	if [[ "$(isActive "${service}")" == "true" ]]; then
+		docker stop "$(getId "${service}")"
+	  sendMessage "${service} is Stopped"
 	else
 		echo "Already Off"
 	fi
 }
-
-runCommand() {
-	local runPath="$1"; shift
-	local command="$1"; shift
-	
-	if [[ "$command" == "start" ]]; then
-		startUp
-	elif [[ "$command" == "start-monitor" ]]; then
-	  startUp
-	  monitor
-	elif [[ "$command" == "monitor" ]]; then
-		monitor
-	elif [[ "$command" == "status" ]]; then
-		echo "$(currentStatus)"
-	elif [[ "$command" == "ip" ]]; then
-		echo "$(getIP)"
-	elif [[ "$command" == "bash" ]]; then
-		openBash
-	elif [[ "$command" == "description" ]]; then
-		echo "$description"
-	elif [[ "$command" == "address" ]]; then
-		echo "$externalAddress"
-	elif [[ "$command" == "stop" ]]; then
-		echo "$(stopService)"
-	else
-		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|bash|description|address|stop]"
-		exit 1
-	fi
-}
-
-runCommand "$path" "$command"

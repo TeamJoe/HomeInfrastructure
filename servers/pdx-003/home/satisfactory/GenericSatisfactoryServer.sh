@@ -1,17 +1,28 @@
 #!/bin/bash
 # /home/satisfactory/GenericSatisfactoryServer.sh
+source /server/properties.sh
+source /server/DockerService.sh
 
-path="$1"; shift
-tag="$1"; shift
-service="$1"; shift
-user="$1"; shift
-description="$1"; shift
-address="$1"; shift
-serverport="$1"; shift
-beaconport="$1"; shift
-queryport="$1"; shift
-installDirectory="$1"; shift
-command="$1"; shift
+minimum_server_boot_time=3600
+minimum_disconnect_live_time=1200
+
+if [ -n "${prefix}" ]; then
+  tag="$(getProperty "${prefix}.tag")"
+  service="$(getProperty "${prefix}.service")"
+  user="$(getProperty "${prefix}.user")"
+  description="$(getProperty "${prefix}.description")"
+  address="$(getProperty "${prefix}.address")"
+  serverport="$(getProperty "${prefix}.port.server")"
+  beaconport="$(getProperty "${prefix}.port.beacon")"
+  queryport="$(getProperty "${prefix}.port.query")"
+  installDirectory="$(getProperty "${prefix}.dir.install")"
+fi
+
+server_start_regex='\[([^\]]+)\].*Created[[:blank:]]socket[[:blank:]]for[[:blank:]]bind[[:blank:]]address'
+player_join_regex='Join[[:blank:]]succeeded:[[:blank:]](.+)'
+player_leave_regex='UNetConnection::Close.*Driver:[[:blank:]]GameNetDriver.*UniqueId:[[:blank:]]([^,]+),'
+
+externalAddress="${address}:${queryport}"
 startParameters=$(echo \
                 "--publish ${serverport}:${serverport}/udp" \
                 "--publish ${beaconport}:${beaconport}/udp" \
@@ -29,14 +40,6 @@ startParameters=$(echo \
                 "--mount type=bind,source=${installDirectory}/GUID.ini,target=/home/satisfactory/.config/Epic/FactoryGame/GUID.ini" \
                 "--restart unless-stopped ${tag}" \
                 )
-
-minimum_server_boot_time=3600
-minimum_disconnect_live_time=1200
-
-server_start_regex='\[([^\]]+)\].*Created[[:blank:]]socket[[:blank:]]for[[:blank:]]bind[[:blank:]]address'
-player_join_regex='Join[[:blank:]]succeeded:[[:blank:]](.+)'
-player_leave_regex='UNetConnection::Close.*Driver:[[:blank:]]GameNetDriver.*UniqueId:[[:blank:]]([^,]+),'
-
 
 #++++++++++++++++++++
 #--------------------
@@ -58,7 +61,6 @@ regExMatch() {
 getSimpleLogFile() {
 	echo "${installDirectory}/logs/$(ls -Art "${installDirectory}/logs/"simple* | tail --lines=1)"
 }
-
 
 getLogFile() {
 	echo "${installDirectory}/logs/FactoryGame.log"
@@ -97,12 +99,6 @@ regexCount() {
   else
     echo "${value}" | grep --count --extended-regexp "${regex}"
   fi
-}
-
-
-callParent() {
-	local command="$1"; shift
-	/server/DockerService.sh "$path" "$service" "$description" "${address}:${queryport}" "$startParameters" "$command"
 }
 
 processDate()
@@ -201,7 +197,7 @@ getUptime() {
 #++++++++++++++++++++
 
 isBooted() {
-	if [ "$(callParent "status")" != "Powered On" ]; then
+	if [ "$(currentStatus)" != "Powered On" ]; then
 		echo "false"
 	else
 		echo "true"
@@ -233,7 +229,7 @@ getPlayerCount() {
 	fi
 }
 
-isActive() {
+isServerActive() {
 	local currentTimeStamp=''
 	local startTimeStamp=''
 	local lastActivityTimeStamp=''
@@ -315,10 +311,7 @@ getStatus() {
 	fi
 }
 
-
 startServer() {
-	local command="$1"; shift
-	
 	mkdir -p "${installDirectory}/logs"
 	mkdir -p "${installDirectory}/config"
 	mkdir -p "${installDirectory}/saves"
@@ -326,37 +319,49 @@ startServer() {
 	chown $(id -u ${username}):$(id -g ${username}) -R "${installDirectory}"
 	chmod 755 -R "${installDirectory}"
 	
-	callParent "$command"
+	startUp "${service}" "${startParameters}"
+	sendMessage "${description} is Started"
 }
 
 runCommand() {
-	local runPath="$1"; shift
-	local command="$1"; shift
+	local runPath="${1}"; shift
+	local command="${1}"; shift
 	
-	if [[ "$command" == "info" ]]; then
+	if [[ "${command}" == "info" ]]; then
 		echo "Address: ${address} Port: ${queryport}"
-	elif [[ "$command" == "logs" ]]; then
+	elif [[ "${command}" == "logs" ]]; then
 		tail --lines=1000 "$(getLogFile)"
-	elif [[ "$command" == "status" ]]; then
-		echo "$(getStatus)"
-	elif [ "$command" == 'uptime' ]; then
-		echo "$(getUptime)"
-	elif [ "$command" == 'booted' ]; then
-		echo "$(isBooted)"
-	elif [ "$command" == 'started' ]; then
-		echo "$(isStarted)"
-	elif [ "$command" == 'active' ]; then
-		echo "$(isActive)"
-	elif [ "$command" == 'list' ]; then
-		echo "$(getPlayerCount)"
-	elif [[ "$command" == "start" || "$command" == "start-monitor" ]]; then
-		startServer "$command"
-	elif [[ "$command" == "monitor" || "$command" == "ip" || "$command" == "bash" || "$command" == "description" || "$command" == "address" || "$command" == "stop" ]]; then
-		callParent "$command"
+	elif [[ "${command}" == "status" ]]; then
+		getStatus
+	elif [ "${command}" == 'uptime' ]; then
+		getUptime
+	elif [ "${command}" == 'booted' ]; then
+		isBooted
+	elif [ "${command}" == 'started' ]; then
+		isStarted
+	elif [ "${command}" == 'active' ]; then
+		isServerActive
+	elif [ "${command}" == 'list' ]; then
+		getPlayerCount
+	elif [[ "$command" == "start" ]]; then
+		startServer
+	elif [[ "${command}" == "start-monitor" ]]; then
+		startServer
+		monitor "${service}"
+	elif [[ "${command}" == "monitor" ]]; then
+		monitor "${service}"
+	elif [[ "${command}" == "ip" ]]; then
+		getIP "${service}"
+	elif [[ "${command}" == "bash" ]]; then
+		openBash "${service}"
+	elif [[ "${command}" == "description" ]]; then
+		echo "${description}"
+	elif [[ "${command}" == "address" ]]; then
+		echo "${externalAddress}"
+	elif [[ "${command}" == "stop" ]]; then
+		stopService "${service}"
 	else
 		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|description|address|stop]"
 		exit 1
 	fi
 }
-
-runCommand "${path}" "${command}"
