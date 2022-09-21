@@ -18,6 +18,9 @@ if [ -n "${prefix}" ]; then
   installDirectory="$(getProperty "${prefix}.dir.install")"
 fi
 
+simple_output_file="${installDirectory}/logs/output.log"
+simple_server_start_regex='.*Booting[[:blank:]]Server'
+#server_start_regex='Took[[:blank:]]([0-9]+\.[0-9]+)[[:blank:]]seconds[[:blank:]]to[[:blank:]]LoadMap'
 server_start_regex='\[([^\]]+)\].*Created[[:blank:]]socket[[:blank:]]for[[:blank:]]bind[[:blank:]]address'
 player_join_regex='Join[[:blank:]]succeeded:[[:blank:]](.+)'
 player_leave_regex='UNetConnection::Close.*Driver:[[:blank:]]GameNetDriver.*UniqueId:[[:blank:]]([^,]+),'
@@ -59,7 +62,7 @@ regExMatch() {
 }
 
 getSimpleLogFile() {
-	echo "${installDirectory}/logs/$(ls -Art "${installDirectory}/logs/"simple* | tail --lines=1)"
+	echo "$(ls -Art "${installDirectory}/logs/"simple* | tail --lines=1)"
 }
 
 getLogFile() {
@@ -320,7 +323,64 @@ startServer() {
 	chmod 755 -R "${installDirectory}"
 	
 	startUp "${service}" "${startParameters}"
-	sendMessage "${description} is Started"
+}
+
+log() {
+	echo "[$(date +"%D %T")] ${1}" >> "${simple_output_file}"
+	sendMessage "${description}: ${1}"
+}
+
+monitorLogs() {
+  sleep 10
+
+  while [[ "$(currentStatus "${service}")" == "Powered On" ]];  do
+    tail --follow --lines=1000 "$(getLogFile)" | while read line; do
+      processLog "${line}"
+    done
+    sleep 5
+  done
+
+  log "Server Stopped"
+}
+
+processLog() {
+  local match=""
+
+  match="$(regExMatch "${line}" "${server_start_regex}" 1)"
+  if [[ -n "${match}" ]]; then
+    log "Server Started (${match})"
+  fi
+
+  match="$(regExMatch "${line}" "${player_join_regex}" 1)"
+  if [[ -n "${match}" ]]; then
+    log "Player Joined (${match})"
+    log "Player Count $(getPlayerCount)"
+  fi
+
+  match="$(regExMatch "${line}" "${player_leave_regex}" 1)"
+  if [[ -n "${match}" ]]; then
+    log "Player Left (${match})"
+    log "Player Count $(getPlayerCount)"
+  fi
+}
+
+getProcess() {
+	local type="$1"; shift
+	local regex="$1"; shift
+
+	local processesOfType="$(pidof "$type")"
+	local processesOfRegex="$(ps aux | grep "$regex" | awk '{print $2}')"
+
+	local C="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | sed 's/ /\n/g' | sort | uniq -d)"
+	echo "$(echo $C | sed -E "s/[[:space:]]\+/ /g")"
+}
+
+killProcess() {
+	local process="$1"
+	if [ -n "$process" ]; then
+		echo "Force stopping $process"
+		kill -9 $process
+	fi
 }
 
 runCommand() {
@@ -349,6 +409,7 @@ runCommand() {
 		startServer
 	elif [[ "${command}" == "start-monitor" ]]; then
 		startServer
+		monitorLogs &
 		monitor "${service}"
 	elif [[ "${command}" == "monitor" ]]; then
 		monitor "${service}"
@@ -362,7 +423,8 @@ runCommand() {
 		echo "${externalAddress}"
 	elif [[ "${command}" == "stop" ]]; then
 		stopService "${service}"
-	  sendMessage "${description} is Stopped"
+		killProcess 'tail' "$(getLogFile)"
+    log "Server Stopped"
 	else
 		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"
 		exit 1
