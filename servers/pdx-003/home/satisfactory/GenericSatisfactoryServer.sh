@@ -362,6 +362,7 @@ runCommand() {
 		echo "${externalAddress}"
 	elif [[ "${command}" == "stop" ]]; then
 		stopService "${service}"
+	  sendMessage "${description} is Stopped"
 	else
 		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"
 		exit 1

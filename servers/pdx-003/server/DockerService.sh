@@ -25,7 +25,6 @@ powerOn() {
 	docker rm "$(docker ps --filter name=${service} -q --all)"
 	docker run -d --name ${service} ${startParameters[@]}
 	echo "Service Started"
-	sendMessage "${service} is Started"
 }
 
 getIP() {
@@ -89,7 +88,6 @@ stopService() {
 
 	if [[ "$(isActive "${service}")" == "true" ]]; then
 		docker stop "$(getId "${service}")"
-	  sendMessage "${service} is Stopped"
 	else
 		echo "Already Off"
 	fi

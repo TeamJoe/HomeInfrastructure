@@ -26,7 +26,7 @@ satisfactory.2.dir.install  /home/satisfactory/data/Update5/EarlyAccess/2
 satisfactory.3.tag          pacificengine/satisfactory:early-access
 satisfactory.3.service      satisfactory.3
 satisfactory.3.user         satisfactory
-satisfactory.3.description  Satisfactory (The Original Update 6 Server)
+satisfactory.3.description  Satisfactory (The Crazy Friends)
 satisfactory.3.address      lobythepirate.mooo.com
 satisfactory.3.port.server  43505
 satisfactory.3.port.query   43506
