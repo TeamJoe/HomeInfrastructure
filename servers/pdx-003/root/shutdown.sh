@@ -1,12 +1,14 @@
 #!/bin/bash
+source /server/discord.sh
 
 # sudo crontab -u root -e
 # */5 * * * * /root/shutdown.sh
 
 shutdownCommands=('netstat | grep ssh | grep -c ESTABLISHED'
-'sh /home/satisfactory/satisfactory.sh active'
-'sh /home/satisfactory/satisfactory2.sh active'
-'sh /home/satisfactory/satisfactory3.sh active')
+'who –no-header –short | wc --lines'
+'bash /home/satisfactory/satisfactory.sh active'
+'bash /home/satisfactory/satisfactory2.sh active'
+'bash /home/satisfactory/satisfactory3.sh active')
 
 minimum_server_boot_time=3600
 
@@ -51,6 +53,7 @@ checkActive() {
 		isActive="$(runCommands)"
 		
 		if [[ "$isActive" == "false" ]]; then
+		  sendMessage "Shutting Down"
 			/sbin/shutdown
 		fi
 	fi

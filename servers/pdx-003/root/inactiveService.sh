@@ -3,13 +3,13 @@
 # sudo crontab -u root -e
 # */5 * * * * /root/inactiveService.sh
 
-runningCommands=('sh /home/satisfactory/satisfactory.sh started'
-'sh /home/satisfactory/satisfactory2.sh started'
-'sh /home/satisfactory/satisfactory3.sh started')
+runningCommands=('bash /home/satisfactory/satisfactory.sh started'
+'bash /home/satisfactory/satisfactory2.sh started'
+'bash /home/satisfactory/satisfactory3.sh started')
 
-activeCommands=('sh /home/satisfactory/satisfactory.sh active'
-'sh /home/satisfactory/satisfactory2.sh active'
-'sh /home/satisfactory/satisfactory3.sh active')
+activeCommands=('bash /home/satisfactory/satisfactory.sh active'
+'bash /home/satisfactory/satisfactory2.sh active'
+'bash /home/satisfactory/satisfactory3.sh active')
 
 shutdownCommands=('systemctl stop satisfactory.service; sh /home/satisfactory/satisfactory.sh stop'
 'systemctl stop satisfactory2.service; sh /home/satisfactory/satisfactory2.sh stop'

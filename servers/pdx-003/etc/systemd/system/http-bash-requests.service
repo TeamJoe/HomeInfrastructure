@@ -13,10 +13,13 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=5
 	/ping "echo 'PONG'" \
 	/status "cat /home/joe/status.out" \
 	/satisfactory/1/start "systemctl start satisfactory.service; sleep 5; echo 'Starting Up'" \
+	/satisfactory/1/simple "/home/satisfactory/satisfactory.sh simple" \
 	/satisfactory/1/logs "/home/satisfactory/satisfactory.sh logs" \
 	/satisfactory/2/start "systemctl start satisfactory2.service; sleep 5; echo 'Starting Up'" \
+	/satisfactory/2/simple "/home/satisfactory/satisfactory2.sh simple" \
 	/satisfactory/2/logs "/home/satisfactory/satisfactory2.sh logs" \
 	/satisfactory/3/start "systemctl start satisfactory3.service; sleep 5; echo 'Starting Up'" \
+	/satisfactory/3/simple "/home/satisfactory/satisfactory3.sh simple" \
 	/satisfactory/3/logs "/home/satisfactory/satisfactory3.sh logs"
 
 [Install]
