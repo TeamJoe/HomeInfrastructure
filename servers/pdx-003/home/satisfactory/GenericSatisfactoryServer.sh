@@ -22,11 +22,11 @@ if [ -n "${prefix}" ]; then
 fi
 
 simple_output_file="${installDirectory}/logs/output.log"
-simple_server_start_regex='.*Booting[[:blank:]]Server'
-#server_start_regex='Took[[:blank:]]([0-9]+\.[0-9]+)[[:blank:]]seconds[[:blank:]]to[[:blank:]]LoadMap'
-server_start_regex='\[([^\]]+)\].*Created[[:blank:]]socket[[:blank:]]for[[:blank:]]bind[[:blank:]]address'
-player_join_regex='Join[[:blank:]]succeeded:[[:blank:]](.+)'
-player_leave_regex='UNetConnection::Close.*Driver:[[:blank:]]GameNetDriver.*UniqueId:[[:blank:]]([^,]+),'
+simple_server_start_regex='.*Booting Server'
+#server_start_regex='Took ([0-9]+\.[0-9]+) seconds to LoadMap'
+server_start_regex='\[([^\]]+)\].*Created socket for bind address'
+player_join_regex='Join\ssucceeded:\s(.+)'
+player_leave_regex='UNetConnection::Close.*Driver:\s+GameNetDriver.*UniqueId:\s+([^,]+),'
 
 externalAddress="${address}:${queryport}"
 startParameters=$(echo \
@@ -384,7 +384,7 @@ runCommand() {
 	elif [[ "${command}" == "stop" ]]; then
 		stopService "${service}"
 		killProcess 'tail' "$(getLogFile)"
-    log "Server Stopped"
+		log "Server Stopped"
 	else
 		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"
 		exit 1
