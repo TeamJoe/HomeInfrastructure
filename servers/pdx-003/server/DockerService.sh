@@ -19,7 +19,7 @@ isActive() {
 powerOn() {
   local service="${1}"; shift
 	docker rm "$(docker ps --filter name=${service} -q --all)"
-	docker run -d --name ${service} ${@}
+	docker run --name ${service} ${@}
 	echo "Service Started"
 }
 
@@ -47,18 +47,28 @@ openBash() {
 	fi
 }
 
-# Usage: startUp [Service] [Start Parameters]
-startUp() {
+# Usage: debugService [Service] [Start Parameters]
+debugService() {
+  local service="${1}"; shift
+	if [[ "$(isActive "${1}")" == "true" ]]; then
+		echo "Already On"
+	else
+		echo "$(powerOn ${service} --detach --entrypoint /usr/bin/sleep ${@} infinity)"
+	fi
+}
+
+# Usage: startService [Service] [Start Parameters]
+startService() {
   local service="${1}"; shift
 	if [[ "$(isActive "${service}")" == "true" ]]; then
 		echo "Already On"
 	else
-		echo "$(powerOn ${service} ${@})"
+		echo "$(powerOn ${service} --detach ${@})"
 	fi
 }
 
-# Usage: monitor [Service]
-monitor() {
+# Usage: monitorService [Service]
+monitorService() {
 	trap "{ echo 'Quit Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGQUIT
 	trap "{ echo 'Abort Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGABRT
 	trap "{ echo 'Interrupt Signal Received, Please call \"${path} stop\" to stop the service' ; exit 1 ; }" SIGINT
@@ -71,8 +81,8 @@ monitor() {
 	done
 }
 
-# Usage: currentStatus [Service]
-currentStatus() {
+# Usage: statusService [Service]
+statusService() {
 	if [[ "$(isActive "${1}")" == "true" ]]; then
 		echo "Powered On"
 	else

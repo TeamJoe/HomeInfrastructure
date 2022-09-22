@@ -179,7 +179,7 @@ getUptime() {
 #++++++++++++++++++++
 
 isBooted() {
-	if [ "$(currentStatus "${service}")" != "Powered On" ]; then
+	if [ "$(statusService "${service}")" != "Powered On" ]; then
 		echo "false"
 	else
 		echo "true"
@@ -293,6 +293,17 @@ getStatus() {
 	fi
 }
 
+debugServer() {
+	mkdir -p "${installDirectory}/logs"
+	mkdir -p "${installDirectory}/config"
+	mkdir -p "${installDirectory}/saves"
+	touch "${installDirectory}/GUID.ini"
+	chown $(id -u ${username}):$(id -g ${username}) -R "${installDirectory}"
+	chmod 755 -R "${installDirectory}"
+
+	debugService "${service}" ${startParameters[@]}
+}
+
 startServer() {
 	mkdir -p "${installDirectory}/logs"
 	mkdir -p "${installDirectory}/config"
@@ -301,7 +312,7 @@ startServer() {
 	chown $(id -u ${username}):$(id -g ${username}) -R "${installDirectory}"
 	chmod 755 -R "${installDirectory}"
 	
-	startUp "${service}" ${startParameters[@]}
+	startService "${service}" ${startParameters[@]}
 }
 
 log() {
@@ -312,7 +323,7 @@ log() {
 monitorLogs() {
   sleep 10
 
-  while [[ "$(currentStatus "${service}")" == "Powered On" ]];  do
+  while [[ "$(statusService "${service}")" == "Powered On" ]];  do
     tail --follow --lines=1000 "$(getLogFile)" | while read line; do
       processLog "${line}"
     done
@@ -367,12 +378,16 @@ runCommand() {
 		getPlayerCount
 	elif [[ "$command" == "start" ]]; then
 		startServer
+	elif [[ "$command" == "debug" ]]; then
+		debugServer
+	elif [[ "${command}" == "command" ]]; then
+		sendCommand "${service}" ${@}
 	elif [[ "${command}" == "start-monitor" ]]; then
 		startServer
 		monitorLogs &
-		monitor "${service}"
+		monitorService "${service}"
 	elif [[ "${command}" == "monitor" ]]; then
-		monitor "${service}"
+		monitorService "${service}"
 	elif [[ "${command}" == "ip" ]]; then
 		getIP "${service}"
 	elif [[ "${command}" == "bash" ]]; then
@@ -386,7 +401,7 @@ runCommand() {
 		killProcess $(getProcess 'tail' "$(getLogFile)")
 		log "Server Stopped"
 	else
-		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"
+		echo "Usage: $runPath [start|start-monitor|debug|monitor|command|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"
 		exit 1
 	fi
 }
