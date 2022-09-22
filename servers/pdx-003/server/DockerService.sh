@@ -1,6 +1,5 @@
 #!/bin/bash
 # /server/DockerService.sh
-source /server/discord.sh
 
 getId() {
   local service="${1}"; shift

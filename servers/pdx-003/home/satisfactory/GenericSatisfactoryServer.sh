@@ -1,5 +1,8 @@
 #!/bin/bash
 # /home/satisfactory/GenericSatisfactoryServer.sh
+source /server/regex.sh
+source /server/discord.sh
+source /server/process.sh
 source /server/properties.sh
 source /server/DockerService.sh
 
@@ -50,17 +53,6 @@ startParameters=$(echo \
 #--------------------
 #++++++++++++++++++++
 
-regex() {
-	gawk 'match($0,/'$1'/, ary) {print ary['${2:-'0'}']}'
-}
-
-regExMatch() {
-	local match="$(echo "$1" | regex "$2" 0)"
-	if [ -n "$match" ]; then
-		echo "$(echo "$1" | regex "$2" ${@:3})"
-	fi
-}
-
 getSimpleLogFile() {
 	echo "$(ls -Art "${installDirectory}/logs/"simple* | tail --lines=1)"
 }
@@ -80,9 +72,8 @@ extractLogValue() {
 	local line=""
 	IFS=$'\n'
 	
-	for line in $(cat "$(getLogFile)"); do
-		match="$(regExMatch "$line" "$regex_pattern" $extract_group)"
-		if [ -n "$match" ]; then
+	for match in $(cat "$(getLogFile)" | regexExtract "$regex_pattern" $extract_group); do
+		if [[ -n "$match" ]]; then
 			output="$match"
 			if [[ "$get_last" != "true" ]]; then
 				break;
@@ -91,17 +82,6 @@ extractLogValue() {
 	done
 	
 	echo "$output"
-}
-
-regexCount() {
-  local regex="${1}"
-  local value="${2}"
-
-  if [[ -p /dev/stdin ]]; then
-    cat - | grep --count --extended-regexp "${regex}"
-  else
-    echo "${value}" | grep --count --extended-regexp "${regex}"
-  fi
 }
 
 processDate()
@@ -142,7 +122,7 @@ getBootTime() {
 	local fileNameMatcher='log-([^\.]+).log'
 	local rawDate=''
 	
-	rawDate="$(regExMatch "$(getSimpleLogFile)" "$fileNameMatcher" 1)"
+	rawDate="$(regexExtract "$(getSimpleLogFile)" "$fileNameMatcher" 1)"
 	echo "$(processDate "$rawDate")"
 }
 
@@ -171,7 +151,7 @@ getLastActivityTime() {
 	IFS=$'\n'
 	
 	for line in $(tail --lines=25 "$(getLogFile)"); do
-		match="$(regExMatch "$line" "$simple_server_date_pattern" 1)"
+		match="$(regexExtract "$line" "$simple_server_date_pattern" 1)"
 		if [ -n "$match" ]; then
 			output="$match"
 		fi
@@ -191,7 +171,6 @@ getUptime() {
 		echo "$((currentTimeStamp-startTimeStamp))"
 	fi
 }
-
 
 #++++++++++++++++++++
 #--------------------
@@ -346,41 +325,22 @@ monitorLogs() {
 processLog() {
   local match=""
 
-  match="$(regExMatch "${line}" "${server_start_regex}" 1)"
+  match="$(regexExtract "${line}" "${server_start_regex}" 1)"
   if [[ -n "${match}" ]]; then
     log "Server Started (${match})"
   fi
 
-  match="$(regExMatch "${line}" "${player_join_regex}" 1)"
+  match="$(regexExtract "${line}" "${player_join_regex}" 1)"
   if [[ -n "${match}" ]]; then
     log "Player Joined (${match})"
     log "Player Count $(getPlayerCount)"
   fi
 
-  match="$(regExMatch "${line}" "${player_leave_regex}" 1)"
+  match="$(regexExtract "${line}" "${player_leave_regex}" 1)"
   if [[ -n "${match}" ]]; then
     log "Player Left (${match})"
     log "Player Count $(getPlayerCount)"
   fi
-}
-
-getProcess() {
-	local type="$1"; shift
-	local regex="$1"; shift
-
-	local processesOfType="$(pidof "$type")"
-	local processesOfRegex="$(ps aux | grep "$regex" | awk '{print $2}')"
-
-	local C="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | sed 's/ /\n/g' | sort | uniq -d)"
-	echo "$(echo $C | sed -E "s/[[:space:]]\+/ /g")"
-}
-
-killProcess() {
-	local process="$1"
-	if [ -n "$process" ]; then
-		echo "Force stopping $process"
-		kill -9 $process
-	fi
 }
 
 runCommand() {
