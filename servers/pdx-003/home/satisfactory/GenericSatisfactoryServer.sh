@@ -44,7 +44,7 @@ startParameters=$(echo \
                 "--mount type=bind,source=${installDirectory}/config,target=/home/satisfactory/FactoryGame/Saved/Config/LinuxServer" \
                 "--mount type=bind,source=${installDirectory}/saves,target=/home/satisfactory/.config/Epic/FactoryGame/Saved/SaveGames" \
                 "--mount type=bind,source=${installDirectory}/GUID.ini,target=/home/satisfactory/.config/Epic/FactoryGame/GUID.ini" \
-                "--restart unless-stopped ${tag}" \
+                "${tag}" \
                 )
 
 #++++++++++++++++++++
@@ -301,7 +301,7 @@ startServer() {
 	chown $(id -u ${username}):$(id -g ${username}) -R "${installDirectory}"
 	chmod 755 -R "${installDirectory}"
 	
-	startUp "${service}" "${startParameters}"
+	startUp "${service}" ${startParameters[@]}
 }
 
 log() {
@@ -383,7 +383,7 @@ runCommand() {
 		echo "${externalAddress}"
 	elif [[ "${command}" == "stop" ]]; then
 		stopService "${service}"
-		killProcess 'tail' "$(getLogFile)"
+		killProcess $(getProcess 'tail' "$(getLogFile)")
 		log "Server Stopped"
 	else
 		echo "Usage: $runPath [start|start-monitor|monitor|uptime|booted|started|active|list|status|ip|bash|info|logs|simple|description|address|stop]"

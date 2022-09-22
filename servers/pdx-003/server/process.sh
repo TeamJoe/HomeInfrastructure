@@ -2,27 +2,31 @@
 # /server/process.sh
 source /server/regex.sh
 
+# Usage: getProcess [ProcessType] [RegEx]
 getProcess() {
-	local type="$1"; shift
-	local regex="$1"; shift
-
-	local processesOfType="$(pidof "$type")"
-	local processesOfRegex="$(ps aux | regexFind ".*${regex}.*" | awk '{print $2}')"
-
-	local C="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | regexReplace ' ' '\n' | sort | uniq -d)"
-	echo "$(echo $C | regexReplace '\s+' ' ')"
+  local processesOfType=''
+  local processesOfRegex=''
+  local processList=''
+  if [[ -z "${1}" ]]; then
+    ps aux | regexFind ".*${2}.*" | awk '{print $2}' | regexReplaceMultiline '\s+' ' ' | trim
+  else
+    processesOfType="$(pidof "${1}")"
+    processesOfRegex="$(ps aux | regexFind ".*${2}.*" | awk '{print $2}')"
+    processList="$(echo ${processesOfType[@]} ${processesOfRegex[@]} | regexReplace '\s+' '\n' | sort | uniq -d)"
+    echo "${processList}" | regexReplaceMultiline '\s+' ' ' | trim
+  fi
 }
 
+# Usage: stopProcess [ProcessList]
 stopProcess() {
-	local process="$1"
-	if [ -n "$process" ]; then
-		kill $process
+	if [[ -n "${1}" ]]; then
+		kill ${1}
 	fi
 }
 
+# Usage: killProcess [ProcessList]
 killProcess() {
-	local process="$1"
-	if [ -n "$process" ]; then
-		kill -9 $process
+	if [[ -n "${1}" ]]; then
+		kill -9 ${1}
 	fi
 }
