@@ -24,7 +24,7 @@ fi
 simple_output_file="${installDirectory}/logs/output.log"
 simple_server_start_regex='.*Booting Server'
 #server_start_regex='Took ([0-9]+\.[0-9]+) seconds to LoadMap'
-server_start_regex='\[([^\]]+)\].*Created socket for bind address'
+server_start_regex='\[([^]]+)\].*Created socket for bind address'
 player_join_regex='Join\ssucceeded:\s(.+)'
 player_leave_regex='UNetConnection::Close.*Driver:\s+GameNetDriver.*UniqueId:\s+([^,]+),'
 
@@ -54,7 +54,7 @@ startParameters=$(echo \
 #++++++++++++++++++++
 
 getSimpleLogFile() {
-	echo "$(ls -Art "${installDirectory}/logs/"simple* | tail --lines=1)"
+	echo "${installDirectory}/logs/simple.log"
 }
 
 getLogFile() {
@@ -119,10 +119,10 @@ processDate()
 #++++++++++++++++++++
 
 getBootTime() {
-	local fileNameMatcher='log-([^\.]+).log'
+	local fileNameMatcher='simple\.([^\.]+)\.log'
 	local rawDate=''
 	
-	rawDate="$(regexExtract "$(getSimpleLogFile)" "$fileNameMatcher" 1)"
+	rawDate="$(head --lines=1 "$(getSimpleLogFile)" | regexExtract "$fileNameMatcher" 1)"
 	echo "$(processDate "$rawDate")"
 }
 
@@ -324,9 +324,7 @@ monitorLogs() {
   sleep 10
 
   while [[ "$(statusService "${service}")" == "Powered On" ]];  do
-    tail --follow --lines=1000 "$(getLogFile)" | while read line; do
-      processLog "${line}"
-    done
+    tail --follow --lines=1000 "$(getLogFile)" | processLog
     sleep 5
   done
 
@@ -336,18 +334,18 @@ monitorLogs() {
 processLog() {
   local match=""
 
-  match="$(regexExtract "${line}" "${server_start_regex}" 1)"
+  match="$(cat - | regexExtract "${server_start_regex}" 1)"
   if [[ -n "${match}" ]]; then
     log "Server Started (${match})"
   fi
 
-  match="$(regexExtract "${line}" "${player_join_regex}" 1)"
+  match="$(cat - | regexExtract regexExtract "${player_join_regex}" 1)"
   if [[ -n "${match}" ]]; then
     log "Player Joined (${match})"
     log "Player Count $(getPlayerCount)"
   fi
 
-  match="$(regexExtract "${line}" "${player_leave_regex}" 1)"
+  match="$(cat - | regexExtract regexExtract "${player_leave_regex}" 1)"
   if [[ -n "${match}" ]]; then
     log "Player Left (${match})"
     log "Player Count $(getPlayerCount)"
