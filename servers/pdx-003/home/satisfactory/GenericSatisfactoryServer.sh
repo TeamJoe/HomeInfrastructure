@@ -25,7 +25,7 @@ simple_log_file="${installDirectory}/logs/simple.log"
 extended_log_file="${installDirectory}/logs/FactoryGame.log"
 player_list_file="${installDirectory}/logs/user.csv"
 simple_server_date_pattern='\[([^]]+)\].*'
-server_start_regex='\[([^]]+)\].*Server Started.*'
+server_start_regex='\[([^]]+)\].*Session Started.*'
 player_join_regex='\[([^]]+)\].*Player Joined.*\((.*)\)'
 player_leave_regex='\[([^]]+)\].*Player Left.*\((.*)\)'
 
@@ -62,33 +62,6 @@ getSimpleLogFile() {
   fi
 }
 
-processDate()
-{
-	local rawDate=''
-	local count=0
-	local date=''
-	local output=''
-	
-	rawDate="$1"; shift
-	rawDate="$( echo "${rawDate//[-:\. ]/ }" | tr ' ' '\n' )"
-	
-	IFS=$'\n'
-	for date in ${rawDate}; do
-		if [[ "$count" -lt 2 ]]; then
-			output="${output}${date}-"
-		elif [[ "$count" -eq 2 ]]; then
-			output="${output}${date} "
-		elif [[ "$count" -lt 5 ]]; then
-			output="${output}${date}:"
-		elif [[ "$count" -eq 5 ]]; then
-			output="${output}${date}"
-		fi
-		count="$(($count + 1))"
-	done
-	
-	echo "$(date --date="${output}" +"%s")"
-}
-
 #++++++++++++++++++++
 #--------------------
 # Last Event Time
@@ -96,14 +69,18 @@ processDate()
 #++++++++++++++++++++
 
 getBootTime() {
+	local date=''
 	local fileNameMatcher='simple\.([^\.]+)\.log'
 	local rawDate="$(head --lines=1 "${simple_log_file}" | regexExtract "$fileNameMatcher" 1)"
-	echo "$(processDate "$rawDate")"
+	readarray -td, date <<< "${rawDate//[T:-]/,}"
+	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
 }
 
 getStartTime() {
+	local date=''
 	local rawDate="$(cat "${simple_log_file}" | regexExtract "${server_start_regex}" 1 | trim | tail --lines=1)"
-	echo "$(processDate "$rawDate")"
+	readarray -td, date <<< "${rawDate//[T:-]/,}"
+	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
 }
 
 getTimeSinceServerBoot() {
@@ -111,12 +88,13 @@ getTimeSinceServerBoot() {
 }
 
 getLastActivityTime() {
+  local date=''
   local rawDate=''
   local log_file="$(getSimpleLogFile)"
-
 	local rawDate="$(cat "${log_file}" | regexExtract "${server_start_regex}" 1 | trim | tail --lines=1)"
 	if [[ -n "${rawDate}" ]]; then
-		echo "$(processDate "${rawDate}")"
+    	readarray -td, date <<< "${rawDate//[T:-]/,}"
+    	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
 	fi
 }
 
@@ -285,7 +263,7 @@ processLog() {
 
   match="$(regexExtract "${1}" "${server_start_regex}" 1)"
   if [[ -n "${match}" ]]; then
-    sendMessage "Server Started"
+    sendMessage "Session Started"
   fi
 
   match="$(regexExtract "${1}" "${player_join_regex}" 2)"
