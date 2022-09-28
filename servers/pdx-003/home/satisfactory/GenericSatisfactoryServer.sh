@@ -71,14 +71,14 @@ getSimpleLogFile() {
 getBootTime() {
 	local date=''
 	local fileNameMatcher='simple\.([^\.]+)\.log'
-	local rawDate="$(head --lines=1 "${simple_log_file}" | regexExtract "$fileNameMatcher" 1)"
+	local rawDate="$(head --lines=1 "${simple_log_file}" | regex --find "$fileNameMatcher" --group 1)"
 	readarray -td, date <<< "${rawDate//[T:-]/,}"
 	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
 }
 
 getStartTime() {
 	local date=''
-	local rawDate="$(cat "${simple_log_file}" | regexExtract "${server_start_regex}" 1 | trim | tail --lines=1)"
+	local rawDate="$(cat "${simple_log_file}" | regex --find "${server_start_regex}" --group 1 --trim | tail --lines=1)"
 	readarray -td, date <<< "${rawDate//[T:-]/,}"
 	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
 }
@@ -91,7 +91,7 @@ getLastActivityTime() {
   local date=''
   local rawDate=''
   local log_file="$(getSimpleLogFile)"
-	local rawDate="$(cat "${log_file}" | regexExtract "${server_start_regex}" 1 | trim | tail --lines=1)"
+	local rawDate="$(cat "${log_file}" | regex --find "${server_start_regex}" --group 1 --trim | tail --lines=1)"
 	if [[ -n "${rawDate}" ]]; then
     	readarray -td, date <<< "${rawDate//[T:-]/,}"
     	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
@@ -141,7 +141,7 @@ getPlayerCount() {
 	if [[ "$(isStarted)" != "true" || "$(cat "${player_list_file}" | wc --lines)" == '0' ]]; then
 		echo "0"
 	else
-		echo "$(cat "${player_list_file}" | wc --lines) ($(cat "${player_list_file}" | regexExtract '\s+(.*)' 1 | regexReplaceMultiline '\s+' ' ' | trim))"
+		echo "$(cat "${player_list_file}" | wc --lines) ($(cat "${player_list_file}" | regex --global --find '\s+(.*)' --group 1 | regex --global --multiline --find '\s+' --replace ' ' --trim))"
 	fi
 }
 
@@ -253,25 +253,25 @@ monitorLogs() {
   while [[ "$(statusService "${service}")" == "Powered On" ]];  do
     tail --follow=name --lines 0 "${simple_log_file}" | while read line; do
       processLog "${line}"
-      sleep 5
     done
+    sleep 5
   done
 }
 
 processLog() {
   local match=""
 
-  match="$(regexExtract "${1}" "${server_start_regex}" 1)"
+  match="$(regex --find "${server_start_regex}" --group 1 --input "${1}")"
   if [[ -n "${match}" ]]; then
     sendMessage "Session Started"
   fi
 
-  match="$(regexExtract "${1}" "${player_join_regex}" 2)"
+  match="$(regex --find "${player_join_regex}" --group 2 --input "${1}")"
   if [[ -n "${match}" ]]; then
     sendMessage "Player Joined (${match})"
   fi
 
-  match="$(regexExtract "${1}" "${player_leave_regex}" 2)"
+  match="$(regex --find "${player_leave_regex}" --group 2 --input "${1}")"
   if [[ -n "${match}" ]]; then
     sendMessage "Player Left (${match})"
   fi
@@ -304,7 +304,7 @@ runCommand() {
 	elif [[ "$command" == "debug" ]]; then
 		debugServer
 	elif [[ "${command}" == "command" ]]; then
-		sendCommand "${service}" ${@}
+		sendCommand "${service}" "${@}"
 	elif [[ "${command}" == "start-monitor" ]]; then
 		monitorLogs &
 		startServer

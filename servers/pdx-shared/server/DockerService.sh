@@ -27,7 +27,7 @@ powerOn() {
 sendCommand() {
   local service="${1}"; shift
 	if [[ "$(isActive "${service}")" == "true" ]]; then
-		echo "$(docker exec "$(getId "${service}")" ${@})"
+		echo "$(docker exec "$(getId "${service}")" "${@}")"
 	else
 		echo "Cannot send command from terminated instance"
 	fi
