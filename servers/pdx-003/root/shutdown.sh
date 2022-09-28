@@ -9,7 +9,7 @@ shutdownCommands=('netstat | grep ssh | grep -c ESTABLISHED'
 'bash /home/satisfactory/satisfactory.sh active'
 'bash /home/satisfactory/satisfactory2.sh active'
 'bash /home/satisfactory/satisfactory3.sh active')
-
+statusFile='/home/joe/booted.state'
 minimum_server_boot_time=3600
 
 isTrue() {
@@ -53,8 +53,12 @@ checkActive() {
 		isActive="$(runCommands)"
 		
 		if [[ "$isActive" == "false" ]]; then
+		  printf 'SHUTTING DOWN' > "${statusFile}"
 		  sendMessage "Shutting Down"
 			/sbin/shutdown
+		elif [[ "$(cat "${statusFile}")" != 'BOOTED' ]]; then
+		  printf 'BOOTED' > "${statusFile}"
+		  sendMessage "Started"
 		fi
 	fi
 }

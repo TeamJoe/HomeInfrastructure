@@ -28,6 +28,7 @@ simple_server_date_pattern='\[([^]]+)\].*'
 server_start_regex='\[([^]]+)\].*Session Started.*'
 player_join_regex='\[([^]]+)\].*Player Joined.*\((.*)\)'
 player_leave_regex='\[([^]]+)\].*Player Left.*\((.*)\)'
+server_stop_regex='\[([^]]+)\].*Server Shutdown.*'
 
 externalAddress="${address}:${queryport}"
 startParameters=$(echo \
@@ -250,10 +251,13 @@ startServer() {
 }
 
 monitorLogs() {
-  while [[ "$(statusService "${service}")" == "Powered On" ]];  do
-    tail --follow=name --lines 0 "${simple_log_file}" | while read line; do
+  while [[ 1 ]];  do
+    tail --retry --follow=name --lines 0 "${simple_log_file}" | while read line; do
       processLog "${line}"
     done
+    if [[ "$(statusService "${service}")" != "Powered On" ]]; then
+      break
+    fi
     sleep 5
   done
 }
@@ -263,17 +267,22 @@ processLog() {
 
   match="$(regex --find "${server_start_regex}" --group 1 --input "${1}")"
   if [[ -n "${match}" ]]; then
-    sendMessage "Session Started"
+    sendMessage "[${description}] Session Started"
   fi
 
   match="$(regex --find "${player_join_regex}" --group 2 --input "${1}")"
   if [[ -n "${match}" ]]; then
-    sendMessage "Player Joined (${match})"
+    sendMessage "[${description}] Player Joined (${match})"
   fi
 
   match="$(regex --find "${player_leave_regex}" --group 2 --input "${1}")"
   if [[ -n "${match}" ]]; then
-    sendMessage "Player Left (${match})"
+    sendMessage "[${description}] Player Left (${match})"
+  fi
+
+  match="$(regex --find "${server_stop_regex}" --group 1 --input "${1}")"
+  if [[ -n "${match}" ]]; then
+    sendMessage "[${description}] Session Stopped"
   fi
 }
 
@@ -320,6 +329,7 @@ runCommand() {
 	elif [[ "${command}" == "address" ]]; then
 		echo "${externalAddress}"
 	elif [[ "${command}" == "stop" ]]; then
+	  sendCommand "${service}" '/build/stop.sh'
 		stopService "${service}"
 		killProcess $(getProcess 'tail' "${simple_log_file}")
 	else
