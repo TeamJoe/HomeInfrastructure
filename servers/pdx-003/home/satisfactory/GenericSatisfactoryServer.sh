@@ -72,16 +72,24 @@ getSimpleLogFile() {
 getBootTime() {
 	local date=''
 	local fileNameMatcher='simple\.([^\.]+)\.log'
-	local rawDate="$(head --lines=1 "${simple_log_file}" | regex --find "$fileNameMatcher" --group 1)"
-	readarray -td, date <<< "${rawDate//[T:-]/,}"
-	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
+	local rawDate="$(head --lines=1 "${simple_log_file}" | regex --find "$fileNameMatcher" --group 1 --trim)"
+  if [[ -z "${rawDate}" ]]; then
+    echo "0"
+  else
+    readarray -td, date <<< "${rawDate//[T:-]/,}"
+    echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
+  fi
 }
 
 getStartTime() {
 	local date=''
 	local rawDate="$(cat "${simple_log_file}" | regex --find "${server_start_regex}" --group 1 --trim | tail --lines=1)"
-	readarray -td, date <<< "${rawDate//[T:-]/,}"
-	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
+	if [[ -z "${rawDate}" ]]; then
+	  echo "0"
+	else
+    readarray -td, date <<< "${rawDate//[T:-]/,}"
+    echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
+	fi
 }
 
 getTimeSinceServerBoot() {
