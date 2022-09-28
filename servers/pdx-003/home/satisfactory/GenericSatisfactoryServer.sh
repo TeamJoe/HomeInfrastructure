@@ -72,7 +72,7 @@ getSimpleLogFile() {
 getBootTime() {
 	local date=''
 	local fileNameMatcher='simple\.([^\.]+)\.log'
-	local rawDate="$(head --lines=1 "${simple_log_file}" | regex --find "$fileNameMatcher" --group 1 --trim)"
+	local rawDate="$(head --lines=1 "$(getSimpleLogFile)" | regex --find "$fileNameMatcher" --group 1 --trim)"
   if [[ -z "${rawDate}" ]]; then
     echo "0"
   else
@@ -83,7 +83,18 @@ getBootTime() {
 
 getStartTime() {
 	local date=''
-	local rawDate="$(cat "${simple_log_file}" | regex --find "${server_start_regex}" --group 1 --trim | tail --lines=1)"
+	local rawDate="$(cat "$(getSimpleLogFile)" | regex --find "${server_start_regex}" --group 1 --trim | tail --lines=1)"
+	if [[ -z "${rawDate}" ]]; then
+	  echo "0"
+	else
+    readarray -td, date <<< "${rawDate//[T:-]/,}"
+    echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
+	fi
+}
+
+getShutDownTime() {
+	local date=''
+	local rawDate="$(cat "$(getSimpleLogFile)" | regex --find "${server_stop_regex}" --group 1 --trim | tail --lines=1)"
 	if [[ -z "${rawDate}" ]]; then
 	  echo "0"
 	else
@@ -100,7 +111,7 @@ getLastActivityTime() {
   local date=''
   local rawDate=''
   local log_file="$(getSimpleLogFile)"
-	local rawDate="$(cat "${log_file}" | regex --find "${server_start_regex}" --group 1 --trim | tail --lines=1)"
+	local rawDate="$(cat "${log_file}" | regex --find "${simple_server_date_pattern}" --group 1 --trim | tail --lines=1)"
 	if [[ -n "${rawDate}" ]]; then
     	readarray -td, date <<< "${rawDate//[T:-]/,}"
     	echo "$(date --date="${date[0]}-${date[1]}-${date[2]}T${date[3]}:${date[4]}:${date[5]}" +"%s")"
@@ -207,9 +218,11 @@ getStatus() {
 	local currentTimeStamp=''
 	local bootTimeStamp=''
 	local startTimeStamp=''
+	local shutDownTimeStamp=''
 	local serverBootTime=''
 	local bootTime=''
 	local startTime=''
+	local shutDownTime=''
 	
 	if [ "$(isBooted)" == "true" ]; then
 		if [ "$(isStarted)" == "true" ]; then
@@ -222,11 +235,17 @@ getStatus() {
 		bootTimeStamp="$(getBootTime)"
 		serverBootTime="$(getTimeSinceServerBoot)"
 		bootTime="$((currentTimeStamp-bootTimeStamp))"
-		if [ "$bootTime" -lt "$serverBootTime" ]; then
+		if [[ "$bootTime" -lt "$serverBootTime" ]]; then
 			startTimeStamp="$(getStartTime)"
 			startTime="$((currentTimeStamp-startTimeStamp))"
-			if [ "$startTime" -lt "$bootTime" ]; then
-				echo "Down"
+			if [[ "$startTime" -lt "$bootTime" ]]; then
+			  shutDownTimeStamp="$(getShutDownTime)"
+			  shutDownTime="$((currentTimeStamp-shutDownTimeStamp))"
+			  if [[ "$shutDownTime" -lt "$startTime" ]]; then
+				  echo "Shut Down"
+				else
+				  echo "Down"
+				fi
 			else
 				echo "Failed to Boot"
 			fi
