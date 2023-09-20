@@ -260,7 +260,7 @@ trace() {
   fi
 }
 
-log() {
+log() {p
   if [[ -n "${logFile}" ]]; then
     echo "[$(getTime)] ${*}" >> "${logFile}"
   else

@@ -19,4 +19,6 @@ fi
 #    . /etc/bash_completion
 #fi
 
-. /home/joe/.bash_profile
+if [ -f /home/joe/.bash_profile ]; then
+    . /home/joe/.bash_profile
+fi

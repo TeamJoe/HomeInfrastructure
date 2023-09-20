@@ -1,0 +1,20 @@
+#/home/flaresolverr/flaresolverr.service
+[Unit]
+Description=FlareSolverr Security ByPass
+After=docker.service
+
+[Service]
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
+User=flaresolverr
+Group=docker
+ExecStart=/home/flaresolverr/flaresolverr.sh start-monitor
+ExecStop=/home/flaresolverr/flaresolverr.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

@@ -20,8 +20,6 @@ startParameters=$(echo \
                 "--env AUTO_UPDATE=true" \
                 "--mount type=bind,source=/home/vpn,target=/home/vpn" \
                 "--mount type=bind,source=/home/jackett,target=/home/jackett" \
-                "--mount type=bind,source=/home/jackett/config,target=/config" \
-                "--mount type=bind,source=/home/jackett/downloads,target=/downloads" \
                 "--restart unless-stopped jackett:latest" \
                 )
 

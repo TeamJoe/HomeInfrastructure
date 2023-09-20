@@ -138,6 +138,10 @@ transmission() {
 	sudo -u transmission --shell /bin/bash /home/transmission/transmission.sh "$@"
 }
 
+flaresolverr() {
+	sudo -u flaresolverr --shell /bin/bash /home/flaresolverr/flaresolverr.sh "$@"
+}
+
 #-----------------
 # RegEx Functions
 #-----------------

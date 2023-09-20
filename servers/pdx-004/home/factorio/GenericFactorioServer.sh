@@ -172,7 +172,7 @@ runCommand() {
 	local update="$1"; shift
 	local port="$1"; shift
 	
-	changePort "$port"	
+	changePort "$port"
 	if [ "$update" == 'true' ]; then
 		update
 	fi

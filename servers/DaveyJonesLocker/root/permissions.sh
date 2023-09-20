@@ -44,6 +44,10 @@ chown sonarr:media -R /home/sonarr
 chmod 700 -R /home/sonarr
 chmod 000 /home/sonarr/cred*
 
+chown flaresolverr:media -R /home/flaresolverr
+chmod 775 -R /home/flaresolverr
+chmod 000 /home/flaresolverr/cred*
+
 chown transmission:media -R /home/transmission
 chmod 775 -R /home/transmission
 chmod 000 /home/transmission/cred*

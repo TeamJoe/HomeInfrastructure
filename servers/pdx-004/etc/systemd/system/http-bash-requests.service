@@ -9,7 +9,7 @@ Type=simple
 Restart=always
 RestartSec=5
 User=root
-ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=60 -port=80 \
+ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=240 -port=80 \
 	/ping "echo 'PONG'" \
 	/status "cat /home/joe/status.out" \
 	/factorio/start "systemctl start factorio.service; sleep 5; echo 'Starting Up'" \
@@ -18,6 +18,7 @@ ExecStart=/snap/shell2http/current/bin/shell2http -no-index -add-exit -timeout=6
 	/atm3/start "systemctl start minecraft-atm3.service; sleep 10; echo 'Starting Up'" \
 	/atm3/logs "/home/minecraft/ATM3Server.sh logs" \
 	/atm3/simple "/home/minecraft/ATM3Server.sh simple" \
+	/atm3/download/All+The+Mods+3+-+Remix+2.0.0.zip "cat /home/minecraft/All+The+Mods+3+-+Remix+2.0.0.zip" \
 	/atm5/start "systemctl start minecraft-atm5-1-10.service; sleep 10; echo 'Starting Up'" \
 	/atm5/logs "/home/minecraft/ATM5Server.sh logs" \
 	/atm5/simple "/home/minecraft/ATM5Server.sh simple" \

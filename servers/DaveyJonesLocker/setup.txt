@@ -173,6 +173,18 @@ chmod 700 -R /home/jackett
 systemctl enable /home/jackett/jackett.service
 (cd /etc/systemd/system; systemctl enable jackett)
 
+#~Install flaresolverr
+#hhttps://github.com/FlareSolverr/FlareSolverr
+useradd --system --shell /usr/sbin/nologin flaresolverr
+usermod -g media flaresolverr
+usermod -aG media flaresolverr
+usermod -aG flaresolverr flaresolverr
+usermod -aG docker flaresolverr
+chown flaresolverr:media -R /home/flaresolverr
+chmod 700 -R /home/flaresolverr
+systemctl enable /home/flaresolverr/flaresolverr.service
+(cd /etc/systemd/system; systemctl enable flaresolverr)
+
 #~Install Transmission
 #https://transmissionbt.com/
 useradd --system --shell /usr/sbin/nologin transmission
@@ -200,3 +212,51 @@ chmod 775 -R /home/nzbget
 (cd /home/nzbget/dockerfiles; docker build -f nzbget-pia.Dockerfile -t nzbget .)
 systemctl enable /home/nzbget/nzbget.service
 (cd /etc/systemd/system; systemctl enable nzbget)
+
+#~Initialize Docker For Quicker Setup
+## Stopping all Processes
+systemctl stop ombi
+systemctl stop radarr
+systemctl stop sonarr
+systemctl stop lidarr
+systemctl stop jackett
+systemctl stop flaresolverr
+systemctl stop plex
+systemctl stop transmission
+ombi stop
+radarr stop
+sonarr stop
+lidarr stop
+jackett stop
+flaresolverr stop
+plex stop
+transmission stop
+
+## Removing Current Images
+docker rm $(docker ps --all --quiet --no-trunc)
+docker rmi $(docker images --all --quiet --no-trunc)
+docker volume prune --all
+docker system prune --all
+
+## Caching Latest Images
+docker pull ubuntu:latest
+docker pull ghcr.io/linuxserver/radarr:arm64v8-latest
+docker pull ghcr.io/linuxserver/sonarr:arm64v8-latest
+docker pull ghcr.io/linuxserver/lidarr:arm64v8-latest
+docker pull ghcr.io/linuxserver/plex:arm64v8-latest
+docker pull ghcr.io/linuxserver/ombi:arm64v8-latest
+docker pull ghcr.io/flaresolverr/flaresolverr:latest
+(cd /home/jackett/dockerfiles; docker build -f jackett-pia.Dockerfile -t jackett .)
+(cd /home/transmission/dockerfiles; docker build -f transmission-pia.Dockerfile -t transmission .)
+docker rm $(docker ps --all --filter "status=exited" --quiet --no-trunc)
+docker rmi $(docker images --all --filter "dangling=true" --quiet --no-trunc)
+
+## Starting all Processes
+systemctl start transmission
+systemctl start plex
+systemctl start flaresolverr
+systemctl start jackett
+systemctl start radarr
+systemctl start sonarr
+systemctl start lidarr
+systemctl start ombi
