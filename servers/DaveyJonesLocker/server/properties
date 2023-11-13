@@ -1,11 +1,11 @@
 #/server/properties
 architecture arm64v8
 timezone America/Vancouver
-plex.protocol http
+plex.protocol https
 plex.address lobythepirate.mooo.com
 plex.port 50400
 ombi.protocol http
-ombi.address DaveyJonesLocker.lan
+ombi.address lobythepirate.mooo.com
 ombi.port 50700
 sonarr.protocol http
 sonarr.address DaveyJonesLocker.lan
@@ -21,7 +21,9 @@ bazarr.address DaveyJonesLocker.lan
 bazarr.port 50704
 jackett.protocol http
 jackett.address DaveyJonesLocker.lan
-jackett.port 50800
+flaresolverr.protocol http
+flaresolverr.address DaveyJonesLocker.lan
+flaresolverr.port 50803
 transmission.protocol http
 transmission.address DaveyJonesLocker.lan
 transmission.port 50801

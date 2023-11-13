@@ -32,6 +32,10 @@ chown plex:media -R /home/plex
 chmod 775 -R /home/plex
 chmod 000 /home/plex/cred*
 
+chown plexmeta:media -R /home/plexmeta
+chmod 775 -R /home/plexmeta
+chmod 000 /home/plexmeta/cred*
+
 chown radarr:media -R /home/radarr
 chmod 700 -R /home/radarr
 chmod 000 /home/radarr/cred*
@@ -66,8 +70,12 @@ chmod 555 /home/public
 find /home/public/Videos -type f -exec chmod 664 {} +
 find /home/public/Videos -type d -exec chmod 775 {} +
 chown ftp:ftp /home/public/Videos
+chown sonarr:media -R /home/public/Videos/TV/Anime
+chown sonarr:media -R /home/public/Videos/TV/Hentai
 chown sonarr:media -R /home/public/Videos/TV/Sonarr
 chown plex:media -R /home/public/Videos/TV/Plex
+chown radarr:media -R /home/public/Videos/Movies/Anime
+chown radarr:media -R /home/public/Videos/Movies/Hentai
 chown radarr:media -R /home/public/Videos/Movies/Radarr
 chown plex:media -R /home/public/Videos/Movies/Plex
 chown plex:media -R /home/public/Videos/Other/Plays

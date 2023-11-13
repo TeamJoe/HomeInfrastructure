@@ -26,11 +26,13 @@ mkdir -p '/root'
 mkdir -p '/home/bazarr'
 mkdir -p '/home/compression'
 mkdir -p '/home/docker'
+mkdir -p '/home/flaresolverr'
 mkdir -p '/home/jackett'
 mkdir -p '/home/lidarr'
 mkdir -p '/home/nzbget'
 mkdir -p '/home/ombi'
 mkdir -p '/home/plex'
+mkdir -p '/home/plexmeta/assets'
 mkdir -p '/home/radarr'
 mkdir -p '/home/samba'
 mkdir -p '/home/sonarr'
@@ -98,6 +100,18 @@ chown plex:media -R /home/plex
 chmod 700 -R /home/plex
 systemctl enable /home/plex/plex.service
 (cd /etc/systemd/system; systemctl enable plex)
+
+#~Install Plex Meta Manager
+#https://metamanager.wiki/en/latest/index.html
+useradd --system --shell /usr/sbin/nologin plexmeta
+usermod -g media plexmeta
+usermod -aG media plexmeta
+usermod -aG plexmeta plexmeta
+usermod -aG docker plexmeta
+chown plexmeta:media -R /home/plexmeta
+chmod 700 -R /home/plexmeta
+systemctl enable /home/plexmeta/plexmeta.service
+(cd /etc/systemd/system; systemctl enable plexmeta)
 
 #~Install Sonarr
 #https://sonarr.tv/#features
@@ -221,6 +235,7 @@ systemctl stop sonarr
 systemctl stop lidarr
 systemctl stop jackett
 systemctl stop flaresolverr
+systemctl stop plexmeta
 systemctl stop plex
 systemctl stop transmission
 ombi stop
@@ -229,6 +244,7 @@ sonarr stop
 lidarr stop
 jackett stop
 flaresolverr stop
+plexmeta stop
 plex stop
 transmission stop
 
@@ -243,6 +259,7 @@ docker pull ubuntu:latest
 docker pull ghcr.io/linuxserver/radarr:arm64v8-latest
 docker pull ghcr.io/linuxserver/sonarr:arm64v8-latest
 docker pull ghcr.io/linuxserver/lidarr:arm64v8-latest
+docker pull lscr.io/linuxserver/plex-meta-manager:arm64v8-latest
 docker pull ghcr.io/linuxserver/plex:arm64v8-latest
 docker pull ghcr.io/linuxserver/ombi:arm64v8-latest
 docker pull ghcr.io/flaresolverr/flaresolverr:latest
@@ -254,6 +271,7 @@ docker rmi $(docker images --all --filter "dangling=true" --quiet --no-trunc)
 ## Starting all Processes
 systemctl start transmission
 systemctl start plex
+systemctl start plexmeta
 systemctl start flaresolverr
 systemctl start jackett
 systemctl start radarr

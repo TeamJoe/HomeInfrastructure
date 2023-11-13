@@ -106,6 +106,10 @@ compression() {
 	sudo -u compression --shell /bin/bash /home/compression/compression.sh "$@"
 }
 
+flaresolverr() {
+	sudo -u flaresolverr --shell /bin/bash /home/flaresolverr/flaresolverr.sh "$@"
+}
+
 jackett() {
 	sudo -u jackett --shell /bin/bash /home/jackett/jackett.sh "$@"
 }
@@ -126,6 +130,10 @@ plex() {
 	sudo -u plex --shell /bin/bash /home/plex/plex.sh "$@"
 }
 
+plexmeta() {
+	sudo -u plex --shell /bin/bash /home/plexmeta/plexmeta.sh "$@"
+}
+
 radarr() {
 	sudo -u radarr --shell /bin/bash /home/radarr/radarr.sh "$@"
 }
@@ -136,10 +144,6 @@ sonarr() {
 
 transmission() {
 	sudo -u transmission --shell /bin/bash /home/transmission/transmission.sh "$@"
-}
-
-flaresolverr() {
-	sudo -u flaresolverr --shell /bin/bash /home/flaresolverr/flaresolverr.sh "$@"
 }
 
 #-----------------

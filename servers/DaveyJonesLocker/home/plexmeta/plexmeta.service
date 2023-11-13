@@ -1,0 +1,20 @@
+#/home/plexmeta/plexmeta.service
+[Unit]
+Description=Plex Meta Manager
+After=docker.service
+
+[Service]
+Type=simple
+#RemainAfterExit=no
+#Restart=no
+Restart=always
+RestartSec=5
+User=metadata
+Group=docker
+ExecStart=/home/plexmeta/plexmeta.sh start-monitor
+ExecStop=/home/plexmeta/plexmeta.sh stop
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
