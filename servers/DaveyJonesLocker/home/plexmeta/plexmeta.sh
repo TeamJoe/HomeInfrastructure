@@ -1,7 +1,7 @@
 #!/bin/bash
 # /home/plexmeta/plexmeta.sh
 
-service='plexmeta'
+service='metadata'
 description='Plex Meta Manager'
 timezone="$(/server/Properties.sh 'timezone')"
 architecture="$(/server/Properties.sh 'architecture')"

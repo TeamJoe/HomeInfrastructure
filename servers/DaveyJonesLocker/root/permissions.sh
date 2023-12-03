@@ -67,6 +67,9 @@ chmod 000 /home/vsftpd/cred*
 chown ftp:ftp /home/public
 chmod 555 /home/public
 
+chown ftp:ftp /home2/public
+chmod 555 /home2/public
+
 find /home/public/Videos -type f -exec chmod 664 {} +
 find /home/public/Videos -type d -exec chmod 775 {} +
 chown ftp:ftp /home/public/Videos

@@ -1,29 +1,23 @@
 libraries:
-  TV Shows:
-    operations:
-      split_duplicates: true
-  Movies:
-    operations:
-      split_duplicates: true
   Anime (Movies):
     operations:
-      mass_genre_update: mal
+      mass_genre_update: anidb
       mass_studio_update: mal
       mass_content_rating_update: mal
       mass_original_title_update: mal_japanese
-      mass_originally_available_update: mal
+      mass_originally_available_update: anidb
       mass_audience_rating_update: mal
-      mass_critic_rating_update: mdb_imdb
+      mass_user_rating_update: anidb_rating
       split_duplicates: true
   Anime (Series):
     operations:
-      mass_genre_update: mal
+      mass_genre_update: anidb
       mass_studio_update: mal
       mass_content_rating_update: mal
       mass_original_title_update: mal_japanese
-      mass_originally_available_update: mal
+      mass_originally_available_update: anidb
       mass_audience_rating_update: mal
-      mass_critic_rating_update: mdb_tomatoes
+      mass_user_rating_update: anidb_rating
       split_duplicates: true
 settings:
   cache: true
