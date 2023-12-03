@@ -19,10 +19,6 @@ startParameters=$(echo \
                 "--mount type=bind,source=/home/ombi,target=/home/ombi" \
                 "--mount type=bind,source=/home/public,target=/home/public" \
                 "--mount type=bind,source=/home2/public,target=/home2/public" \
-                "--mount type=bind,source=/home2/public/Videos/Movies/Anime,target=/home/public/Videos/Movies/Anime" \
-                "--mount type=bind,source=/home2/public/Videos/Movies/Hentai,target=/home/public/Videos/Movies/Hentai" \
-                "--mount type=bind,source=/home2/public/TV/Movies/Anime,target=/home/public/TV/Movies/Anime" \
-                "--mount type=bind,source=/home2/public/TV/Movies/Hentai,target=/home/public/TV/Movies/Hentai" \
                 "--restart unless-stopped ghcr.io/linuxserver/ombi:${architecture}-latest" \
                 )
 
