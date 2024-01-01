@@ -1,0 +1,21 @@
+# defaults for transmission-daemon
+# sourced by /etc/init.d/transmission-daemon
+
+# Change to 0 to disable daemon
+ENABLE_DAEMON=1
+
+# This directory stores some runtime information, like torrent files
+# and links to the config file, which itself can be found in
+# /etc/transmission-daemon/settings.json
+TRANSMISSION_DIR="${TRANSMISSION_DIR-/home/transmission}"
+CONFIG_DIR="${CONFIG_DIR-${TRANSMISSION_DIR}/info}"
+LOG_FILE="${LOG_FILE-${TRANSMISSION_DIR}/logs/transmission-$(date '+%Y-%m-%d').log}"
+LOG_LEVEL="${LOG_LEVEL-info}"
+echo "[$(date '+%Y-%m-%d-%H-%M-%S%z')][${LOG_LEVEL}] Transmission Started" >> "${LOG_FILE}"
+
+# Default options for daemon, see transmission-daemon(1) for more options
+
+OPTIONS="--config-dir ${CONFIG_DIR} --log-${LOG_LEVEL} --logfile ${LOG_FILE}"
+
+# (optional) extra options to start-stop-daemon
+#START_STOP_OPTIONS="--iosched idle --nicelevel 10"

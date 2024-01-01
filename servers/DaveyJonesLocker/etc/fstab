@@ -1,7 +1,7 @@
-LABEL=writable	/	 ext4	defaults	0	0
-LABEL=system-boot	/boot/firmware	vfat	defaults	0	1
-/dev/sda1	/home	ext4	defaults,auto,exec	0	2
-/dev/sdb1	/home2	ext4	defaults,auto,exec,nofail	0	2
+LABEL=writable  /        ext4   defaults        0       0
+LABEL=system-boot       /boot/firmware  vfat    defaults        0       1
+UUID=fae45826-e054-46ef-88e5-ab8d93036dbd       /home   ext4    defaults,auto,exec,nofail       0       2
+UUID=c580217a-99fa-40d0-9ff3-57669102f301       /home2  ext4    defaults,auto,exec,nofail       0       2
 /home2/public/Videos/Movies/Anime /home/public/Videos/Movies/Anime none defaults,bind,exec,nofail 0 0
 /home2/public/Videos/Movies/Hentai /home/public/Videos/Movies/Hentai none defaults,bind,exec,nofail 0 0
 /home2/public/Videos/TV/Anime /home/public/Videos/TV/Anime none defaults,bind,exec,nofail 0 0

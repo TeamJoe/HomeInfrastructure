@@ -36,6 +36,13 @@ getMediaDisk() {
 	echo "${mediaUsed}GiB/${mediaAvailable}GiB"
 }
 
+getMediaDisk2() {
+	local mediaUsed="$(( "$(df -m | awk 'NR>2 && /^\/dev\/sdb1/{sum+=$3}END{print sum}')" / 1024 ))"
+	local mediaAvailable="$(( "$(df -m | awk 'NR>2 && /^\/dev\/sdb1/{sum+=$2}END{print sum}')" / 1024 ))"
+
+	echo "${mediaUsed}GiB/${mediaAvailable}GiB"
+}
+
 getTemperature() {
 	echo "$( sensors | grep '.*temp1.*' | awk '{print $2}' | cut -c 2-)"
 }
@@ -53,7 +60,8 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Temperature: $(getTemperature)"'
 'echo "&nbsp;&nbsp;Memory: $(getMemory)"'
 'echo "&nbsp;&nbsp;Disk: $(getDisk)"'
-'echo "&nbsp;&nbsp;Media Drive: $(getMediaDisk)"'
+'echo "&nbsp;&nbsp;Media Drive #1: $(getMediaDisk)"'
+'echo "&nbsp;&nbsp;Media Drive #2: $(getMediaDisk2)"'
 ''
 'echo "<b>Plex</b>"'
 'echo "&nbsp;&nbsp;Status: $(/home/plex/plex.sh status)"'

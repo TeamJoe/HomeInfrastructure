@@ -35,11 +35,10 @@ RUN apt-get update && \
 		transmission-daemon && \
 	service transmission-daemon stop
 
-ARG TRANSMISSION_DIR=/home/transmission
-RUN echo 'ENABLE_DAEMON=1'"\n" \
-		"CONFIG_DIR=\"${TRANSMISSION_DIR}/info\"\n" \
-		'OPTIONS="--config-dir ${CONFIG_DIR}"'"\n"  > /etc/default/transmission-daemon && \
-	mkdir -p "${TRANSMISSION_DIR}" && \
+ENV TRANSMISSION_DIR=/home/transmission
+COPY ./files/etc/default/transmission-daemon /etc/default/transmission-daemon
+RUN chmod 555 /etc/default/transmission-daemon && \
+    mkdir -p "${TRANSMISSION_DIR}" && \
 	mv /var/lib/transmission-daemon/info "${TRANSMISSION_DIR}/info" && \
 	mv /var/lib/transmission-daemon/.config "${TRANSMISSION_DIR}/.config" && \
 	mv /etc/transmission-daemon/settings.json "${TRANSMISSION_DIR}/info/settings.json" && \
@@ -58,66 +57,11 @@ ARG TRANSMISSION_WHITELIST_ENABLED=false
 RUN mv "${TRANSMISSION_DIR}/info/settings.json" "${TRANSMISSION_DIR}/info/settings.json.bak" && \
 	jq -M ".\"rpc-username\"=\"${TRANSMISSION_USER}\" | .\"rpc-password\"=\"${TRANSMISSION_PASSWORD}\" | .\"rpc-port\"=${TRANSMISSION_PORT} | .\"rpc-whitelist\"=\"${TRANSMISSION_WHITELIST}\" | .\"rpc-whitelist-enabled\"=${TRANSMISSION_WHITELIST_ENABLED} | .\"download-dir\"=\"${TRANSMISSION_DIR}/downloads\" | .\"incomplete-dir\"=\"${TRANSMISSION_DIR}/incomplete\" | .\"incomplete-dir-enabled\"=true" "${TRANSMISSION_DIR}/info/settings.json.bak" > "${TRANSMISSION_DIR}/info/settings.json"
 
-ARG PIA_USER=
-ARG PIA_PASS=
-ARG PIA_PF=true
-ARG DISABLE_IPV6=true
-ARG AUTOCONNECT=true
-ARG VPN_PROTOCOL=openvpn_udp_standard
-ARG MAX_LATENCY=0.05
-ARG PREFERRED_REGION=none
-ARG PIA_DNS=true
+ENV LOG_LEVEL=info
 RUN mkdir build && \
-	useradd --system --shell /usr/sbin/nologin vpn && \
-	echo '#!/bin/bash'"\n" \
-		'GATEWAY="$(ip -4 route ls | grep default | grep -Po '"'"'(?<=via )(\S+)'"'"')"'"\n" \
-		'IP="$(hostname -I | awk '"'"'{print $1}'"'"')"'"\n" \
-		'if [ -n "${PUID}" ]; then usermod -u "${PUID}" debian-transmission; fi '"\n" \
-		'if [ -n "${PGID}" ]; then groupmod -g "${PGID}" debian-transmission; fi '"\n" \
-		'if [ -n "${VUID}" ]; then usermod -u "${VUID}" vpn; fi '"\n" \
-		'if [ -n "${VGID}" ]; then groupmod -g "${VGID}" vpn; fi '"\n" \
-		'PIA_PF="${PIA_PF:-'"${PIA_PF:-true}"'}" '"\n" \
-		'cd /etc/pia'"\n" \
-            'PIA_USER="${PIA_USER:-'$( if [ -n "${PIA_USER}" ]; then echo "${PIA_USER}"; else echo '$(cat /home/vpn/credentials | awk '"'NR==1'"')'; fi )'}" ' \
-            'PIA_PASS="${PIA_PASS:-'$( if [ -n "${PIA_PASS}" ]; then echo "${PIA_PASS}"; else echo '$(cat /home/vpn/credentials | awk '"'NR==2'"')'; fi )'}" ' \
-            'PIA_PF="${PIA_PF}" ' \
-            'DISABLE_IPV6="${DISABLE_IPV6:-'"${DISABLE_IPV6:-true}"'}" ' \
-            'AUTOCONNECT="${AUTOCONNECT:-'"${AUTOCONNECT:-true}"'}" ' \
-            'VPN_PROTOCOL="${VPN_PROTOCOL:-'"${VPN_PROTOCOL:-openvpn_udp_standard}"'}" ' \
-            'MAX_LATENCY="${MAX_LATENCY:-'"${MAX_LATENCY:-0.05}"'}" ' \
-            'PREFERRED_REGION="${PREFERRED_REGION:-'"${PREFERRED_REGION:-none}"'}" ' \
-            'PIA_DNS="${PIA_DNS:-'"${PIA_DNS:-true}"'}" ' \
-		    '/etc/pia/run_setup.sh > /build/setup.out &'"\n" \
-		'while ! ip link show dev $(ip link | grep -o tun[0-9]*) >/dev/null 2>&1 ; do sleep .5 ; done'"\n" \
-		'TUNNEL="$(ip link | grep -o tun[0-9]*)"'"\n" \
-		'ip rule add from ${IP} table 128'"\n" \
-		'ip route add table 128 to ${GATEWAY}/8 dev eth0'"\n" \
-		'ip route add table 128 default via ${GATEWAY}'"\n" \
-		'if [ "${PIA_PF}" = "true" ]; then'"\n" \
-			'while [ -z "$(cat /build/setup.out | grep "Forwarded port" | grep -o "[0-9]*")" ]; do sleep .5 ; done'"\n" \
-			'PORT="$(cat /build/setup.out | grep "Forwarded port" | grep -o "[0-9]*")"'"\n" \
-		'else'"\n" \
-			'PORT=0'"\n" \
-		'fi'"\n" \
-		'if [ -f '"'${TRANSMISSION_DIR}/info/settings.json.template'"' ]; then'"\n" \
-			"cp '${TRANSMISSION_DIR}/info/settings.json' '${TRANSMISSION_DIR}/info/settings.json.template'\n" \
-		'fi'"\n" \
-		'jq -M ".\"peer-port\"=${PORT}" '"'${TRANSMISSION_DIR}/info/settings.json.template'"' > '"'${TRANSMISSION_DIR}/info/settings.json'\n" \
-		'chown debian-transmission:debian-transmission -R '"'${TRANSMISSION_DIR}'\n" \
-		'sudo su debian-transmission -s /etc/init.d/transmission-daemon -- start'"\n" \
-        'for i in {1..1000}; do'"\n" \
-            "if [[ -n \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" && -n \"\$(ps -u debian-transmission | awk 'NR!=1{print \$1}')\" ]]; then break; fi\n" \
-            'sleep 1'"\n" \
-        'done'"\n" \
-        "trap '{ echo \"Quit Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGQUIT\n" \
-        "trap '{ echo \"Abort Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGABRT\n" \
-        "trap '{ echo \"Interrupt Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGINT\n" \
-        "trap '{ echo \"Terminate Signal Received\" ; kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') ; }' SIGTERM\n" \
-        'while true; do'"\n" \
-            "if [[ -z \"\$(ip link show dev \${TUNNEL} 2> /dev/null)\" || -z \"\$(ps -u debian-transmission | awk 'NR!=1{print \$1}')\" ]]; then break; fi\n" \
-            'sleep 1'"\n" \
-        'done'"\n" \
-        "kill -9 \$(ps -u debian-transmission | awk 'NR!=1{print \$1}') \$(ps ax | grep debian-transmission | awk '{print \$1}')\n" > /build/start.sh && \
-	chmod 555 /build/start.sh
+	useradd --system --shell /usr/sbin/nologin vpn
 
-CMD ["/bin/bash", "/build/start.sh"]
+COPY ./files/build/start-pia.sh /build/start-pia.sh
+RUN chmod 555 /build/start-pia.sh
+
+CMD ["/bin/bash", "/build/start-pia.sh"]
