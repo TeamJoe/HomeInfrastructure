@@ -8,6 +8,8 @@ address="$(/server/Properties.sh 'flaresolverr.address')"
 port="$(/server/Properties.sh 'flaresolverr.port')"
 timezone="$(/server/Properties.sh 'timezone')"
 externalAddress="${protocol}://${address}:${port}"
+imageName='ghcr.io/linuxserver/flaresolverr'
+imageVersion='latest'
 startParameters=$(echo \
                 "--publish ${port}:8191" \
                 "--env PUID=$(id -u flaresolverr)" \
@@ -16,8 +18,8 @@ startParameters=$(echo \
                 "--env LOG_LEVEL=info" \
                 "--env VERSION=latest" \
                 "--mount type=bind,source=/home/flaresolverr,target=/home/flaresolverr" \
-                "--restart unless-stopped ghcr.io/flaresolverr/flaresolverr:latest" \
+                "--rm" \
+                "--restart unless-stopped" \
                 )
 
-/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "$1"
-
+/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "${imageName}:${imageVersion}" ''  "$1"

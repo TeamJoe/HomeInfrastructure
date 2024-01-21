@@ -8,6 +8,9 @@ address="$(/server/Properties.sh 'jackett.address')"
 port="$(/server/Properties.sh 'jackett.port')"
 timezone="$(/server/Properties.sh 'timezone')"
 externalAddress="${protocol}://${address}:${port}"
+imageName='jackett'
+imageVersion='latest'
+installCommand='(cd /home/jackett/dockerfiles; docker build -f jackett-pia.Dockerfile -t jackett .)'
 startParameters=$(echo \
                 "--cap-add=NET_ADMIN" \
                 "--device /dev/net/tun" \
@@ -20,8 +23,8 @@ startParameters=$(echo \
                 "--env AUTO_UPDATE=true" \
                 "--mount type=bind,source=/home/vpn,target=/home/vpn" \
                 "--mount type=bind,source=/home/jackett,target=/home/jackett" \
-                "--restart unless-stopped jackett:latest" \
+                "--rm" \
+                "--restart unless-stopped \
                 )
 
-/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "$1"
-
+/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "${imageName}:${imageVersion}" "${installCommand}" "$1"

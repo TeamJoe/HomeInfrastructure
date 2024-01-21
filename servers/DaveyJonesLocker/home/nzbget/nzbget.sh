@@ -8,6 +8,9 @@ address="$(/server/Properties.sh 'nzbget.address')"
 port="$(/server/Properties.sh 'nzbget.port')"
 timezone="$(/server/Properties.sh 'timezone')"
 externalAddress="${protocol}://${address}:${port}"
+imageName='nzbget'
+imageVersion='latest'
+installCommand='(cd /home/nzbget/dockerfiles; docker build -f nzbget-pia.Dockerfile -t nzbget .)'
 startParameters=$(echo \
                 "--cap-add=NET_ADMIN" \
                 "--device /dev/net/tun" \
@@ -21,7 +24,8 @@ startParameters=$(echo \
                 "--mount type=bind,source=/home/nzbget,target=/home/nzbget" \
                 "--mount type=bind,source=/home/public,target=/home/public" \
                 "--mount type=bind,source=/home2/public,target=/home2/public" \
-                "--restart unless-stopped nzbget:latest" \
+                "--rm" \
+                "--restart unless-stopped" \
                 )
 
-/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "$1"
+/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "${imageName}:${imageVersion}" "${installCommand}" "$1"

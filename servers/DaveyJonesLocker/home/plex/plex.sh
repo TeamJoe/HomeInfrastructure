@@ -9,6 +9,8 @@ port="$(/server/Properties.sh 'plex.port')"
 timezone="$(/server/Properties.sh 'timezone')"
 architecture="$(/server/Properties.sh 'architecture')"
 externalAddress="${protocol}://${address}:${port}/web"
+imageName='ghcr.io/linuxserver/plex'
+imageVersion="${architecture}-latest"
 startParameters=$(echo \
                 "--publish ${port}:32400" \
                 "--publish 3005:3005/udp" \
@@ -27,7 +29,8 @@ startParameters=$(echo \
                 "--mount type=bind,source=/home/plex,target=/home/plex" \
                 "--mount type=bind,source=/home/public,target=/home/public" \
                 "--mount type=bind,source=/home2/public,target=/home2/public" \
-                "--restart unless-stopped ghcr.io/linuxserver/plex:${architecture}-latest" \
+                "--rm" \
+                "--restart unless-stopped" \
                 )
 
-/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "$1"
+/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "${imageName}:${imageVersion}" '' "$1"

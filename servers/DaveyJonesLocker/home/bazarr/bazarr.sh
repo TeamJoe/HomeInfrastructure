@@ -9,6 +9,8 @@ port="$(/server/Properties.sh 'bazarr.port')"
 timezone="$(/server/Properties.sh 'timezone')"
 architecture="$(/server/Properties.sh 'architecture')"
 externalAddress="${protocol}://${address}:${port}"
+imageName='ghcr.io/linuxserver/bazarr'
+imageVersion="${architecture}-latest"
 startParameters=$(echo \
                 "--publish ${port}:6767" \
                 "--env PUID=$(id -u bazarr)" \
@@ -19,7 +21,8 @@ startParameters=$(echo \
                 "--mount type=bind,source=/home/bazarr,target=/home/bazarr" \
                 "--mount type=bind,source=/home/public,target=/home/public" \
                 "--mount type=bind,source=/home2/public,target=/home2/public" \
-                "--restart unless-stopped ghcr.io/linuxserver/bazarr:${architecture}-latest" \
+                "--rm" \
+                "--restart unless-stopped" \
                 )
 
-/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "$1"
+/server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "${imageName}:${imageVersion}" '' "$1"

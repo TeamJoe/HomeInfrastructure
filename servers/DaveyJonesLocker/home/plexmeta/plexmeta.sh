@@ -1,12 +1,13 @@
 #!/bin/bash
 # /home/plexmeta/plexmeta.sh
 
-
+description='Plex Meta Manager [Single Shot]'
+timezone="$(/server/Properties.sh 'timezone')"
+architecture="$(/server/Properties.sh 'architecture')"
+imageName='lscr.io/linuxserver/plex-meta-manager'
+imageVersion="${architecture}-latest"
 if [[ "$2" == 'once' ]]; then
   service='oncemeta'
-  description='Plex Meta Manager [Single Shot]'
-  timezone="$(/server/Properties.sh 'timezone')"
-  architecture="$(/server/Properties.sh 'architecture')"
   startParameters=$(echo \
                   "--env PUID=$(id -u plexmeta)" \
                   "--env PGID=$(id -g plexmeta)" \
@@ -18,13 +19,11 @@ if [[ "$2" == 'once' ]]; then
                   "--env PMM_NO_MISSING=False" \
                   "--mount type=bind,source=/home/plexmeta,target=/config" \
                   "--mount type=bind,source=/home/plexmeta,target=/home/plexmeta" \
-                  "lscr.io/linuxserver/plex-meta-manager:${architecture}-latest --run-once" \
+                  "--rm" \
+                  "--run-once" \
                   )
 else
   service='metadata'
-  description='Plex Meta Manager'
-  timezone="$(/server/Properties.sh 'timezone')"
-  architecture="$(/server/Properties.sh 'architecture')"
   startParameters=$(echo \
                   "--env PUID=$(id -u plexmeta)" \
                   "--env PGID=$(id -g plexmeta)" \
@@ -37,10 +36,10 @@ else
                   "--env PMM_NO_MISSING=False" \
                   "--mount type=bind,source=/home/plexmeta,target=/config" \
                   "--mount type=bind,source=/home/plexmeta,target=/home/plexmeta" \
-                  "--restart unless-stopped lscr.io/linuxserver/plex-meta-manager:${architecture}-latest" \
+                  "--rm" \
+                  "--restart unless-stopped" \
                   )
 fi
 
 
-/server/DockerService.sh "$0" "$service" "$description" "" "$startParameters" "$1"
-
+/server/DockerService.sh "$0" "$service" "$description" "" "$startParameters" "${imageName}:${imageVersion}" '' "$1"

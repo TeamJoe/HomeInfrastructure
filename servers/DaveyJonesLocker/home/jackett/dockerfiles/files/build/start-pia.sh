@@ -2,10 +2,10 @@
 
 # Setting Start-up Variables
 VPN_CREDENTIALS="${VPN_CREDENTIALS:-/home/vpn/credentials}"
-SERVICE_DIRECTORY="${TRANSMISSION_DIR:-/home/transmission}"
-LOG_DIRECTORY="${LOG_DIRECTORY:-/home/transmission/logs}"
-SERVICE_USERNAME="${TRANSMISSION_USER:-debian-transmission}"
-SERVICE_USERGROUP="${TRANSMISSION_GROUP:-debian-transmission}"
+SERVICE_DIRECTORY="${JACKETT_DIR:-/etc/jackett}"
+LOG_DIRECTORY="${LOG_DIRECTORY:-/home/jackett/logs}"
+SERVICE_USERNAME="${JACKETT_USER:-jackett}"
+SERVICE_USERGROUP="${JACKETT_GROUP:-jackett}"
 VPN_USERNAME="${VPN_USER:-vpn}"
 VPN_USERGROUP="${VPN_GROUP:-vpn}"
 LOG_LEVEL="${LOG_LEVEL:-info}"
@@ -28,7 +28,7 @@ fi
 # Establish Directory Ownership
 mkdir -p "${LOG_DIRECTORY}"
 chown ${SERVICE_USERNAME}:${SERVICE_USERGROUP} -R "${LOG_DIRECTORY}"
-chown ${SERVICE_USERNAME}:${SERVICE_USERGROUP} -R "${DIRECTORY}"
+chown ${SERVICE_USERNAME}:${SERVICE_USERGROUP} -R "${SERVICE_DIRECTORY}"
 
 # Establishing VPN Connection
 cd /etc/pia
@@ -60,14 +60,8 @@ else
   PORT=0
 fi
 
-# Editing Transmission Settings
-if [ -f "${SERVICE_DIRECTORY}/info/settings.json.template" ]; then
-  cp "${SERVICE_DIRECTORY}/info/settings.json" "${SERVICE_DIRECTORY}/info/settings.json.template"
-fi
-jq -M ".\"peer-port\"=${PORT}" "${SERVICE_DIRECTORY}/info/settings.json.template" > "${SERVICE_DIRECTORY}/info/settings.json"
-
-# Starting Transmission
-sudo su ${SERVICE_USERNAME} -s /etc/init.d/transmission-daemon -- start
+# Starting Jackett
+sudo su ${SERVICE_USERNAME} -s "${SERVICE_DIRECTORY}/jackett" > "${LOG_DIRECTORY}/jackett-output.log"
 for i in {1..1000}; do
   if [[ -n "$(ip link show dev ${TUNNEL} 2> /dev/null)" && -n "$(ps -u ${SERVICE_USERNAME} | awk 'NR!=1{print $1}')" ]]; then
     break
