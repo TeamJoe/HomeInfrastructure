@@ -20,6 +20,7 @@ upgrade() {
   plexmeta upgrade
   plex upgrade
   transmission upgrade
+  transmission restart
 }
 
 dockerClean

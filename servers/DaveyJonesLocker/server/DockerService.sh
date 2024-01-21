@@ -96,8 +96,12 @@ currentStatus() {
 }
 
 restartService() {
-  stopService
-  startUp
+  if [[ "$(isActive)" == 'true' ]]; then
+    stopService
+    startUp
+  else
+    echo "Already Off"
+  fi
 }
 
 installService() {
