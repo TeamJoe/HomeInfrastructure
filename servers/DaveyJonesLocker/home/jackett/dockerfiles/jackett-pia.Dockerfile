@@ -46,6 +46,7 @@ RUN mkdir -p "${JACKETT_DIR}" && \
 
 ENV LOG_LEVEL=info
 RUN mkdir build && \
+	useradd --system --shell /usr/sbin/nologin jackett && \
 	useradd --system --shell /usr/sbin/nologin vpn
 
 COPY ./files/build/start-pia.sh /build/start-pia.sh

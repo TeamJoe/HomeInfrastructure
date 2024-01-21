@@ -7,9 +7,10 @@ ENABLE_DAEMON=1
 # This directory stores some runtime information, like torrent files
 # and links to the config file, which itself can be found in
 # /etc/transmission-daemon/settings.json
-TRANSMISSION_DIR="${TRANSMISSION_DIR-/home/transmission}"
-CONFIG_DIR="${CONFIG_DIR-${TRANSMISSION_DIR}/info}"
-LOG_FILE="${LOG_FILE-${TRANSMISSION_DIR}/logs/transmission-$(date '+%Y-%m-%d').log}"
+SERVICE_DIRECTORY="${TRANSMISSION_DIR-/home/transmission}"
+CONFIG_DIR="${CONFIG_DIR-"${SERVICE_DIRECTORY}/info"}"
+LOG_DIRECTORY="${LOG_DIRECTORY:-"${SERVICE_DIRECTORY}/logs"}"
+LOG_FILE="${LOG_FILE-"${LOG_DIRECTORY}/transmission-$(date '+%Y-%m-%d').log"}"
 LOG_LEVEL="${LOG_LEVEL-info}"
 echo "[$(date '+%Y-%m-%d-%H-%M-%S%z')][${LOG_LEVEL}] Transmission Started" >> "${LOG_FILE}"
 

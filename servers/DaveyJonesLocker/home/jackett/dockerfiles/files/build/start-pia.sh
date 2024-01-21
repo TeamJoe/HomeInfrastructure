@@ -52,10 +52,10 @@ ip rule add from ${IP} table 128
 ip route add table 128 to ${GATEWAY}/8 dev eth0
 ip route add table 128 default via ${GATEWAY}
 if [ "${PIA_PF}" = "true" ]; then
-  while [ -z "$(cat /build/setup.out | grep "Forwarded port" | grep -o "[0-9]*")" ]; do
+  while [ -z "$(cat "${LOG_DIRECTORY}/pia-output.log" | grep "Forwarded port" | grep -o "[0-9]*")" ]; do
     sleep .5
   done
-  PORT="$(cat /build/setup.out | grep "Forwarded port" | grep -o "[0-9]*")"
+  PORT="$(cat "${LOG_DIRECTORY}/pia-output.log" | grep "Forwarded port" | grep -o "[0-9]*")"
 else
   PORT=0
 fi
