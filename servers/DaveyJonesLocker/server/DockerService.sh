@@ -120,11 +120,13 @@ upgradeService() {
     echo "Not Installed. Try using 'install' command instead."
   elif [[ -n "${imageId}" ]]; then
     install
-    if [[ "$(isActive)" == 'true' ]]; then
-        restartService
-    fi
-    if [[ -n "${imageId}" ]] && [[ "${imageId}" != "$(getImageId)" ]]; then
-      docker rmi -f ${imageId}
+    if [[ "${imageId}" != "$(getImageId)" ]]; then
+      if [[ "$(isActive)" == 'true' ]]; then
+          restartService
+      fi
+      if [[ -n "${imageId}" ]]; then
+        docker rmi -f ${imageId}
+      fi
     fi
   fi
 }
