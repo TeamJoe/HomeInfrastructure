@@ -144,9 +144,9 @@ runCommand() {
 	elif [[ "$command" == "monitor" ]]; then
 		monitor
 	elif [[ "$command" == "status" ]]; then
-		echo "$(currentStatus)"
+		currentStatus
 	elif [[ "$command" == "ip" ]]; then
-		echo "$(getIP)"
+		getIP
 	elif [[ "$command" == "bash" ]]; then
 		openBash
 	elif [[ "$command" == "description" ]]; then
@@ -154,13 +154,13 @@ runCommand() {
 	elif [[ "$command" == "address" ]]; then
 		echo "$externalAddress"
 	elif [[ "$command" == "install" ]]; then
-    echo "$(installService)"
+    installService
 	elif [[ "$command" == "upgrade" ]]; then
-  	echo "$(upgradeService)"
+  	upgradeService
   elif [[ "$command" == "restart" ]]; then
-  	echo "$(restartService)"
+  	restartService
 	elif [[ "$command" == "stop" ]]; then
-		echo "$(stopService)"
+		stopService
 	else
 		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|bash|description|address|install|upgrade|restart|stop]"
 		exit 1
