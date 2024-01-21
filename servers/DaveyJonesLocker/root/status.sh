@@ -51,6 +51,22 @@ getIP() {
 	echo "$( curl --location --silent ifconfig.co )"
 }
 
+getDockerStats() {
+  local runner="${1}"
+  local linePrefix="${2}"
+  local newLine="${3:-<br/>}"
+  local status="$(eval "${runner} status")"
+  echo "${linePrefix}Status: ${status}"
+  if [[ "${status}" == "Powered On" ]]; then
+    echo "${newLine}${linePrefix}CPU: $(eval "${runner} stat-cpu")"
+    echo "${newLine}${linePrefix}Memory: $(eval "${runner} stat-mem")"
+    echo "${newLine}${linePrefix}Network In: $(eval "${runner} stat-neti")"
+    echo "${newLine}${linePrefix}Network Out: $(eval "${runner} stat-neto")"
+    echo "${newLine}${linePrefix}Disk In: $(eval "${runner} stat-blki")"
+    echo "${newLine}${linePrefix}Disk Out: $(eval "${runner} stat-blko")"
+  fi
+}
+
 stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Host: $(getHostname)"'
 'echo "&nbsp;&nbsp;Date: $(date +"%D %T")"'
@@ -64,60 +80,60 @@ stats=('echo "<b>Server Stats</b>"'
 'echo "&nbsp;&nbsp;Media Drive #2: $(getMediaDisk2)"'
 ''
 'echo "<b>Plex</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/plex/plex.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/plex/plex.sh description)"'
+'getDockerStats "/home/plex/plex.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/plex/plex.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Plex Meta Manager</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/plexmeta/plexmeta.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/plexmeta/plexmeta.sh description)"'
+'getDockerStats "/home/plexmeta/plexmeta.sh" "&nbsp;&nbsp;"'
 ''
 'echo "<b>OMBI</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/ombi/ombi.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/ombi/ombi.sh description)"'
+'getDockerStats "/home/ombi/ombi.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/ombi/ombi.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Sonarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/sonarr/sonarr.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/sonarr/sonarr.sh description)"'
+'getDockerStats "/home/sonarr/sonarr.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/sonarr/sonarr.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Radarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/radarr/radarr.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/radarr/radarr.sh description)"'
+'getDockerStats "/home/radarr/radarr.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/radarr/radarr.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Lidarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/lidarr/lidarr.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/lidarr/lidarr.sh description)"'
+'getDockerStats "/home/lidarr/lidarr.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/lidarr/lidarr.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Bazarr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/bazarr/bazarr.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/bazarr/bazarr.sh description)"'
+'getDockerStats "/home/bazarr/bazarr.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/bazarr/bazarr.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Jackett</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/jackett/jackett.sh status)"'
-'echo "&nbsp;&nbsp;IP: $(/home/jackett/jackett.sh ip)"'
 'echo "&nbsp;&nbsp;Description: $(/home/jackett/jackett.sh description)"'
+'getDockerStats "/home/jackett/jackett.sh" "&nbsp;&nbsp;"'
+'echo "&nbsp;&nbsp;IP: $(/home/jackett/jackett.sh ip)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/jackett/jackett.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>FlareSolverr</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/flaresolverr/flaresolverr.sh status)"'
 'echo "&nbsp;&nbsp;Description: $(/home/flaresolverr/flaresolverr.sh description)"'
+'getDockerStats "/home/flaresolverr/flaresolverr.sh" "&nbsp;&nbsp;"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/flaresolverr/flaresolverr.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Transmission</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/transmission/transmission.sh status)"'
-'echo "&nbsp;&nbsp;IP: $(/home/transmission/transmission.sh ip)"'
 'echo "&nbsp;&nbsp;Description: $(/home/transmission/transmission.sh description)"'
+'getDockerStats "/home/transmission/transmission.sh" "&nbsp;&nbsp;"'
+'echo "&nbsp;&nbsp;IP: $(/home/transmission/transmission.sh ip)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/transmission/transmission.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>NZBGet</b>"'
-'echo "&nbsp;&nbsp;Status: $(/home/nzbget/nzbget.sh status)"'
-'echo "&nbsp;&nbsp;IP: $(/home/nzbget/nzbget.sh ip)"'
 'echo "&nbsp;&nbsp;Description: $(/home/nzbget/nzbget.sh description)"'
+'getDockerStats "/home/nzbget/nzbget.sh" "&nbsp;&nbsp;"'
+'echo "&nbsp;&nbsp;IP: $(/home/nzbget/nzbget.sh ip)"'
 'echo "&nbsp;&nbsp;Links: <a href='"'"'$(/home/nzbget/nzbget.sh address)'"'"'>Link</a>"'
 ''
 'echo "<b>Compression - x264 - Ultra Fast</b>"'
@@ -155,7 +171,7 @@ getResults() {
 	for i in $(echo ${!stats[@]}); do
 		echo "$(cat "/tmp/status-${i}.result")"
 		rm "/tmp/status-${i}.result"
-		echo '</br>'
+		echo '<br/>'
 	done
 	echo '</p></body></html>'
 }

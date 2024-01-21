@@ -50,9 +50,43 @@ powerOn() {
 getIP() {
 	if [[ "$(isActive)" == 'true' ]]; then
 		echo "$(docker exec "$(getId)" curl --location --silent ipconfig.me)"
-	else
-		echo "Cannot get ip from terminated instance"
 	fi
+}
+
+getStatCpu() {
+	if [[ "$(isActive)" == 'true' ]]; then
+    echo "$(docker stats ${service} --no-stream --no-trunc --format "{{.CPUPerc}}")" | tr -d ' '
+  fi
+}
+
+getStatMemory() {
+	if [[ "$(isActive)" == 'true' ]]; then
+    echo "$(docker stats ${service} --no-stream --no-trunc --format "{{.MemUsage}}")" | cut -f1 -d"/" | tr -d ' '
+  fi
+}
+
+getStatNetworkInput() {
+	if [[ "$(isActive)" == 'true' ]]; then
+    echo "$(docker stats ${service} --no-stream --no-trunc --format "{{.NetIO}}")" | cut -f1 -d"/" | tr -d ' '
+  fi
+}
+
+getStatNetworkOutput() {
+	if [[ "$(isActive)" == 'true' ]]; then
+    echo "$(docker stats ${service} --no-stream --no-trunc --format "{{.NetIO}}")" | cut -f2 -d"/" | tr -d ' '
+  fi
+}
+
+getStatBlockInput() {
+	if [[ "$(isActive)" == 'true' ]]; then
+    echo "$(docker stats ${service} --no-stream --no-trunc --format "{{.BlockIO}}")" | cut -f1 -d"/" | tr -d ' '
+  fi
+}
+
+getStatBlockOutput() {
+	if [[ "$(isActive)" == 'true' ]]; then
+    echo "$(docker stats ${service} --no-stream --no-trunc --format "{{.BlockIO}}")" | cut -f2 -d"/" | tr -d ' '
+  fi
 }
 
 openBash() {
@@ -158,6 +192,18 @@ runCommand() {
 		currentStatus
 	elif [[ "$command" == "ip" ]]; then
 		getIP
+  elif [[ "$command" == "stat-cpu" ]]; then
+    getStatCpu
+  elif [[ "$command" == "stat-mem" ]]; then
+    getStatMemory
+  elif [[ "$command" == "stat-neti" ]]; then
+    getStatNetworkInput
+  elif [[ "$command" == "stat-neto" ]]; then
+    getStatNetworkOutput
+  elif [[ "$command" == "stat-blki" ]]; then
+    getStatBlockInput
+  elif [[ "$command" == "stat-blko" ]]; then
+    getStatBlockOutput
 	elif [[ "$command" == "bash" ]]; then
 		openBash
 	elif [[ "$command" == "description" ]]; then
@@ -173,7 +219,7 @@ runCommand() {
 	elif [[ "$command" == "stop" ]]; then
 		stopService
 	else
-		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|bash|description|address|install|upgrade|restart|stop]"
+		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|upgrade|restart|stop]"
 		exit 1
 	fi
 }
