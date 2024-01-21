@@ -23,8 +23,7 @@ startParameters=$(echo \
                 "--env AUTO_UPDATE=true" \
                 "--mount type=bind,source=/home/vpn,target=/home/vpn" \
                 "--mount type=bind,source=/home/jackett,target=/home/jackett" \
-                "--rm" \
-                "--restart unless-stopped \
+                "--restart unless-stopped" \
                 )
 
 /server/DockerService.sh "$0" "$service" "$description" "$externalAddress" "$startParameters" "${imageName}:${imageVersion}" "${installCommand}" "$1"

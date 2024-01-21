@@ -39,7 +39,10 @@ install() {
 }
 
 powerOn() {
-	docker rm "$(docker ps --filter name=${service} -q --all)"
+  local containerId="$(docker ps --filter name=${service} -q --all)"
+  if [[ -n "${containerId}" ]]; then
+	 docker rm --volumes ${containerId}
+  fi
 	docker run -d --name ${service} ${startParameters[@]} ${image}
 	echo "Service Started"
 }
@@ -100,10 +103,10 @@ restartService() {
 installService() {
   if [[ -z "${installCommand}" ]]; then
     exit "Service does not support install"
-  elif [[ "$(isActive)" == 'true' ]]; then
-    echo "Already On"
   elif [[ "$(isInstalled)" == 'true' ]]; then
-    echo "Already Installed"
+    echo "Already Installed. Try using 'upgrade' command instead."
+  elif [[ "$(isActive)" == 'true' ]]; then
+    echo "Already On. Must be configured poorly in order to be 'On' byt not 'Installed'."
   else
     install
   fi
@@ -113,12 +116,14 @@ upgradeService() {
   local imageId="$(getImageId)"
   if [[ -z "${installCommand}" ]]; then
     exit "Service does not support upgrade"
-  else
+  elif [[ "$(isInstalled)" != 'true' ]]; then
+    echo "Not Installed. Try using 'install' command instead."
+  elif [[ -n "${imageId}" ]]; then
     install
     if [[ "$(isActive)" == 'true' ]]; then
         restartService
     fi
-    if [[ -n "${imageId}" ]]; then
+    if [[ -n "${imageId}" ]] && [[ "${imageId}" != "$(getImageId)" ]]; then
       docker rmi -f ${imageId}
     fi
   fi

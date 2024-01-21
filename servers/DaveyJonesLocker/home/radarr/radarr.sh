@@ -21,7 +21,6 @@ startParameters=$(echo \
                 "--mount type=bind,source=/home/radarr,target=/home/radarr" \
                 "--mount type=bind,source=/home/public,target=/home/public" \
                 "--mount type=bind,source=/home2/public,target=/home2/public" \
-                "--rm" \
                 "--restart unless-stopped" \
                 )
 

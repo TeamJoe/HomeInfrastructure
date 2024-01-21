@@ -8,7 +8,7 @@ address="$(/server/Properties.sh 'flaresolverr.address')"
 port="$(/server/Properties.sh 'flaresolverr.port')"
 timezone="$(/server/Properties.sh 'timezone')"
 externalAddress="${protocol}://${address}:${port}"
-imageName='ghcr.io/linuxserver/flaresolverr'
+imageName='ghcr.io/flaresolverr/flaresolverr'
 imageVersion='latest'
 startParameters=$(echo \
                 "--publish ${port}:8191" \
@@ -18,7 +18,6 @@ startParameters=$(echo \
                 "--env LOG_LEVEL=info" \
                 "--env VERSION=latest" \
                 "--mount type=bind,source=/home/flaresolverr,target=/home/flaresolverr" \
-                "--rm" \
                 "--restart unless-stopped" \
                 )
 

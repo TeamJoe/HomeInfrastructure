@@ -25,8 +25,9 @@ mkdir -p '/server'
 mkdir -p '/root'
 mkdir -p '/home/bazarr'
 mkdir -p '/home/compression'
-mkdir -p '/home/docker'
+mkdir -p '/home/docker/.data'
 mkdir -p '/home/flaresolverr'
+mkdir -p '/home/jackett/logs'
 mkdir -p '/home/jackett'
 mkdir -p '/home/lidarr'
 mkdir -p '/home/nzbget'
@@ -79,8 +80,8 @@ sudo crontab -u compression -e
 
 #~Add Permission cron job
 sudo crontab -u root -e
-# 0 * * * * /root/permissions.sh
-# 0 0 * * 1 systemctl restart transmission
+# 0 23 * * * /root/permissions.sh
+# 0 1 * * 1 /root/upgrade.sh
 
 #~Setup Users & Groups
 groupadd media
@@ -254,23 +255,23 @@ plex stop
 transmission stop
 
 ## Removing Current Images
-docker rm $(docker ps --all --quiet --no-trunc)
+docker rm --volumes $(docker ps --all --quiet --no-trunc)
 docker rmi $(docker images --all --quiet --no-trunc)
 docker volume prune --all
 docker system prune --all
 
 ## Caching Latest Images
 docker pull ubuntu:latest
-docker pull ghcr.io/linuxserver/radarr:arm64v8-latest
-docker pull ghcr.io/linuxserver/sonarr:arm64v8-latest
-docker pull ghcr.io/linuxserver/lidarr:arm64v8-latest
-docker pull lscr.io/linuxserver/plex-meta-manager:arm64v8-latest
-docker pull ghcr.io/linuxserver/plex:arm64v8-latest
-docker pull ghcr.io/linuxserver/ombi:arm64v8-latest
-docker pull ghcr.io/flaresolverr/flaresolverr:latest
-(cd /home/jackett/dockerfiles; docker build -f jackett-pia.Dockerfile -t jackett .)
-(cd /home/transmission/dockerfiles; docker build -f transmission-pia.Dockerfile -t transmission .)
-docker rm $(docker ps --all --filter "status=exited" --quiet --no-trunc)
+ombi install
+radarr install
+sonarr install
+lidarr install
+jackett install
+flaresolverr install
+plexmeta install
+plex install
+transmission install
+docker rm --volumes $(docker ps --all --filter "status=exited" --quiet --no-trunc)
 docker rmi $(docker images --all --filter "dangling=true" --quiet --no-trunc)
 
 ## Starting all Processes
