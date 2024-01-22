@@ -8,8 +8,8 @@ chown compression:compression -R /home/compression
 chmod 700 -R /home/compression
 chmod 000 /home/compression/cred*
 
-chown docker:docker -R /home/docker
-chmod 700 -R /home/docker
+#chown docker:docker -R /home/docker
+#chmod 700 -R /home/docker
 chmod 000 /home/docker/cred*
 
 chown jackett:media -R /home/jackett
