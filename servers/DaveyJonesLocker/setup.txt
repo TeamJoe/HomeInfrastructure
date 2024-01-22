@@ -255,8 +255,8 @@ plex stop
 transmission stop
 
 ## Removing Current Images
-docker rm --volumes $(docker ps --all --quiet --no-trunc)
-docker rmi $(docker images --all --quiet --no-trunc)
+docker rm --force --volumes $(docker ps --all --quiet --no-trunc)
+docker rmi --force $(docker images --all --quiet --no-trunc)
 docker volume prune --all
 docker system prune --all
 
