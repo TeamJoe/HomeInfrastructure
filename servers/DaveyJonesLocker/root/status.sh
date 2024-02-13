@@ -58,12 +58,9 @@ getDockerStats() {
   local status="$(eval "${runner} status")"
   echo "${linePrefix}Status: ${status}"
   if [[ "${status}" == "Powered On" ]]; then
-    echo "${newLine}${linePrefix}CPU: $(eval "${runner} stat-cpu")"
-    echo "${newLine}${linePrefix}Memory: $(eval "${runner} stat-mem")"
-    echo "${newLine}${linePrefix}Network In: $(eval "${runner} stat-neti")"
-    echo "${newLine}${linePrefix}Network Out: $(eval "${runner} stat-neto")"
-    echo "${newLine}${linePrefix}Disk In: $(eval "${runner} stat-blki")"
-    echo "${newLine}${linePrefix}Disk Out: $(eval "${runner} stat-blko")"
+    echo "${newLine}${linePrefix}CPU/Memory: $(eval "${runner} stat-cpu") / $(eval "${runner} stat-mem")"
+    echo "${newLine}${linePrefix}Network In/Out: $(eval "${runner} stat-neti") / $(eval "${runner} stat-neto")"
+    echo "${newLine}${linePrefix}Disk In/Out: $(eval "${runner} stat-blki") / $(eval "${runner} stat-blko")"
   fi
 }
 

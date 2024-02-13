@@ -150,6 +150,16 @@ installService() {
   fi
 }
 
+updateService() {
+  if [[ -z "${installCommand}" ]]; then
+    exit "Service does not support update"
+  elif [[ "$(isInstalled)" != 'true' ]]; then
+    echo "Not Installed. Try using 'install' command instead."
+  else
+    install
+  fi
+}
+
 upgradeService() {
   local imageId="$(getImageId)"
   if [[ -z "${installCommand}" ]]; then
@@ -212,6 +222,8 @@ runCommand() {
 		echo "$externalAddress"
 	elif [[ "$command" == "install" ]]; then
     installService
+  elif [[ "$command" == "update" ]]; then
+    updateService
 	elif [[ "$command" == "upgrade" ]]; then
   	upgradeService
   elif [[ "$command" == "restart" ]]; then
@@ -219,7 +231,7 @@ runCommand() {
 	elif [[ "$command" == "stop" ]]; then
 		stopService
 	else
-		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|upgrade|restart|stop]"
+		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|update|upgrade|restart|stop]"
 		exit 1
 	fi
 }

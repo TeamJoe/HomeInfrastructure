@@ -8,19 +8,23 @@ dockerClean() {
   docker rmi ${imageIds}
 }
 
+runService() {
+  sudo -u ${1} --shell /bin/bash /home/${1}/${1}.sh ${2}
+}
+
 upgrade() {
   docker pull ubuntu:latest
-  ombi upgrade
-  radarr upgrade
-  sonarr upgrade
-  lidarr upgrade
-  bazarr upgrade
-  jackett upgrade
-  flaresolverr upgrade
-  plexmeta upgrade
-  plex upgrade
-  transmission upgrade
-  transmission restart
+  runService ombi upgrade
+  runService radarr upgrade
+  runService sonarr upgrade
+  runService lidarr upgrade
+  runService bazarr upgrade
+  runService jackett upgrade
+  runService flaresolverr upgrade
+  runService plexmeta upgrade
+  runService plex upgrade
+  runService transmission update
+  runService transmission restart
 }
 
 dockerClean
