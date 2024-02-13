@@ -95,6 +95,12 @@ usermod -aG compression compression
 mkdir -p /home/vpn
 printf "<Username/Email>\n<Password>" > /home/vpn/credentials
 
+## Removing Current Images
+docker rm --force --volumes $(docker ps --all --quiet --no-trunc)
+docker rmi --force $(docker images --all --quiet --no-trunc)
+docker volume prune --all
+docker system prune --all
+
 #~Install Plex
 #https://www.plex.tv/media-server-downloads/
 useradd --system --shell /usr/sbin/nologin plex
@@ -104,8 +110,8 @@ usermod -aG plex plex
 usermod -aG docker plex
 chown plex:media -R /home/plex
 chmod 700 -R /home/plex
-systemctl enable /home/plex/plex.service
-(cd /etc/systemd/system; systemctl enable plex)
+/home/plex/plex.sh install
+/home/plex/plex.sh enable
 
 #~Install Plex Meta Manager
 #https://metamanager.wiki/en/latest/index.html
@@ -116,8 +122,8 @@ usermod -aG plexmeta plexmeta
 usermod -aG docker plexmeta
 chown plexmeta:media -R /home/plexmeta
 chmod 700 -R /home/plexmeta
-systemctl enable /home/plexmeta/plexmeta.service
-(cd /etc/systemd/system; systemctl enable plexmeta)
+/home/plexmeta/plexmeta.sh install
+# /home/plexmeta/plexmeta.sh enable
 
 #~Install Sonarr
 #https://sonarr.tv/#features
@@ -128,8 +134,8 @@ usermod -aG sonarr sonarr
 usermod -aG docker sonarr
 chown sonarr:media -R /home/sonarr
 chmod 700 -R /home/sonarr
-systemctl enable /home/sonarr/sonarr.service
-(cd /etc/systemd/system; systemctl enable sonarr)
+/home/sonarr/sonarr.sh install
+/home/sonarr/sonarr.sh enable
 
 #~Install Radarr
 #https://radarr.video/
@@ -140,8 +146,8 @@ usermod -aG radarr radarr
 usermod -aG docker radarr
 chown radarr:media -R /home/radarr
 chmod 700 -R /home/radarr
-systemctl enable /home/radarr/radarr.service
-(cd /etc/systemd/system; systemctl enable radarr)
+/home/radarr/radarr.sh install
+/home/radarr/radarr.sh enable
 
 #~Install Lidarr
 #https://lidarr.audio/
@@ -152,8 +158,8 @@ usermod -aG lidarr lidarr
 usermod -aG docker lidarr
 chown lidarr:media -R /home/lidarr
 chmod 700 -R /home/lidarr
-systemctl enable /home/lidarr/lidarr.service
-(cd /etc/systemd/system; systemctl enable lidarr)
+/home/lidarr/lidarr.sh install
+/home/lidarr/lidarr.sh enable
 
 #~Install Bazaar
 #https://www.bazarr.media/
@@ -164,8 +170,8 @@ usermod -aG bazarr bazarr
 usermod -aG docker bazarr
 chown bazarr:media -R /home/bazarr
 chmod 700 -R /home/bazarr
-systemctl enable /home/bazarr/bazarr.service
-(cd /etc/systemd/system; systemctl enable bazarr)
+# /home/bazarr/bazarr.sh install
+# /home/bazarr/bazarr.sh enable
 
 #~Install OMBI
 #https://ombi.io/
@@ -176,8 +182,8 @@ usermod -aG ombi ombi
 usermod -aG docker ombi
 chown ombi:media -R /home/ombi
 chmod 700 -R /home/ombi
-systemctl enable /home/ombi/ombi.service
-(cd /etc/systemd/system; systemctl enable ombi)
+/home/ombi/ombi.sh install
+/home/ombi/ombi.sh enable
 
 #~Install Jackett
 #https://github.com/Jackett/Jackett
@@ -189,9 +195,8 @@ usermod -aG docker jackett
 usermod -aG vpn jackett
 chown jackett:media -R /home/jackett
 chmod 700 -R /home/jackett
-(cd /home/jackett/dockerfiles; docker build -f jackett-pia.Dockerfile -t jackett .)
-systemctl enable /home/jackett/jackett.service
-(cd /etc/systemd/system; systemctl enable jackett)
+/home/jackett/jackett.sh install
+/home/jackett/jackett.sh enable
 
 #~Install flaresolverr
 #hhttps://github.com/FlareSolverr/FlareSolverr
@@ -202,8 +207,8 @@ usermod -aG flaresolverr flaresolverr
 usermod -aG docker flaresolverr
 chown flaresolverr:media -R /home/flaresolverr
 chmod 700 -R /home/flaresolverr
-systemctl enable /home/flaresolverr/flaresolverr.service
-(cd /etc/systemd/system; systemctl enable flaresolverr)
+# /home/flaresolverr/flaresolverr.sh install
+# /home/flaresolverr/flaresolverr.sh enable
 
 #~Install Transmission
 #https://transmissionbt.com/
@@ -215,9 +220,8 @@ usermod -aG docker transmission
 usermod -aG vpn transmission
 chown transmission:media -R /home/transmission
 chmod 775 -R /home/transmission
-(cd /home/transmission/dockerfiles; docker build -f transmission-pia.Dockerfile -t transmission .)
-systemctl enable /home/transmission/transmission.service
-(cd /etc/systemd/system; systemctl enable transmission)
+/home/transmission/transmission.sh install
+/home/transmission/transmission.sh enable
 
 #~Install Nzbget
 #https://nzbget.net/
@@ -229,56 +233,16 @@ usermod -aG docker nzbget
 usermod -aG vpn nzbget
 chown nzbget:media -R /home/nzbget
 chmod 775 -R /home/nzbget
-(cd /home/nzbget/dockerfiles; docker build -f nzbget-pia.Dockerfile -t nzbget .)
-systemctl enable /home/nzbget/nzbget.service
-(cd /etc/systemd/system; systemctl enable nzbget)
+# /home/nzbget/nzbget.sh install
+# /home/nzbget/nzbget.sh enable
 
-#~Initialize Docker For Quicker Setup
-## Stopping all Processes
-systemctl stop ombi
-systemctl stop radarr
-systemctl stop sonarr
-systemctl stop lidarr
-systemctl stop jackett
-systemctl stop flaresolverr
-systemctl stop plexmeta
-systemctl stop plex
-systemctl stop transmission
-ombi stop
-radarr stop
-sonarr stop
-lidarr stop
-jackett stop
-flaresolverr stop
-plexmeta stop
-plex stop
-transmission stop
-
-## Removing Current Images
-docker rm --force --volumes $(docker ps --all --quiet --no-trunc)
-docker rmi --force $(docker images --all --quiet --no-trunc)
-docker volume prune --all
-docker system prune --all
-
-## Caching Latest Images
-docker pull ubuntu:latest
-ombi install
-radarr install
-sonarr install
-lidarr install
-jackett install
-flaresolverr install
-plexmeta install
-plex install
-transmission install
-docker rm --volumes $(docker ps --all --filter "status=exited" --quiet --no-trunc)
-docker rmi $(docker images --all --filter "dangling=true" --quiet --no-trunc)
-
-## Starting all Processes
+# Starting all Processes
+# systemctl start nzbget
 systemctl start transmission
 systemctl start plex
-systemctl start plexmeta
-systemctl start flaresolverr
+# systemctl start plexmeta
+# systemctl start flaresolverr
+# systemctl start bazarr
 systemctl start jackett
 systemctl start radarr
 systemctl start sonarr

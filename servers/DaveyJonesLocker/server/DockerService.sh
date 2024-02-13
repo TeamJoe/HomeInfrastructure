@@ -8,6 +8,8 @@ externalAddress="$1"; shift
 startParameters="$1"; shift
 image="$1"; shift
 installCommand="${1:-"docker image pull ${image}"}"; shift
+enableCommand="sudo systemctl enable /home/${service}/${service}.service"
+disableCommand="sudo systemctl disable ${service}.service"
 command="$1"; shift
 
 getImageId() {
@@ -129,6 +131,14 @@ currentStatus() {
 	fi
 }
 
+enableService() {
+  eval "${enableCommand}"
+}
+
+disableService() {
+  eval "${disableCommand}"
+}
+
 restartService() {
   if [[ "$(isActive)" == 'true' ]]; then
     stopService
@@ -198,6 +208,10 @@ runCommand() {
 	  monitor
 	elif [[ "$command" == "monitor" ]]; then
 		monitor
+	elif [[ "$command" == "enable" ]]; then
+		enableService
+	elif [[ "$command" == "disable" ]]; then
+		disableService
 	elif [[ "$command" == "status" ]]; then
 		currentStatus
 	elif [[ "$command" == "ip" ]]; then
@@ -231,7 +245,7 @@ runCommand() {
 	elif [[ "$command" == "stop" ]]; then
 		stopService
 	else
-		echo "Usage: $runPath [start|start-monitor|monitor|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|update|upgrade|restart|stop]"
+		echo "Usage: $runPath [start|start-monitor|monitor|enable|disable|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|update|upgrade|restart|stop]"
 		exit 1
 	fi
 }
