@@ -53,7 +53,7 @@ debugService() {
 	if [[ "$(isActive "${1}")" == "true" ]]; then
 		echo "Already On"
 	else
-		echo "$(powerOn ${service} --detach --entrypoint /usr/bin/sleep ${@} infinity)"
+		echo "$(powerOn ${service} --detach --entrypoint /bin/sleep ${@} infinity)"
 	fi
 }
 

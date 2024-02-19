@@ -40,13 +40,22 @@ install() {
   eval "${installCommand}"
 }
 
-powerOn() {
+startService() {
   local containerId="$(docker ps --filter name=${service} -q --all)"
   if [[ -n "${containerId}" ]]; then
 	 docker rm --volumes ${containerId}
   fi
-	docker run -d --name ${service} ${startParameters[@]} ${image}
+	docker run --detach --name ${service} ${startParameters[@]} ${image}
 	echo "Service Started"
+}
+
+debugService() {
+  local containerId="$(docker ps --filter name=${service} -q --all)"
+  if [[ -n "${containerId}" ]]; then
+	 docker rm --volumes ${containerId}
+  fi
+	docker run --detach --entrypoint /bin/sleep --name ${service} ${startParameters[@]} ${image} infinity
+	echo "Service Debugging"
 }
 
 getIP() {
@@ -99,14 +108,25 @@ openBash() {
 	fi
 }
 
-startUp() {
+startService() {
 	if [[ "$(isActive)" == 'true' ]]; then
 		echo "Already On"
 	else
 	  if [[ "$(isInstalled)" != 'true' ]]; then
 	    install
 	  fi
-		echo "$(powerOn)"
+		echo "$(startService)"
+	fi
+}
+
+startDebug() {
+	if [[ "$(isActive)" == 'true' ]]; then
+		echo "Already On"
+	else
+	  if [[ "$(isInstalled)" != 'true' ]]; then
+	    install
+	  fi
+		echo "$(debugService)"
 	fi
 }
 
@@ -202,10 +222,12 @@ runCommand() {
 	local command="$1"; shift
 	
 	if [[ "$command" == "start" ]]; then
-		startUp
+		startService
 	elif [[ "$command" == "start-monitor" ]]; then
-	  startUp
+	  startService
 	  monitor
+	elif [[ "$command" == "debug" ]]; then
+	  startDebug
 	elif [[ "$command" == "monitor" ]]; then
 		monitor
 	elif [[ "$command" == "enable" ]]; then
@@ -245,7 +267,7 @@ runCommand() {
 	elif [[ "$command" == "stop" ]]; then
 		stopService
 	else
-		echo "Usage: $runPath [start|start-monitor|monitor|enable|disable|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|update|upgrade|restart|stop]"
+		echo "Usage: $runPath [start|start-monitor|debug|monitor|enable|disable|status|ip|stat-cpu|stat-mem|stat-neti|stat-neto|stat-blki|stat-blko|bash|description|address|install|update|upgrade|restart|stop]"
 		exit 1
 	fi
 }
