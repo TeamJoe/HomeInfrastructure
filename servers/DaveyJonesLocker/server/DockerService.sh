@@ -40,7 +40,7 @@ install() {
   eval "${installCommand}"
 }
 
-startService() {
+runService() {
   local containerId="$(docker ps --filter name=${service} -q --all)"
   if [[ -n "${containerId}" ]]; then
 	 docker rm --volumes ${containerId}
@@ -115,7 +115,7 @@ startService() {
 	  if [[ "$(isInstalled)" != 'true' ]]; then
 	    install
 	  fi
-		echo "$(startService)"
+		echo "$(runService)"
 	fi
 }
 
