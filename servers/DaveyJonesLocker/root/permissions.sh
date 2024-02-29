@@ -76,10 +76,12 @@ chown ftp:ftp /home/public/Videos
 chown sonarr:media -R /home/public/Videos/TV/Anime
 chown sonarr:media -R /home/public/Videos/TV/Hentai
 chown sonarr:media -R /home/public/Videos/TV/Sonarr
+chown sonarr:media -R /home/public/Videos/TV/Sonarr-Hentai
 chown plex:media -R /home/public/Videos/TV/Plex
 chown radarr:media -R /home/public/Videos/Movies/Anime
 chown radarr:media -R /home/public/Videos/Movies/Hentai
 chown radarr:media -R /home/public/Videos/Movies/Radarr
+chown radarr:media -R /home/public/Videos/Movies/Radarr-Hentai
 chown plex:media -R /home/public/Videos/Movies/Plex
 chown plex:media -R /home/public/Videos/Other/Plays
 chown plex:media -R '/home/public/Videos/Other/Music Videos'

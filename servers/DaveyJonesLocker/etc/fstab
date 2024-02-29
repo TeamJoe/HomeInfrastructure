@@ -4,5 +4,7 @@ UUID=fae45826-e054-46ef-88e5-ab8d93036dbd       /home   ext4    defaults,auto,ex
 UUID=c580217a-99fa-40d0-9ff3-57669102f301       /home2  ext4    defaults,auto,exec,nofail       0       2
 /home2/public/Videos/Movies/Anime /home/public/Videos/Movies/Anime none defaults,bind,exec,nofail 0 0
 /home2/public/Videos/Movies/Hentai /home/public/Videos/Movies/Hentai none defaults,bind,exec,nofail 0 0
+/home2/public/Videos/Movies/Radarr-Hentai /home/public/Videos/Movies/Radarr-Hentai none defaults,bind,exec,nofail 0 0
 /home2/public/Videos/TV/Anime /home/public/Videos/TV/Anime none defaults,bind,exec,nofail 0 0
 /home2/public/Videos/TV/Hentai /home/public/Videos/TV/Hentai none defaults,bind,exec,nofail 0 0
+/home2/public/Videos/TV/Sonarr-Hentai /home/public/Videos/TV/Sonarr-Hentai none defaults,bind,exec,nofail 0 0
