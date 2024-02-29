@@ -162,7 +162,7 @@ disableService() {
 restartService() {
   if [[ "$(isActive)" == 'true' ]]; then
     stopService
-    startUp
+    startService
   else
     echo "Already Off"
   fi
@@ -170,7 +170,8 @@ restartService() {
 
 installService() {
   if [[ -z "${installCommand}" ]]; then
-    exit "Service does not support install"
+    echo "Service does not support install"
+    exit 1
   elif [[ "$(isInstalled)" == 'true' ]]; then
     echo "Already Installed. Try using 'upgrade' command instead."
   elif [[ "$(isActive)" == 'true' ]]; then
@@ -182,7 +183,8 @@ installService() {
 
 updateService() {
   if [[ -z "${installCommand}" ]]; then
-    exit "Service does not support update"
+    echo "Service does not support upgrade"
+    exit 1
   elif [[ "$(isInstalled)" != 'true' ]]; then
     echo "Not Installed. Try using 'install' command instead."
   else
@@ -193,7 +195,8 @@ updateService() {
 upgradeService() {
   local imageId="$(getImageId)"
   if [[ -z "${installCommand}" ]]; then
-    exit "Service does not support upgrade"
+    echo "Service does not support upgrade"
+    exit 1
   elif [[ "$(isInstalled)" != 'true' ]]; then
     echo "Not Installed. Try using 'install' command instead."
   elif [[ -n "${imageId}" ]]; then

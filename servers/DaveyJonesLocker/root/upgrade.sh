@@ -1,6 +1,8 @@
 #!/bin/bash
 # /root/upgrade.sh
 
+LOG_FILE='/root/upgrade.log'
+
 dockerClean() {
   local containerIds="$(docker ps --all --filter "status=exited" --quiet --no-trunc)"
   docker rm --volumes ${containerIds}
@@ -27,6 +29,11 @@ upgrade() {
   runService transmission restart
 }
 
-dockerClean
-upgrade
-dockerClean
+upgradeServices() {
+  echo "[$(date -u "+%Y-%m-%dT%H:%M:%SZ")]"
+  dockerClean
+  upgrade
+  dockerClean
+}
+
+upgradeServices >> "${LOG_FILE}" 2>&1
